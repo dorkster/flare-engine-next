@@ -43,8 +43,7 @@ extern std::ostream & operator<< (std::ostream &, const SDL_SysWMEvent &);
 #else
 extern std::ostream & operator<< (std::ostream &, const SDL_ResizeEvent &);
 extern std::ostream & operator<< (std::ostream &, const SDL_ExposeEvent &);
-#endif
-extern std::ostream & operator<< (std::ostream &, const SDL_Rect &);
+extern std::ostream & operator<< (std::ostream &, const Rect &);
 extern std::ostream & operator<< (std::ostream &, const Point &);
 
 #endif

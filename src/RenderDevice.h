@@ -92,14 +92,14 @@ public:
 struct Renderable {
 public:
 	Image sprite; // image to be used
-	SDL_Rect src; // location on the sprite in pixel coordinates.
+	Rect src; // location on the sprite in pixel coordinates.
 
 	FPoint map_pos;     // The map location on the floor between someone's feet
 	Point offset;      // offset from map_pos to topleft corner of sprite
 	uint64_t prio;     // 64-32 bit for map position, 31-16 for intertile position, 15-0 user dependent, such as Avatar.
 	Renderable()
 		: sprite(Image())
-		, src(SDL_Rect())
+		, src(Rect())
 		, map_pos()
 		, offset()
 		, prio(0)
@@ -110,15 +110,15 @@ class ISprite {
 
 public:
 	ISprite()
-		: local_frame(SDL_Rect())
+		: local_frame(Rect())
 		, sprite(Image())
-		, src(SDL_Rect())
+		, src(Rect())
 		, offset()
 		, dest()
 	{}
 	virtual ~ISprite() {}
 
-	SDL_Rect local_frame;
+	Rect local_frame;
 
 	virtual void setGraphics(Image s, bool setClipToFull = true) = 0;
 	virtual Image * getGraphics() = 0;
@@ -127,14 +127,14 @@ public:
 	virtual void setOffset(const Point& _offset) = 0;
 	virtual void setOffset(const int x, const int y) = 0;
 	virtual Point getOffset() = 0;
-	virtual void setClip(const SDL_Rect& clip) = 0;
+	virtual void setClip(const Rect& clip) = 0;
 	virtual void setClip(const int x, const int y, const int w, const int h) = 0;
 	virtual void setClipX(const int x) = 0;
 	virtual void setClipY(const int y) = 0;
 	virtual void setClipW(const int w) = 0;
 	virtual void setClipH(const int h) = 0;
-	virtual SDL_Rect getClip() = 0;
-	virtual void setDest(const SDL_Rect& _dest) = 0;
+	virtual Rect getClip() = 0;
+	virtual void setDest(const Rect& _dest) = 0;
 	virtual void setDest(const Point& _dest) = 0;
 	virtual void setDest(int x, int y) = 0;
 	virtual void setDestX(int x) = 0;
@@ -145,7 +145,7 @@ public:
 
 protected:
 	Image sprite; // image to be used
-	SDL_Rect src; // location on the sprite in pixel coordinates.
+	Rect src; // location on the sprite in pixel coordinates.
 	Point offset;      // offset from map_pos to topleft corner of sprite
 	FPoint dest;
 };
@@ -167,18 +167,18 @@ public:
 	 */
 	virtual int createContext(int width, int height) = 0;
 
-	virtual SDL_Rect getContextSize() = 0;
+	virtual Rect getContextSize() = 0;
 
 	/** Render a Renderable to the screen.
 	 */
 	virtual int render(ISprite& r) = 0;
-	virtual int render(Renderable& r, SDL_Rect dest) = 0;
-	virtual int renderImage(Image* image, SDL_Rect& src) = 0;
-	virtual int renderToImage(Image* src_image, SDL_Rect& src, Image* dest_image, SDL_Rect& dest, bool dest_is_transparent = false) = 0;
+	virtual int render(Renderable& r, Rect dest) = 0;
+	virtual int renderImage(Image* image, Rect& src) = 0;
+	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false) = 0;
 
 	/** Render text to the screen.
 	 */
-	virtual int renderText(TTF_Font *ttf_font, const std::string& text, SDL_Color color, SDL_Rect& dest) = 0;
+	virtual int renderText(TTF_Font *ttf_font, const std::string& text, SDL_Color color, Rect& dest) = 0;
 
 	/** Renders text to an image, but does not actually blit it
 	 */
@@ -240,7 +240,7 @@ public:
 	 */
 	virtual void destroyContext() = 0;
 
-	virtual void fillImageWithColor(Image *dst, SDL_Rect *dstrect, Uint32 color) = 0;
+	virtual void fillImageWithColor(Image *dst, Rect *dstrect, Uint32 color) = 0;
 
 	/**
 	 * Map a RGB color value to a pixel format.
@@ -286,7 +286,7 @@ public:
 
 	virtual void setGamma(float g) = 0;
 
-	virtual void listModes(std::vector<SDL_Rect> &modes) = 0;
+	virtual void listModes(std::vector<Rect> &modes) = 0;
 
 	virtual Uint32 readPixel(Image *image, int x, int y) = 0;
 

@@ -41,7 +41,7 @@ WidgetListBox::WidgetListBox(int amount, int height, const std::string& _fileNam
 	, values(new std::string[list_amount])
 	, tooltips(new std::string[list_amount])
 	, vlabels(new WidgetLabel[list_height])
-	, rows(new SDL_Rect[list_height])
+	, rows(new Rect[list_height])
 	, tip( new WidgetTooltip())
 	, scrollbar(new WidgetScrollBar("images/menus/buttons/scrollbar_default.png"))
 	, color_normal(font->getColor("widget_normal"))
@@ -64,9 +64,6 @@ WidgetListBox::WidgetListBox(int amount, int height, const std::string& _fileNam
 
 	pos.w = listboxs.getGraphicsWidth();
 	pos.h = (listboxs.getGraphicsHeight() / 3); // height of one item
-
-	local_frame.x = local_frame.y = local_frame.w = local_frame.h = 0;
-	local_offset.x = local_offset.y = 0;
 }
 
 bool WidgetListBox::checkClick() {
@@ -84,7 +81,7 @@ bool WidgetListBox::checkClick(int x, int y) {
 	refresh();
 
 	// check scroll wheel
-	SDL_Rect scroll_area;
+	Rect scroll_area;
 	scroll_area.x = rows[0].x;
 	scroll_area.y = rows[0].y;
 	scroll_area.w = rows[0].w;
@@ -356,7 +353,7 @@ void WidgetListBox::scrollDown() {
 }
 
 void WidgetListBox::render() {
-	SDL_Rect src;
+	Rect src;
 	src.x = 0;
 	src.w = pos.w;
 	src.h = pos.h;

@@ -40,8 +40,6 @@ WidgetScrollBox::WidgetScrollBox(int width, int height) {
 	line_height = 20;
 	resize(height);
 	tablist = TabList(VERTICAL);
-	local_frame.x = local_frame.y = local_frame.w = local_frame.h = 0;
-	local_offset.x = local_offset.y = 0;
 }
 
 WidgetScrollBox::~WidgetScrollBox() {
@@ -182,7 +180,7 @@ void WidgetScrollBox::refresh() {
 }
 
 void WidgetScrollBox::render() {
-	SDL_Rect	src,dest;
+	Rect	src,dest;
 	dest = pos;
 	src.x = 0;
 	src.y = cursor;
