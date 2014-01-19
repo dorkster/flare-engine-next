@@ -110,7 +110,7 @@ Point Sprite::getOffset() {
 /**
  * Set the clipping rectangle for the sprite
  */
-void Sprite::setClip(const SDL_Rect& clip) {
+void Sprite::setClip(const Rect& clip) {
 	src = clip;
 }
 
@@ -141,10 +141,10 @@ void Sprite::setClipH(const int h) {
 }
 
 
-SDL_Rect Sprite::getClip() {
+Rect Sprite::getClip() {
 	return src;
 }
-void Sprite::setDest(const SDL_Rect& _dest) {
+void Sprite::setDest(const Rect& _dest) {
 	dest.x = (float)_dest.x;
 	dest.y = (float)_dest.y;
 }
@@ -256,18 +256,20 @@ int SDL2RenderDevice::createContext(int width, int height) {
 	}
 }
 
-SDL_Rect SDL2RenderDevice::getContextSize() {
-	SDL_Rect size;
+Rect SDL2RenderDevice::getContextSize() {
+	Rect size;
 	size.x = size.y = 0;
 	SDL_GetWindowSize(screen, &size.w, &size.h);
 
 	return size;
 }
 
-int SDL2RenderDevice::render(Renderable& r, SDL_Rect dest) {
+int SDL2RenderDevice::render(Renderable& r, Rect dest) {
 	dest.w = r.src.w;
 	dest.h = r.src.h;
-	return SDL_RenderCopy(renderer, r.sprite.surface, &r.src, &dest);
+    SDL_Rect src = r.src;
+    SDL_Rect _dest = dest;
+	return SDL_RenderCopy(renderer, r.sprite.surface, &src, &_dest);
 }
 
 int SDL2RenderDevice::render(ISprite& r) {
@@ -294,12 +296,15 @@ int SDL2RenderDevice::render(ISprite& r) {
 	m_dest.w = m_clip.w;
 	m_dest.h = m_clip.h;
 
-	return SDL_RenderCopy(renderer, r.getGraphics()->surface, &m_clip, &m_dest);
+    SDL_Rect src = m_clip;
+    SDL_Rect dest = m_dest;
+	return SDL_RenderCopy(renderer, r.getGraphics()->surface, &src, &dest);
 }
 
-int SDL2RenderDevice::renderImage(Image* image, SDL_Rect& src) {
+int SDL2RenderDevice::renderImage(Image* image, Rect& src) {
 	if (!image) return -1;
 
+    SDL_Rect _src = src;
 	SDL_Rect dest;
 	dest.x = 0;
 	dest.y = 0;
@@ -320,16 +325,18 @@ int SDL2RenderDevice::renderImage(Image* image, SDL_Rect& src) {
 	dest.w = src.w;
 	dest.h = src.h;
 
-	return SDL_RenderCopy(renderer, image->surface, &src, &dest);
+	return SDL_RenderCopy(renderer, image->surface, &_src, &dest);
 }
 
-int SDL2RenderDevice::renderToImage(Image* src_image, SDL_Rect& src, Image* dest_image, SDL_Rect& dest, bool dest_is_transparent) {
+int SDL2RenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
 	if (!src_image || !dest_image) return -1;
 	if (SDL_SetRenderTarget(renderer, dest_image->surface) != 0) return -1;
 	SDL_SetTextureBlendMode(dest_image->surface, SDL_BLENDMODE_BLEND);
 	dest.w = src.w;
 	dest.h = src.h;
-	SDL_RenderCopy(renderer, src_image->surface, &src, &dest);
+    SDL_Rect _src = src;
+    SDL_Rect _dest = dest;
+	SDL_RenderCopy(renderer, src_image->surface, &_src, &_dest);
 	SDL_SetRenderTarget(renderer, NULL);
 	return 0;
 }
@@ -338,7 +345,7 @@ int SDL2RenderDevice::renderText(
 	TTF_Font *ttf_font,
 	const std::string& text,
 	SDL_Color color,
-	SDL_Rect& dest
+	Rect& dest
 ) {
 	int ret = 0;
 	Image ttf;
@@ -356,11 +363,12 @@ int SDL2RenderDevice::renderText(
 		SDL_Rect clip = m_ttf_renderable.getClip();
 		dest.w = clip.w;
 		dest.h = clip.h;
+        SDL_Rect _dest = dest;
 		ret = SDL_RenderCopy(
 				  renderer,
 				  m_ttf_renderable.getGraphics()->surface,
 				  &clip,
-				  &dest
+				  &_dest
 			  );
 		SDL_DestroyTexture(m_ttf_renderable.getGraphics()->surface);
 		textures_count-=1;
@@ -528,7 +536,7 @@ void SDL2RenderDevice::destroyContext() {
 	return;
 }
 
-void SDL2RenderDevice::fillImageWithColor(Image *dst, SDL_Rect *dstrect, Uint32 color) {
+void SDL2RenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 color) {
 	if (!dst) return;
 
 	Uint32 u_format;
@@ -695,10 +703,10 @@ void SDL2RenderDevice::setGamma(float g) {
 	SDL_SetWindowGammaRamp(screen, ramp, ramp, ramp);
 }
 
-void SDL2RenderDevice::listModes(std::vector<SDL_Rect> &modes) {
-	SDL_Rect** detect_modes;
-	std::vector<SDL_Rect> vec_detect_modes;
-	SDL_Rect detect_mode;
+void SDL2RenderDevice::listModes(std::vector<Rect> &modes) {
+	Rect** detect_modes;
+	std::vector<Rect> vec_detect_modes;
+	Rect detect_mode;
 	SDL_DisplayMode mode;
 	/* SDL_compat.c */
 	for (int i = 0; i < SDL_GetNumDisplayModes(SDL_GetWindowDisplayIndex(screen)); ++i) {
@@ -718,19 +726,19 @@ void SDL2RenderDevice::listModes(std::vector<SDL_Rect> &modes) {
 		vec_detect_modes.push_back(detect_mode);
 
 	}
-	detect_modes = (SDL_Rect**)calloc(vec_detect_modes.size(),sizeof(SDL_Rect));
+	detect_modes = (Rect**)calloc(vec_detect_modes.size(),sizeof(Rect));
 	for (unsigned i = 0; i < vec_detect_modes.size(); ++i) {
 		detect_modes[i] = &vec_detect_modes[i];
 	}
 	vec_detect_modes.clear();
 	// Check if there are any modes available
-	if (detect_modes == (SDL_Rect**)0) {
+	if (detect_modes == (Rect**)0) {
 		fprintf(stderr, "No modes available!\n");
 		return;
 	}
 
 	// Check if our resolution is restricted
-	if (detect_modes == (SDL_Rect**)-1) {
+	if (detect_modes == (Rect**)-1) {
 		fprintf(stderr, "All resolutions available.\n");
 	}
 
