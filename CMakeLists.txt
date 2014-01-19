@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 2.6)
 Set (PACKAGE "FLARE")
 Set (VERSION "0.19")
 
-option(USE_SDL2 "USE_SDL2" OFF)
+option(USE_SDL2 "USE_SDL2" ON)
 if (USE_SDL2)
 	add_definitions(-DUSE_SDL2)
 endif (USE_SDL2)
