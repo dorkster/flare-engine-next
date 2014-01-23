@@ -344,7 +344,7 @@ int SDL2RenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_ima
 int SDL2RenderDevice::renderText(
 	TTF_Font *ttf_font,
 	const std::string& text,
-	SDL_Color color,
+	Color color,
 	Rect& dest
 ) {
 	int ret = 0;
@@ -382,7 +382,7 @@ int SDL2RenderDevice::renderText(
 	return ret;
 }
 
-void SDL2RenderDevice::renderTextToImage(Image* image, TTF_Font* ttf_font, const std::string& text, SDL_Color color, bool blended) {
+void SDL2RenderDevice::renderTextToImage(Image* image, TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
 	if (!image) return;
 
 	SDL_Surface *cleanup;
