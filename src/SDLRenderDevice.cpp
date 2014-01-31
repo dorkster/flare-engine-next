@@ -1,6 +1,7 @@
 /*
 Copyright © 2013 Kurt Rinnert
 Copyright © 2013 Igor Paliychuk
+Copyright © 2014 Henrik Andersson
 
 This file is part of FLARE.
 
@@ -186,13 +187,10 @@ SDLRenderDevice::SDLRenderDevice()
 
 int SDLRenderDevice::createContext(int width, int height) {
 	if (is_initialized) {
-		SDL_FreeSurface(screen);
+		destroyContext();
 	}
 
 	// Add Window Titlebar Icon
-	if (titlebar_icon) {
-		SDL_FreeSurface(titlebar_icon);
-	}
 	titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
 	SDL_WM_SetIcon(titlebar_icon, NULL);
 
@@ -208,10 +206,10 @@ int SDLRenderDevice::createContext(int width, int height) {
 	screen = SDL_SetVideoMode (width, height, 0, flags);
 
 	if (screen == NULL && !is_initialized) {
-			// If this is the first attempt and it failed we are not
-			// getting anywhere.
-			SDL_Quit();
-			exit(1);
+		// If this is the first attempt and it failed we are not
+		// getting anywhere.
+		SDL_Quit();
+		exit(1);
 	}
 	else {
 		is_initialized = true;
@@ -221,9 +219,6 @@ int SDLRenderDevice::createContext(int width, int height) {
 		// Window title
 		const char* title = msg->get(WINDOW_TITLE).c_str();
 		SDL_WM_SetCaption(title, title);
-
-		// Icons
-		loadIcons();
 	}
 
 	return (screen != NULL ? 0 : -1);
@@ -534,7 +529,6 @@ void SDLRenderDevice::commitFrame() {
 }
 
 void SDLRenderDevice::destroyContext() {
-	icons.clearGraphics();
 	if (titlebar_icon)
 		SDL_FreeSurface(titlebar_icon);
 	if (screen)
@@ -570,11 +564,6 @@ Uint32 SDLRenderDevice::MapRGBA(Image *src, Uint8 r, Uint8 g, Uint8 b, Uint8 a) 
 
 Uint32 SDLRenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	return SDL_MapRGBA(screen->format, r, g, b, a);
-}
-
-void SDLRenderDevice::loadIcons() {
-	icons.clearGraphics();
-	icons.setGraphics(loadGraphicSurface("images/icons/icons.png", "Couldn't load icons", false), false);
 }
 
 bool SDLRenderDevice::local_to_global(ISprite& r) {
@@ -741,11 +730,11 @@ void SDLRenderDevice::scaleSurface(Image *source, int width, int height) {
 
 	Image ret;
 	ret.surface = SDL_CreateRGBSurface(source->surface->flags, width, height,
-						source->surface->format->BitsPerPixel,
-						source->surface->format->Rmask,
-						source->surface->format->Gmask,
-						source->surface->format->Bmask,
-						source->surface->format->Amask);
+									   source->surface->format->BitsPerPixel,
+									   source->surface->format->Rmask,
+									   source->surface->format->Gmask,
+									   source->surface->format->Bmask,
+									   source->surface->format->Amask);
 
 	if (ret.surface) {
 		double _stretch_factor_x, _stretch_factor_y;

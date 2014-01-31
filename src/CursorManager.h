@@ -1,6 +1,5 @@
 /*
-Copyright © 2011-2012 Pavel Kirpichyov (Cheshire)
-Copyright © 2014 Henrik Andersson
+Copyright © 2014 Justin Jacobs
 
 This file is part of FLARE.
 
@@ -16,40 +15,42 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
-/**
- * MenuEnemy
- *
- * Handles the display of the Enemy info of the screen
- */
-
 #pragma once
-#ifndef MENU_ENEMY_H
-#define MENU_ENEMY_H
+#ifndef CURSORMANAGER_H
+#define CURSORMANAGER_H
 
 #include "CommonIncludes.h"
-#include "Settings.h"
-#include "WidgetLabel.h"
+#include "Utils.h"
 
-class Enemy;
+typedef	enum {
+	CURSOR_NORMAL,
+	CURSOR_INTERACT,
+	CURSOR_TALK,
+	CURSOR_ATTACK
+}CURSOR_TYPE;
 
-class MenuEnemy : public Menu {
-private:
-	Sprite bar_hp;
-	Rect bar_pos;
-	LabelInfo text_pos;
-	bool custom_text_pos;
-	Color color_normal;
-	WidgetLabel label_text;
-	WidgetLabel label_stats;
+class CursorManager {
 public:
-	MenuEnemy();
-	~MenuEnemy();
-	Enemy *enemy;
-	void loadGraphics();
-	void handleNewMap();
+	CursorManager ();
+	~CursorManager ();
 	void logic();
 	void render();
-	int timeout;
+	void setCursor(CURSOR_TYPE type);
+
+private:
+	Sprite cursor_normal;
+	Sprite cursor_interact;
+	Sprite cursor_talk;
+	Sprite cursor_attack;
+
+	Point offset_normal;
+	Point offset_interact;
+	Point offset_talk;
+	Point offset_attack;
+
+	Sprite* cursor_current;
+	Point* offset_current;
 };
 
 #endif
+

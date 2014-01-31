@@ -28,15 +28,17 @@ Created and destroyed by main.cpp
 
 #include "SharedResources.h"
 
-AnimationManager *anim;
-ImageManager *imag;
-ModManager *mods;
-MessageEngine *msg;
-InputState *inpt;
-FontEngine *font;
-CombatText *comb;
-SoundManager *snd;
-SDL_Joystick *joy;
-Sprite icons;
 int textures_count;
+
+AnimationManager *anim;
+CombatText *comb;
+CursorManager *curs;
+FontEngine *font;
+ImageManager *imag;
+InputState *inpt;
+MessageEngine *msg;
+ModManager *mods;
 RenderDevice *render_device;
+SDL_Joystick *joy;
+SoundManager *snd;
+Sprite icons;

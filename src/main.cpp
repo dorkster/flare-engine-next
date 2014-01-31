@@ -97,6 +97,9 @@ static void init() {
 		exit(1);
 	}
 
+	// initialize share icons resource
+	SharedResources::loadIcons();
+
 	// Set Gamma
 	if (CHANGE_GAMMA)
 		render_device->setGamma(GAMMA);
@@ -131,6 +134,8 @@ static void init() {
 		Mix_Volume(-1, SOUND_VOLUME);
 
 	gswitch = new GameSwitcher();
+
+	curs = new CursorManager();
 }
 
 static void mainLoop (bool debug_event) {
@@ -174,6 +179,7 @@ static void cleanup() {
 	delete mods;
 	delete msg;
 	delete snd;
+	delete curs;
 
 	Mix_CloseAudio();
 
