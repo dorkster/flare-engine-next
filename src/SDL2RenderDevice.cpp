@@ -190,7 +190,6 @@ int SDL2RenderDevice::createContext(int width, int height) {
 	int set_fullscreen = 0;
 
 	if (is_initialized) {
-		icons.clearGraphics();
 		if (textures_count != 0) {
 			cout << "Trying to change video mode. Number of not freed textures:" << textures_count << endl;
 			cout << "This can cause graphical issues or even game exit" << endl;
@@ -244,8 +243,6 @@ int SDL2RenderDevice::createContext(int width, int height) {
 			titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
 			SDL_SetWindowIcon(screen, titlebar_icon);
 		}
-
-		loadIcons();
 
 		return (set_fullscreen == 0 ? 0 : -1);
 	}
@@ -528,7 +525,6 @@ void SDL2RenderDevice::commitFrame() {
 
 void SDL2RenderDevice::destroyContext() {
 	m_ttf_renderable.clearGraphics();
-	icons.clearGraphics();
 	SDL_FreeSurface(titlebar_icon);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(screen);
@@ -616,11 +612,6 @@ Uint32 SDL2RenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	else {
 		return 0;
 	}
-}
-
-void SDL2RenderDevice::loadIcons() {
-	icons.clearGraphics();
-	icons.setGraphics(loadGraphicSurface("images/icons/icons.png", "Couldn't load icons", false), false);
 }
 
 bool SDL2RenderDevice::local_to_global(ISprite& r) {

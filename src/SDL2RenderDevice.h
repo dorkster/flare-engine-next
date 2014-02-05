@@ -121,8 +121,6 @@ public:
 
 	Uint32 MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 
-	void loadIcons();
-
 	Image createAlphaSurface(int width, int height);
 
 	Image createSurface(int width, int height);
