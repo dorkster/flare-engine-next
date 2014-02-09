@@ -197,8 +197,8 @@ int SDL2RenderDevice::createContext(int width, int height) {
 		SDL_DestroyRenderer(renderer);
 		Uint32 flags = 0;
 
-		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE;
-		else flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN;
+		else flags = SDL_WINDOW_SHOWN;
 
 		SDL_DestroyWindow(screen);
 		screen = SDL_CreateWindow(msg->get(WINDOW_TITLE).c_str(),
@@ -218,8 +218,8 @@ int SDL2RenderDevice::createContext(int width, int height) {
 	else {
 		Uint32 flags = 0;
 
-		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_RESIZABLE;
-		else flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN;
+		else flags = SDL_WINDOW_SHOWN;
 
 		screen = SDL_CreateWindow(msg->get(WINDOW_TITLE).c_str(),
 									SDL_WINDOWPOS_CENTERED,
