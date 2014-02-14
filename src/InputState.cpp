@@ -265,10 +265,12 @@ void InputState::handle(bool dump_event) {
 				inkeys += (char) ((ch >> 12) | 0xe0);
 				inkeys += (char) (((ch >> 6) & 0x3f) | 0x80);
 				inkeys += (char) ((ch & 0x3f) | 0x80);
-			} else if (ch >= 0x80) {
+			}
+			else if (ch >= 0x80) {
 				inkeys += (char) ((ch >> 6) | 0xc0);
 				inkeys += (char) ((ch & 0x3f) | 0x80);
-			} else if (ch >= 32 && ch != 127) {
+			}
+			else if (ch >= 32 && ch != 127) {
 				inkeys += (char)ch;
 			}
 		}
@@ -295,9 +297,11 @@ void InputState::handle(bool dump_event) {
 			case SDL_MOUSEBUTTONDOWN:
 				if (event.button.button == SDL_BUTTON_WHEELUP) {
 					scroll_up = true;
-				} else if (event.button.button == SDL_BUTTON_WHEELDOWN) {
+				}
+				else if (event.button.button == SDL_BUTTON_WHEELDOWN) {
 					scroll_down = true;
-				}else {
+				}
+				else {
 					for (int key=0; key<key_count; key++) {
 						if (event.button.button == binding[key] || event.button.button == binding_alt[key]) {
 							pressing[key] = true;
