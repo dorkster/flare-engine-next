@@ -52,6 +52,7 @@ MenuInventory::MenuInventory(StatBlock *_stats) {
 	changed_equipment = true;
 	changed_artifact = true;
 	log_msg = "";
+	show_book = "";
 
 	closeButton = new WidgetButton("images/menus/buttons/button_x.png");
 
@@ -433,6 +434,10 @@ void MenuInventory::activate(Point position) {
 	// can't interact with quest items
 	if (items->items[inventory[CARRIED][slot].item].type == "quest") {
 		return;
+	}
+	else if (items->items[inventory[CARRIED][slot].item].type == "book") {
+		snd->play(sfx_open);
+		show_book = items->items[inventory[CARRIED][slot].item].book;
 	}
 	// use a consumable item
 	else if (items->items[inventory[CARRIED][slot].item].type == "consumable") {
@@ -984,9 +989,8 @@ void MenuInventory::fillEquipmentSlots() {
 	}
 
 	// fill slots with items
-	bool found_slot;
 	for (int i=0; i<slot_number; i++) {
-		found_slot = false;
+		bool found_slot = false;
 		for (int j=0; j<slot_number; j++) {
 			// search for empty slot with needed type. If item is not NULL, put it there
 			if (equip_item[i] > 0 && inventory[EQUIPMENT].storage[j].item == 0) {
