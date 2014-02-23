@@ -242,7 +242,7 @@ int SDL2RenderDevice::renderText(
 
 	SDL_DestroyTexture(surface);
 	textures_count-=1;
-	
+
 	return ret;
 }
 
@@ -552,8 +552,8 @@ Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string er
 	if (img != NULL) return img;
 
 	// load image
-	SDLImage *image;
-	image = NULL;
+	SDLImage *image = new SDLImage(this);
+	if (!image) return NULL;
 
 	if (HavePinkColorKey) {
 		// SDL_Textures don't support colorkeying
