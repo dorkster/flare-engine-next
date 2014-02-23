@@ -27,156 +27,24 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 using namespace std;
 
-Sprite::Sprite(const Sprite& other) {
-	local_frame = other.local_frame;
-	sprite = other.sprite;
-	src = other.src;
-	offset = other.offset;
-	dest = other.dest;
+SDLImage::SDLImage(RenderDevice *_device)
+	: Image(_device)
+	, surface(NULL) {
 }
 
-Sprite& Sprite::operator=(const Sprite& other) {
-	local_frame = other.local_frame;
-	sprite = other.sprite;
-	src = other.src;
-	offset = other.offset;
-	dest = other.dest;
-
-	return *this;
+SDLImage::~SDLImage() {
 }
 
-Sprite::~Sprite() {
+int SDLImage::getWidth() const {
+	int w, h;
+	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
+	return (surface ? w : 0);
 }
 
-/**
- * Set the graphics context of a Sprite.
- * Initialize graphics resources. That is the SLD_surface buffer
- *
- * It is important that, if the client owns the graphics resources,
- * clearGraphics() method is called first in case this Sprite holds the
- * last references to avoid resource leaks.
- */
-void Sprite::setGraphics(Image s, bool setClipToFull) {
-
-	sprite = s;
-
-	if (setClipToFull && sprite.surface != NULL) {
-		src.x = 0;
-		src.y = 0;
-		src.w = sprite.getWidth();
-		src.h = sprite.getHeight();
-	}
-
-}
-
-Image* Sprite::getGraphics() {
-
-	return &sprite;
-}
-
-bool Sprite::graphicsIsNull() {
-
-	return (sprite.surface == NULL);
-}
-
-/**
- * Clear the graphics context of a Sprite.
- * Release graphics resources. That is the SLD_surface buffer
- *
- * It is important that this method is only called by clients who own the
- * graphics resources.
- */
-void Sprite::clearGraphics() {
-	if (sprite.surface != NULL) {
-		SDL_DestroyTexture(sprite.surface);
-		textures_count-=1;
-		sprite.surface = NULL;
-	}
-}
-
-void Sprite::setOffset(const Point& _offset) {
-	this->offset = _offset;
-}
-
-void Sprite::setOffset(const int x, const int y) {
-	this->offset.x = x;
-	this->offset.y = y;
-}
-
-Point Sprite::getOffset() {
-
-	return offset;
-}
-/**
- * Set the clipping rectangle for the sprite
- */
-void Sprite::setClip(const Rect& clip) {
-	src = clip;
-}
-
-/**
- * Set the clipping rectangle for the sprite
- */
-void Sprite::setClip(const int x, const int y, const int w, const int h) {
-	src.x = x;
-	src.y = y;
-	src.w = w;
-	src.h = h;
-}
-
-void Sprite::setClipX(const int x) {
-	src.x = x;
-}
-
-void Sprite::setClipY(const int y) {
-	src.y = y;
-}
-
-void Sprite::setClipW(const int w) {
-	src.w = w;
-}
-
-void Sprite::setClipH(const int h) {
-	src.h = h;
-}
-
-
-Rect Sprite::getClip() {
-	return src;
-}
-void Sprite::setDest(const Rect& _dest) {
-	dest.x = (float)_dest.x;
-	dest.y = (float)_dest.y;
-}
-
-void Sprite::setDest(const Point& _dest) {
-	dest.x = (float)_dest.x;
-	dest.y = (float)_dest.y;
-}
-
-void Sprite::setDest(int x, int y) {
-	dest.x = (float)x;
-	dest.y = (float)y;
-}
-
-void Sprite::setDestX(int x) {
-	dest.x = (float)x;
-}
-
-void Sprite::setDestY(int y) {
-	dest.y = (float)y;
-}
-
-FPoint Sprite::getDest() {
-	return dest;
-}
-
-int Sprite::getGraphicsWidth() {
-	return (sprite.surface ? sprite.getWidth() : 0);
-}
-
-int Sprite::getGraphicsHeight() {
-	return (sprite.surface ? sprite.getHeight() : 0);
+int SDLImage::getHeight() const {
+	int w, h;
+	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
+	return (surface ? h : 0);
 }
 
 SDL2RenderDevice::SDL2RenderDevice()
@@ -266,14 +134,14 @@ int SDL2RenderDevice::render(Renderable& r, Rect dest) {
 	dest.h = r.src.h;
     SDL_Rect src = r.src;
     SDL_Rect _dest = dest;
-	return SDL_RenderCopy(renderer, r.sprite.surface, &src, &_dest);
+	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(r.sprite)->surface, &src, &_dest);
 }
 
-int SDL2RenderDevice::render(ISprite& r) {
-	if (r.graphicsIsNull()) {
+int SDL2RenderDevice::render(Sprite *r) {
+	if (r == NULL) {
 		return -1;
 	}
-	if ( !local_to_global(r) ) {
+	if ( !localToGlobal(r) ) {
 		return -1;
 	}
 
@@ -295,7 +163,7 @@ int SDL2RenderDevice::render(ISprite& r) {
 
     SDL_Rect src = m_clip;
     SDL_Rect dest = m_dest;
-	return SDL_RenderCopy(renderer, r.getGraphics()->surface, &src, &dest);
+	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(r->getGraphics())->surface, &src, &dest);
 }
 
 int SDL2RenderDevice::renderImage(Image* image, Rect& src) {
@@ -322,18 +190,18 @@ int SDL2RenderDevice::renderImage(Image* image, Rect& src) {
 	dest.w = src.w;
 	dest.h = src.h;
 
-	return SDL_RenderCopy(renderer, image->surface, &_src, &dest);
+	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(image)->surface, &_src, &dest);
 }
 
 int SDL2RenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
 	if (!src_image || !dest_image) return -1;
-	if (SDL_SetRenderTarget(renderer, dest_image->surface) != 0) return -1;
-	SDL_SetTextureBlendMode(dest_image->surface, SDL_BLENDMODE_BLEND);
+	if (SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dest_image)->surface) != 0) return -1;
+	SDL_SetTextureBlendMode(static_cast<SDLImage *>(dest_image)->surface, SDL_BLENDMODE_BLEND);
 	dest.w = src.w;
 	dest.h = src.h;
     SDL_Rect _src = src;
     SDL_Rect _dest = dest;
-	SDL_RenderCopy(renderer, src_image->surface, &_src, &_dest);
+	SDL_RenderCopy(renderer, static_cast<SDLImage *>(src_image)->surface, &_src, &_dest);
 	SDL_SetRenderTarget(renderer, NULL);
 	return 0;
 }
@@ -345,42 +213,42 @@ int SDL2RenderDevice::renderText(
 	Rect& dest
 ) {
 	int ret = 0;
-	Image ttf;
+	SDL_Color _color = color;
+	SDL_Texture *surface;
+
 	SDL_Surface *cleanup = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), color);
 	if (cleanup) {
-		ttf.surface = SDL_CreateTextureFromSurface(renderer,cleanup);
+		surface = SDL_CreateTextureFromSurface(renderer,cleanup);
 		textures_count+=1;
 		SDL_FreeSurface(cleanup);
 	}
-	else {
-		return -1;
-	}
-	m_ttf_renderable.setGraphics(ttf);
-	if (!m_ttf_renderable.graphicsIsNull()) {
-		SDL_Rect clip = m_ttf_renderable.getClip();
-		dest.w = clip.w;
-		dest.h = clip.h;
-        SDL_Rect _dest = dest;
-		ret = SDL_RenderCopy(
-				  renderer,
-				  m_ttf_renderable.getGraphics()->surface,
-				  &clip,
-				  &_dest
-			  );
-		SDL_DestroyTexture(m_ttf_renderable.getGraphics()->surface);
-		textures_count-=1;
-		ttf.surface = NULL;
-		m_ttf_renderable.setGraphics(ttf);
-	}
-	else {
-		ret = -1;
-	}
 
+	if (surface == NULL)
+		return -1;
+
+	SDL_Rect clip;
+	int w, h;
+	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
+
+	clip.x = clip.y = 0;
+	clip.w = w;
+	clip.h = h;
+
+	dest.w = clip.w;
+	dest.h = clip.h;
+	SDL_Rect _dest = dest;
+
+	ret = SDL_RenderCopy(renderer, surface, &clip, &_dest);
+
+	SDL_DestroyTexture(surface);
+	textures_count-=1;
+	
 	return ret;
 }
 
-void SDL2RenderDevice::renderTextToImage(Image* image, TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
-	if (!image) return;
+Image * SDL2RenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
+	SDLImage *image = new SDLImage(this);
+	SDL_Color _color = color;
 
 	SDL_Surface *cleanup;
 
@@ -395,7 +263,11 @@ void SDL2RenderDevice::renderTextToImage(Image* image, TTF_Font* ttf_font, const
 		image->surface = SDL_CreateTextureFromSurface(renderer, cleanup);
 		textures_count+=1;
 		SDL_FreeSurface(cleanup);
+		return image;
 	}
+
+	delete image;
+	return NULL;
 }
 
 void SDL2RenderDevice::drawPixel(
@@ -420,10 +292,10 @@ void SDL2RenderDevice::drawPixel(
  * Set the pixel at (x, y) to the given value
  */
 void SDL2RenderDevice::drawPixel(Image *image, int x, int y, Uint32 pixel) {
-	if (!image || !image->surface) return;
+	if (!image) return;
 
 	Uint32 u_format;
-	SDL_QueryTexture(image->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDLImage *>(image)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (!format) return;
@@ -432,8 +304,8 @@ void SDL2RenderDevice::drawPixel(Image *image, int x, int y, Uint32 pixel) {
 	SDL_GetRGBA(pixel, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
 	SDL_FreeFormat(format);
 
-	SDL_SetRenderTarget(renderer, image->surface);
-	SDL_SetTextureBlendMode(image->surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(image)->surface);
+	SDL_SetTextureBlendMode(static_cast<SDLImage *>(image)->surface, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
 	SDL_RenderDrawPoint(renderer, x, y);
 	SDL_SetRenderTarget(renderer, NULL);
@@ -467,40 +339,6 @@ void SDL2RenderDevice::drawLine(
 	drawLine(p0.x, p0.y, p1.x, p1.y, color);
 }
 
-/**
- * draw line to the screen
- */
-void SDL2RenderDevice::drawLine(Image *image, int x0, int y0, int x1, int y1, Uint32 color) {
-	if (!image || !image->surface) return;
-
-	Uint32 u_format;
-	SDL_QueryTexture(image->surface, &u_format, NULL, NULL, NULL);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (!format) return;
-
-	SDL_Color rgba;
-	SDL_GetRGBA(color, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
-	SDL_FreeFormat(format);
-
-	SDL_SetRenderTarget(renderer, image->surface);
-	SDL_SetTextureBlendMode(image->surface, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
-	SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
-	SDL_SetRenderTarget(renderer, NULL);
-}
-
-void SDL2RenderDevice::drawLine(Image *image, Point pos0, Point pos1, Uint32 color) {
-	drawLine(image, pos0.x, pos0.y, pos1.x, pos1.y, color);
-}
-
-void SDL2RenderDevice::drawRectangle(Image *image, Point pos0, Point pos1, Uint32 color) {
-	drawLine(image, pos0.x, pos0.y, pos1.x, pos0.y, color);
-	drawLine(image, pos1.x, pos0.y, pos1.x, pos1.y, color);
-	drawLine(image, pos0.x, pos0.y, pos0.x, pos1.y, color);
-	drawLine(image, pos0.x, pos1.y, pos1.x, pos1.y, color);
-}
-
 void SDL2RenderDevice::drawRectangle(
 	const Point& p0,
 	const Point& p1,
@@ -524,7 +362,6 @@ void SDL2RenderDevice::commitFrame() {
 }
 
 void SDL2RenderDevice::destroyContext() {
-	m_ttf_renderable.clearGraphics();
 	SDL_FreeSurface(titlebar_icon);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(screen);
@@ -536,7 +373,7 @@ void SDL2RenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 colo
 	if (!dst) return;
 
 	Uint32 u_format;
-	SDL_QueryTexture(dst->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDLImage *>(dst)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (!format) return;
@@ -545,18 +382,18 @@ void SDL2RenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 colo
 	SDL_GetRGBA(color, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
 	SDL_FreeFormat(format);
 
-	SDL_SetRenderTarget(renderer, dst->surface);
-	SDL_SetTextureBlendMode(dst->surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dst)->surface);
+	SDL_SetTextureBlendMode(static_cast<SDLImage *>(dst)->surface, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g , rgba.b, rgba.a);
 	SDL_RenderClear(renderer);
 	SDL_SetRenderTarget(renderer, NULL);
 }
 
 Uint32 SDL2RenderDevice::MapRGB(Image *src, Uint8 r, Uint8 g, Uint8 b) {
-	if (!src || !src->surface) return 0;
+	if (!src || !static_cast<SDLImage *>(src)->surface) return 0;
 
 	Uint32 u_format;
-	SDL_QueryTexture(src->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDLImage *>(src)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -584,10 +421,10 @@ Uint32 SDL2RenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
 }
 
 Uint32 SDL2RenderDevice::MapRGBA(Image *src, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	if (!src || !src->surface) return 0;
+	if (!src || !static_cast<SDLImage *>(src)->surface) return 0;
 
 	Uint32 u_format;
-	SDL_QueryTexture(src->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDLImage *>(src)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -614,67 +451,22 @@ Uint32 SDL2RenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	}
 }
 
-bool SDL2RenderDevice::local_to_global(ISprite& r) {
-	m_clip = r.getClip();
-
-	int left = r.getDest().x - r.getOffset().x;
-	int right = left + r.getClip().w;
-	int up = r.getDest().y - r.getOffset().y;
-	int down = up + r.getClip().h;
-
-	// Check whether we need to render.
-	// If so, compute the correct clipping.
-	if (r.local_frame.w) {
-		if (left > r.local_frame.w) {
-			return false;
-		}
-		if (right < 0) {
-			return false;
-		}
-		if (left < 0) {
-			m_clip.x = r.getClip().x - left;
-			left = 0;
-		};
-		right = (right < r.local_frame.w ? right : r.local_frame.w);
-		m_clip.w = right - left;
-	}
-	if (r.local_frame.h) {
-		if (up > r.local_frame.h) {
-			return false;
-		}
-		if (down < 0) {
-			return false;
-		}
-		if (up < 0) {
-			m_clip.y = r.getClip().y - up;
-			up = 0;
-		};
-		down = (down < r.local_frame.h ? down : r.local_frame.h);
-		m_clip.h = down - up;
-	}
-
-	m_dest.x = left + r.local_frame.x;
-	m_dest.y = up + r.local_frame.y;
-
-	return true;
-}
-
 /**
  * create blank surface
  */
-Image SDL2RenderDevice::createAlphaSurface(int width, int height) {
+Image *SDL2RenderDevice::createAlphaSurface(int width, int height) {
 
-	Image image;
+	SDLImage *image = new SDLImage(this);
 
 	if (width > 0 && height > 0) {
-		image.surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
+		image->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
 		textures_count+=1;
-		if(image.surface == NULL) {
+		if(image->surface == NULL) {
 			fprintf(stderr, "CreateRGBSurface failed: %s\n", SDL_GetError());
 		}
 		else {
-				SDL_SetRenderTarget(renderer, image.surface);
-				SDL_SetTextureBlendMode(image.surface, SDL_BLENDMODE_BLEND);
+				SDL_SetRenderTarget(renderer, image->surface);
+				SDL_SetTextureBlendMode(image->surface, SDL_BLENDMODE_BLEND);
 				SDL_SetRenderDrawColor(renderer, 0,0,0,0);
 				SDL_RenderClear(renderer);
 				SDL_SetRenderTarget(renderer, NULL);
@@ -684,7 +476,7 @@ Image SDL2RenderDevice::createAlphaSurface(int width, int height) {
 	return image;
 }
 
-Image SDL2RenderDevice::createSurface(int width, int height) {
+Image *SDL2RenderDevice::createSurface(int width, int height) {
 	return createAlphaSurface(width, height);
 }
 
@@ -753,8 +545,15 @@ void SDL2RenderDevice::listModes(std::vector<Rect> &modes) {
 		free(detect_modes);
 }
 
-Image SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string errormessage, bool IfNotFoundExit, bool HavePinkColorKey) {
-	Image image;
+Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string errormessage, bool IfNotFoundExit, bool HavePinkColorKey) {
+	// lookup image in cache
+	Image *img;
+	img = cacheLookup(filename);
+	if (img != NULL) return img;
+
+	// load image
+	SDLImage *image;
+	image = NULL;
 
 	if (HavePinkColorKey) {
 		// SDL_Textures don't support colorkeying
@@ -762,17 +561,17 @@ Image SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string err
 		SDL_Surface* cleanup = IMG_Load(mods->locate(filename).c_str());
 		if (cleanup) {
 			SDL_SetColorKey(cleanup, true, SDL_MapRGB(cleanup->format, 255, 0, 255));
-			image.surface = SDL_CreateTextureFromSurface(renderer, cleanup);
+			image->surface = SDL_CreateTextureFromSurface(renderer, cleanup);
 			textures_count+=1;
 			SDL_FreeSurface(cleanup);
 		}
 	}
 	else {
-		image.surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
+		image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
 		textures_count+=1;
 	}
 
-	if(image.graphicIsNull()) {
+	if(image == NULL) {
 		if (!errormessage.empty())
 			fprintf(stderr, "%s: %s\n", errormessage.c_str(), IMG_GetError());
 		if (IfNotFoundExit) {
@@ -781,23 +580,26 @@ Image SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string err
 		}
 	}
 
+	// store image to cache
+	cacheStore(filename, image);
 	return image;
 }
 
 void SDL2RenderDevice::scaleSurface(Image *source, int width, int height) {
-	if (!source || !source->surface) return;
+	if(!source || !width || !height)
+		return;
 
-	Image dest = createAlphaSurface(width, height);
-	if (dest.surface) {
+	Image *dest = createAlphaSurface(width, height);
+	if (dest != NULL) {
 		// copy the source texture to the new texture, stretching it in the process
-		SDL_SetRenderTarget(renderer, dest.surface);
-		SDL_RenderCopyEx(renderer, source->surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
+		SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dest)->surface);
+		SDL_RenderCopyEx(renderer, static_cast<SDLImage *>(source)->surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
 		SDL_SetRenderTarget(renderer, NULL);
 
 		// Remove the old surface
-		SDL_DestroyTexture(source->surface);
+		SDL_DestroyTexture(static_cast<SDLImage *>(source)->surface);
 		textures_count-=1;
-		source->surface = dest.surface;
+		static_cast<SDLImage *>(source)->surface = static_cast<SDLImage *>(dest)->surface;
 	}
 }
 
@@ -815,9 +617,13 @@ bool SDL2RenderDevice::checkPixel(Point px, Image *image) {
 }
 
 void SDL2RenderDevice::freeImage(Image *image) {
-	if (image && image->surface)
+	if (!image) return;
+
+	cacheRemove(image);
+
+	if (static_cast<SDLImage *>(image)->surface)
 	{
-		SDL_DestroyTexture(image->surface);
+		SDL_DestroyTexture(static_cast<SDLImage *>(image)->surface);
 		textures_count-=1;
 	}
 }
