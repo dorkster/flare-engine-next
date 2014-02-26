@@ -192,15 +192,14 @@ Image * RenderDevice::cacheLookup(std::string &filename) {
 	it = cache.find(filename);
 	if (it != cache.end()) {
 		// fprintf(stderr, "%p %s reused from image cache.\n", it->second, filename.c_str());
-		if (it->second) {
-			it->second->ref();
-			return it->second;
-		}
+		it->second->ref();
+		return it->second;
 	}
 	return NULL;
 }
 
 void RenderDevice::cacheStore(std::string &filename, Image *image) {
+	if (image == NULL) return;
 	cache[filename] = image;
 	// fprintf(stderr, "%p %s stored in image cache.\n", image, filename.c_str());
 }
