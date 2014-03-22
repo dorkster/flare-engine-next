@@ -51,6 +51,7 @@ InputState::InputState(void)
 
 	for (int key=0; key<key_count; key++) {
 		pressing[key] = false;
+		un_press[key] = false;
 		lock[key] = false;
 	}
 
@@ -246,13 +247,17 @@ void InputState::handle(bool dump_event) {
 
 	inkeys = "";
 
-	// mouse-wheel up/down presses normally happen within a single event window
-	// in order to properly read these events in game logic, we delay the resetting
-	// of their state (done here) until the next frame
-	while (!wheel_binds.empty()) {
-		pressing[wheel_binds.back()] = false;
-		lock[wheel_binds.back()] = false;
-		wheel_binds.pop_back();
+	// sometimes buttons are pressed and released in a single event window.
+	// in order to properly read these events in game logic, we delay the
+	// resetting of their states (done here) until the next frame. this
+	// loop also resets the states of other inputs that are no longer being
+	// pressed. (joysticks are a little more complex.)
+	for (int key=0; key < key_count; key++) {
+		if (un_press[key] == true) {
+			pressing[key] = false;
+			un_press[key] = false;
+			lock[key] = false;
+		}
 	}
 
 	/* Check for events */
@@ -315,6 +320,7 @@ void InputState::handle(bool dump_event) {
 					for (int key=0; key<key_count; key++) {
 						if (event.button.button == binding[key] || event.button.button == binding_alt[key]) {
 							pressing[key] = true;
+							un_press[key] = false;
 						}
 					}
 				}
@@ -324,11 +330,10 @@ void InputState::handle(bool dump_event) {
 				for (int key=0; key<key_count; key++) {
 					if ((scroll_up && (binding[key] == SDL_BUTTON_WHEELUP || binding_alt[key] == SDL_BUTTON_WHEELUP)) ||
 					    (scroll_down && (binding[key] == SDL_BUTTON_WHEELDOWN || binding_alt[key] == SDL_BUTTON_WHEELDOWN))) {
-						wheel_binds.push_back(key);
+						un_press[key] = true;
 					}
 					else if (event.button.button == binding[key] || event.button.button == binding_alt[key]) {
-						pressing[key] = false;
-						lock[key] = false;
+						un_press[key] = true;
 					}
 				}
 				last_button = event.button.button;
@@ -337,14 +342,14 @@ void InputState::handle(bool dump_event) {
 				for (int key=0; key<key_count; key++) {
 					if (event.key.keysym.sym == binding[key] || event.key.keysym.sym == binding_alt[key]) {
 						pressing[key] = true;
+						un_press[key] = false;
 					}
 				}
 				break;
 			case SDL_KEYUP:
 				for (int key=0; key<key_count; key++) {
 					if (event.key.keysym.sym == binding[key] || event.key.keysym.sym == binding_alt[key]) {
-						pressing[key] = false;
-						lock[key] = false;
+						un_press[key] = true;
 					}
 				}
 				last_key = event.key.keysym.sym;
@@ -358,17 +363,14 @@ void InputState::handle(bool dump_event) {
 				if(JOYSTICK_DEVICE == event.jhat.which && ENABLE_JOYSTICK) {
 					switch (event.jhat.value) {
 						case SDL_HAT_CENTERED:
-							pressing[UP] = false;
-							lock[UP] = false;
-							pressing[DOWN] = false;
-							lock[DOWN] = false;
-							pressing[LEFT] = false;
-							lock[LEFT] = false;
-							pressing[RIGHT] = false;
-							lock[RIGHT] = false;
+							un_press[UP] = true;
+							un_press[DOWN] = true;
+							un_press[LEFT] = true;
+							un_press[RIGHT] = true;
 							break;
 						case SDL_HAT_UP:
 							pressing[UP] = true;
+							un_press[UP] = false;
 							pressing[DOWN] = false;
 							lock[DOWN] = false;
 							pressing[LEFT] = false;
@@ -380,6 +382,7 @@ void InputState::handle(bool dump_event) {
 							pressing[UP] = false;
 							lock[UP] = false;
 							pressing[DOWN] = true;
+							un_press[DOWN] = false;
 							pressing[LEFT] = false;
 							lock[LEFT] = false;
 							pressing[RIGHT] = false;
@@ -391,6 +394,7 @@ void InputState::handle(bool dump_event) {
 							pressing[DOWN] = false;
 							lock[DOWN] = false;
 							pressing[LEFT] = true;
+							un_press[LEFT] = false;
 							pressing[RIGHT] = false;
 							lock[RIGHT] = false;
 							break;
@@ -402,12 +406,15 @@ void InputState::handle(bool dump_event) {
 							pressing[LEFT] = false;
 							lock[LEFT] = false;
 							pressing[RIGHT] = true;
+							un_press[RIGHT] = false;
 							break;
 						case SDL_HAT_LEFTUP:
 							pressing[UP] = true;
+							un_press[UP] = false;
 							pressing[DOWN] = false;
 							lock[DOWN] = false;
 							pressing[LEFT] = true;
+							un_press[LEFT] = false;
 							pressing[RIGHT] = false;
 							lock[RIGHT] = false;
 							break;
@@ -415,25 +422,31 @@ void InputState::handle(bool dump_event) {
 							pressing[UP] = false;
 							lock[UP] = false;
 							pressing[DOWN] = true;
+							un_press[DOWN] = false;
 							pressing[LEFT] = true;
+							un_press[LEFT] = false;
 							pressing[RIGHT] = false;
 							lock[RIGHT] = false;
 							break;
 						case SDL_HAT_RIGHTUP:
 							pressing[UP] = true;
+							un_press[UP] = false;
 							pressing[DOWN] = false;
 							lock[DOWN] = false;
 							pressing[LEFT] = false;
 							lock[LEFT] = false;
 							pressing[RIGHT] = true;
+							un_press[RIGHT] = false;
 							break;
 						case SDL_HAT_RIGHTDOWN:
 							pressing[UP] = false;
 							lock[UP] = false;
 							pressing[DOWN] = true;
+							un_press[DOWN] = false;
 							pressing[LEFT] = false;
 							lock[LEFT] = false;
 							pressing[RIGHT] = true;
+							un_press[RIGHT] = false;
 							break;
 					}
 				}
@@ -443,6 +456,7 @@ void InputState::handle(bool dump_event) {
 					for (int key=0; key<key_count; key++) {
 						if (event.jbutton.button == binding_joy[key]) {
 							pressing[key] = true;
+							un_press[key] = false;
 						}
 					}
 				}
@@ -451,8 +465,7 @@ void InputState::handle(bool dump_event) {
 				if(JOYSTICK_DEVICE == event.jbutton.which && ENABLE_JOYSTICK) {
 					for (int key=0; key<key_count; key++) {
 						if (event.jbutton.button == binding_joy[key]) {
-							pressing[key] = false;
-							lock[key] = false;
+							un_press[key] = true;
 						}
 					}
 				}
@@ -492,12 +505,14 @@ void InputState::handle(bool dump_event) {
 			if(joyHasMovedX == 0) {
 				if(!joyReverseAxisX) {
 					pressing[LEFT] = true;
+					un_press[LEFT] = false;
 					pressing[RIGHT] = false;
 					lock[RIGHT] = false;
 					joyLastPosX = JOY_POS_LEFT;
 				}
 				else {
 					pressing[RIGHT] = true;
+					un_press[RIGHT] = false;
 					pressing[LEFT] = false;
 					lock[LEFT] = false;
 					joyLastPosX = JOY_POS_RIGHT;
@@ -519,12 +534,14 @@ void InputState::handle(bool dump_event) {
 			if(joyHasMovedX == 0) {
 				if(!joyReverseAxisX) {
 					pressing[RIGHT] = true;
+					un_press[RIGHT] = false;
 					pressing[LEFT] = false;
 					lock[LEFT] = false;
 					joyLastPosX = JOY_POS_RIGHT;
 				}
 				else {
 					pressing[LEFT] = true;
+					un_press[LEFT] = false;
 					pressing[RIGHT] = false;
 					lock[RIGHT] = false;
 					joyLastPosX = JOY_POS_LEFT;
@@ -533,10 +550,8 @@ void InputState::handle(bool dump_event) {
 			}
 		}
 		if((joyAxisXval >= -JOY_DEADZONE) && (joyAxisXval < JOY_DEADZONE)) {
-			pressing[LEFT] = false;
-			lock[LEFT] = false;
-			pressing[RIGHT] = false;
-			lock[RIGHT] = false;
+			un_press[LEFT] = true;
+			un_press[RIGHT] = true;
 			joyHasMovedX = 0;
 			joyLastPosX = JOY_POS_CENTER;
 		}
@@ -556,12 +571,14 @@ void InputState::handle(bool dump_event) {
 			if(joyHasMovedY == 0) {
 				if(!joyReverseAxisY) {
 					pressing[UP] = true;
+					un_press[UP] = false;
 					pressing[DOWN] = false;
 					lock[DOWN] = false;
 					joyLastPosY = JOY_POS_UP;
 				}
 				else {
 					pressing[DOWN] = true;
+					un_press[DOWN] = false;
 					pressing[UP] = false;
 					lock[UP] = false;
 					joyLastPosY = JOY_POS_DOWN;
@@ -583,12 +600,14 @@ void InputState::handle(bool dump_event) {
 			if(joyHasMovedY == 0) {
 				if(!joyReverseAxisY) {
 					pressing[DOWN] = true;
+					un_press[DOWN] = false;
 					pressing[UP] = false;
 					lock[UP] = false;
 					joyLastPosY = JOY_POS_DOWN;
 				}
 				else {
 					pressing[UP] = true;
+					un_press[UP] = false;
 					pressing[DOWN] = false;
 					lock[DOWN] = false;
 					joyLastPosY = JOY_POS_UP;
@@ -597,10 +616,8 @@ void InputState::handle(bool dump_event) {
 			}
 		}
 		if((joyAxisYval >= -JOY_DEADZONE) && (joyAxisYval < JOY_DEADZONE)) {
-			pressing[UP] = false;
-			lock[UP] = false;
-			pressing[DOWN] = false;
-			lock[DOWN] = false;
+			un_press[UP] = true;
+			un_press[DOWN] = true;
 			joyHasMovedY = 0;
 			joyLastPosY = JOY_POS_CENTER;
 		}
