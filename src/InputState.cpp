@@ -308,6 +308,14 @@ void InputState::handle(bool dump_event) {
 					}
 				}
 				break;
+			case SDL_MOUSEBUTTONUP:
+				for (int key=0; key<key_count; key++) {
+					if (event.button.button == binding[key] || event.button.button == binding_alt[key]) {
+						un_press[key] = true;
+					}
+				}
+				last_button = event.button.button;
+				break;
 #else
 			case SDL_MOUSEBUTTONDOWN:
 				if (event.button.button == SDL_BUTTON_WHEELUP) {
@@ -325,7 +333,6 @@ void InputState::handle(bool dump_event) {
 					}
 				}
 				break;
-#endif
 			case SDL_MOUSEBUTTONUP:
 				for (int key=0; key<key_count; key++) {
 					if ((scroll_up && (binding[key] == SDL_BUTTON_WHEELUP || binding_alt[key] == SDL_BUTTON_WHEELUP)) ||
@@ -338,6 +345,7 @@ void InputState::handle(bool dump_event) {
 				}
 				last_button = event.button.button;
 				break;
+#endif
 			case SDL_KEYDOWN:
 				for (int key=0; key<key_count; key++) {
 					if (event.key.keysym.sym == binding[key] || event.key.keysym.sym == binding_alt[key]) {
