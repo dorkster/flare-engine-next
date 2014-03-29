@@ -476,10 +476,6 @@ Image *SDL2RenderDevice::createAlphaSurface(int width, int height) {
 	return image;
 }
 
-Image *SDL2RenderDevice::createSurface(int width, int height) {
-	return createAlphaSurface(width, height);
-}
-
 void SDL2RenderDevice::setGamma(float g) {
 	Uint16 ramp[256];
 	SDL_CalculateGammaRamp(g, ramp);

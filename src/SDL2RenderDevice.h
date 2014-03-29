@@ -97,8 +97,6 @@ public:
 
 	Image *createAlphaSurface(int width, int height);
 
-	Image *createSurface(int width, int height);
-
 	void scaleSurface(Image *source, int width, int height);
 
 	void setGamma(float g);
