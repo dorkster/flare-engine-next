@@ -111,8 +111,7 @@ public:
 
 	Image* loadGraphicSurface(std::string filename,
 								std::string errormessage = "Couldn't load image",
-								bool IfNotFoundExit = false,
-								bool HavePinkColorKey = false);
+								bool IfNotFoundExit = false);
 private:
 
 	SDL_Window *screen;

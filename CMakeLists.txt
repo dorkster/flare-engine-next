@@ -57,18 +57,53 @@ Else(NOT IS_ABSOLUTE "${DATADIR}")
 EndIf(NOT IS_ABSOLUTE "${DATADIR}")
 
 # Detect missing dependencies
+# First, search for SDL2 modules, provided USE_SDL 2 is enabled
+# If any of these modules can't be found, we'll try to fall back to SDL 1.2
+
+Include(FindPkgConfig)
 
 If (USE_SDL2)
-	Include(FindPkgConfig)
 	PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2)
-	INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS})
+	If (NOT SDL2_FOUND)
+		Message (ERROR "Couldn't find SDL2 development files. On Debian-based systems (such as Ubuntu) you should install the 'libsdl2-dev' package.")
+		Set (USE_SDL2 Off)
+	Else (NOT SDL2_FOUND)
+		INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIRS})
+	EndIf (NOT SDL2_FOUND)
+EndIf (USE_SDL2)
+
+If (USE_SDL2)
 	PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image)
-	INCLUDE_DIRECTORIES(${SDL2IMAGE_INCLUDE_DIRS})
+	If (NOT SDL2IMAGE_FOUND)
+		Message (ERROR "Couldn't find SDL2-image development files. On Debian-based systems (such as Ubuntu) you should install the 'libsdl2-image-dev' package.")
+		Set (USE_SDL2 Off)
+	Else (NOT SDL2IMAGE_FOUND)
+		INCLUDE_DIRECTORIES(${SDL2IMAGE_INCLUDE_DIRS})
+	EndIf (NOT SDL2IMAGE_FOUND)
+EndIf (USE_SDL2)
+
+If (USE_SDL2)
 	PKG_SEARCH_MODULE(SDL2MIXER REQUIRED SDL2_mixer)
-	INCLUDE_DIRECTORIES(${SDL2MIXER_INCLUDE_DIRS})
+	If (NOT SDL2MIXER_FOUND)
+		Message (ERROR "Couldn't find SDL2-mixer development files. On Debian-based systems (such as Ubuntu) you should install the 'libsdl2-mixer-dev' package.")
+		Set (USE_SDL2 Off)
+	Else (NOT SDL2MIXER_FOUND)
+		INCLUDE_DIRECTORIES(${SDL2MIXER_INCLUDE_DIRS})
+	EndIf (NOT SDL2MIXER_FOUND)
+EndIf (USE_SDL2)
+
+If (USE_SDL2)
 	PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf)
-	INCLUDE_DIRECTORIES(${SDL2TTF_INCLUDE_DIRS})
-Else (USE_SDL2)
+	If (NOT SDL2TTF_FOUND)
+		Message (ERROR "Couldn't find SDL2-ttf development files. On Debian-based systems (such as Ubuntu) you should install the 'libsdl2-ttf-dev' package.")
+		Set (USE_SDL2 Off)
+	Else (NOT SDL2TTF_FOUND)
+		INCLUDE_DIRECTORIES(${SDL2TTF_INCLUDE_DIRS})
+	EndIf (NOT SDL2TTF_FOUND)
+EndIf (USE_SDL2)
+
+# Try to find SDL 1.2 packages
+If (NOT USE_SDL2)
 	Find_Package (SDL REQUIRED)
 	If (NOT SDL_FOUND)
 	  Message (FATAL_ERROR "Couldn't find SDL development files. On Debian-based systems (such as Ubuntu) you should install the 'libsdl1.2-dev' package.")
@@ -96,7 +131,7 @@ Else (USE_SDL2)
 	Else (NOT SDLTTF_FOUND)
 	  Include_Directories (${SDLTTF_INCLUDE_DIR})
 	EndIf (NOT SDLTTF_FOUND)
-EndIf (USE_SDL2)
+EndIf (NOT USE_SDL2)
 
 
 # Sources

@@ -541,7 +541,7 @@ void SDL2RenderDevice::listModes(std::vector<Rect> &modes) {
 		free(detect_modes);
 }
 
-Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string errormessage, bool IfNotFoundExit, bool HavePinkColorKey) {
+Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string errormessage, bool IfNotFoundExit) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);
@@ -551,21 +551,8 @@ Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string er
 	SDLImage *image = new SDLImage(this);
 	if (!image) return NULL;
 
-	if (HavePinkColorKey) {
-		// SDL_Textures don't support colorkeying
-		// so we instead create an SDL_Surface, key it, and convert to a texture
-		SDL_Surface* cleanup = IMG_Load(mods->locate(filename).c_str());
-		if (cleanup) {
-			SDL_SetColorKey(cleanup, true, SDL_MapRGB(cleanup->format, 255, 0, 255));
-			image->surface = SDL_CreateTextureFromSurface(renderer, cleanup);
-			textures_count+=1;
-			SDL_FreeSurface(cleanup);
-		}
-	}
-	else {
-		image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
-		textures_count+=1;
-	}
+	image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
+	textures_count+=1;
 
 	if(image == NULL) {
 		if (!errormessage.empty())
