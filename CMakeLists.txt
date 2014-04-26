@@ -137,7 +137,6 @@ EndIf (NOT USE_SDL2)
 # Sources
 
 Set (FLARE_SOURCES
-	./src/SDL2RenderDevice.cpp
 	./src/BehaviorAlly.cpp
 	./src/Entity.cpp
 	./src/Animation.cpp
@@ -208,8 +207,9 @@ Set (FLARE_SOURCES
 	./src/RenderDeviceList.cpp
 	./src/SaveLoad.cpp
 	./src/SDL_gfxBlitFunc.c
-	./src/SDLRenderDevice.cpp
 	./src/Settings.cpp
+	./src/SDLRenderDevice.cpp
+	./src/SDL2RenderDevice.cpp
 	./src/SharedGameResources.cpp
 	./src/SharedResources.cpp
 	./src/StatBlock.cpp

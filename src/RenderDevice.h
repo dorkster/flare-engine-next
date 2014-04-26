@@ -121,6 +121,9 @@ private:
   Image(RenderDevice *device);
   virtual ~Image();
   friend class SDLImage;
+#if SDL_VERSION_ATLEAST(2,0,0)
+  friend class SDL2Image;
+#endif
 
 private:
   RenderDevice *device;
@@ -230,7 +233,5 @@ private:
 
 	IMAGE_CACHE_CONTAINER cache;
 };
-
-void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask);
 
 #endif // RENDERDEVICE_H

@@ -25,23 +25,25 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "SDL2RenderDevice.h"
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+
 using namespace std;
 
-SDLImage::SDLImage(RenderDevice *_device)
+SDL2Image::SDL2Image(RenderDevice *_device)
 	: Image(_device)
 	, surface(NULL) {
 }
 
-SDLImage::~SDLImage() {
+SDL2Image::~SDL2Image() {
 }
 
-int SDLImage::getWidth() const {
+int SDL2Image::getWidth() const {
 	int w, h;
 	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
 	return (surface ? w : 0);
 }
 
-int SDLImage::getHeight() const {
+int SDL2Image::getHeight() const {
 	int w, h;
 	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
 	return (surface ? h : 0);
@@ -134,7 +136,7 @@ int SDL2RenderDevice::render(Renderable& r, Rect dest) {
 	dest.h = r.src.h;
     SDL_Rect src = r.src;
     SDL_Rect _dest = dest;
-	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(r.sprite)->surface, &src, &_dest);
+	return SDL_RenderCopy(renderer, static_cast<SDL2Image *>(r.sprite)->surface, &src, &_dest);
 }
 
 int SDL2RenderDevice::render(Sprite *r) {
@@ -163,7 +165,7 @@ int SDL2RenderDevice::render(Sprite *r) {
 
     SDL_Rect src = m_clip;
     SDL_Rect dest = m_dest;
-	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(r->getGraphics())->surface, &src, &dest);
+	return SDL_RenderCopy(renderer, static_cast<SDL2Image *>(r->getGraphics())->surface, &src, &dest);
 }
 
 int SDL2RenderDevice::renderImage(Image* image, Rect& src) {
@@ -190,18 +192,18 @@ int SDL2RenderDevice::renderImage(Image* image, Rect& src) {
 	dest.w = src.w;
 	dest.h = src.h;
 
-	return SDL_RenderCopy(renderer, static_cast<SDLImage *>(image)->surface, &_src, &dest);
+	return SDL_RenderCopy(renderer, static_cast<SDL2Image *>(image)->surface, &_src, &dest);
 }
 
 int SDL2RenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
 	if (!src_image || !dest_image) return -1;
-	if (SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dest_image)->surface) != 0) return -1;
-	SDL_SetTextureBlendMode(static_cast<SDLImage *>(dest_image)->surface, SDL_BLENDMODE_BLEND);
+	if (SDL_SetRenderTarget(renderer, static_cast<SDL2Image *>(dest_image)->surface) != 0) return -1;
+	SDL_SetTextureBlendMode(static_cast<SDL2Image *>(dest_image)->surface, SDL_BLENDMODE_BLEND);
 	dest.w = src.w;
 	dest.h = src.h;
     SDL_Rect _src = src;
     SDL_Rect _dest = dest;
-	SDL_RenderCopy(renderer, static_cast<SDLImage *>(src_image)->surface, &_src, &_dest);
+	SDL_RenderCopy(renderer, static_cast<SDL2Image *>(src_image)->surface, &_src, &_dest);
 	SDL_SetRenderTarget(renderer, NULL);
 	return 0;
 }
@@ -247,7 +249,7 @@ int SDL2RenderDevice::renderText(
 }
 
 Image * SDL2RenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
-	SDLImage *image = new SDLImage(this);
+	SDL2Image *image = new SDL2Image(this);
 	SDL_Color _color = color;
 
 	SDL_Surface *cleanup;
@@ -295,7 +297,7 @@ void SDL2RenderDevice::drawPixel(Image *image, int x, int y, Uint32 pixel) {
 	if (!image) return;
 
 	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLImage *>(image)->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDL2Image *>(image)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (!format) return;
@@ -304,8 +306,8 @@ void SDL2RenderDevice::drawPixel(Image *image, int x, int y, Uint32 pixel) {
 	SDL_GetRGBA(pixel, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
 	SDL_FreeFormat(format);
 
-	SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(image)->surface);
-	SDL_SetTextureBlendMode(static_cast<SDLImage *>(image)->surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(renderer, static_cast<SDL2Image *>(image)->surface);
+	SDL_SetTextureBlendMode(static_cast<SDL2Image *>(image)->surface, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
 	SDL_RenderDrawPoint(renderer, x, y);
 	SDL_SetRenderTarget(renderer, NULL);
@@ -373,7 +375,7 @@ void SDL2RenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 colo
 	if (!dst) return;
 
 	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLImage *>(dst)->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDL2Image *>(dst)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (!format) return;
@@ -382,18 +384,18 @@ void SDL2RenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 colo
 	SDL_GetRGBA(color, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
 	SDL_FreeFormat(format);
 
-	SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dst)->surface);
-	SDL_SetTextureBlendMode(static_cast<SDLImage *>(dst)->surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(renderer, static_cast<SDL2Image *>(dst)->surface);
+	SDL_SetTextureBlendMode(static_cast<SDL2Image *>(dst)->surface, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g , rgba.b, rgba.a);
 	SDL_RenderClear(renderer);
 	SDL_SetRenderTarget(renderer, NULL);
 }
 
 Uint32 SDL2RenderDevice::MapRGB(Image *src, Uint8 r, Uint8 g, Uint8 b) {
-	if (!src || !static_cast<SDLImage *>(src)->surface) return 0;
+	if (!src || !static_cast<SDL2Image *>(src)->surface) return 0;
 
 	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLImage *>(src)->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDL2Image *>(src)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -421,10 +423,10 @@ Uint32 SDL2RenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
 }
 
 Uint32 SDL2RenderDevice::MapRGBA(Image *src, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	if (!src || !static_cast<SDLImage *>(src)->surface) return 0;
+	if (!src || !static_cast<SDL2Image *>(src)->surface) return 0;
 
 	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLImage *>(src)->surface, &u_format, NULL, NULL, NULL);
+	SDL_QueryTexture(static_cast<SDL2Image *>(src)->surface, &u_format, NULL, NULL, NULL);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -456,7 +458,7 @@ Uint32 SDL2RenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
  */
 Image *SDL2RenderDevice::createAlphaSurface(int width, int height) {
 
-	SDLImage *image = new SDLImage(this);
+	SDL2Image *image = new SDL2Image(this);
 
 	if (width > 0 && height > 0) {
 		image->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
@@ -548,7 +550,7 @@ Image *SDL2RenderDevice::loadGraphicSurface(std::string filename, std::string er
 	if (img != NULL) return img;
 
 	// load image
-	SDLImage *image = new SDLImage(this);
+	SDL2Image *image = new SDL2Image(this);
 	if (!image) return NULL;
 
 	image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
@@ -575,14 +577,14 @@ void SDL2RenderDevice::scaleSurface(Image *source, int width, int height) {
 	Image *dest = createAlphaSurface(width, height);
 	if (dest != NULL) {
 		// copy the source texture to the new texture, stretching it in the process
-		SDL_SetRenderTarget(renderer, static_cast<SDLImage *>(dest)->surface);
-		SDL_RenderCopyEx(renderer, static_cast<SDLImage *>(source)->surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
+		SDL_SetRenderTarget(renderer, static_cast<SDL2Image *>(dest)->surface);
+		SDL_RenderCopyEx(renderer, static_cast<SDL2Image *>(source)->surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
 		SDL_SetRenderTarget(renderer, NULL);
 
 		// Remove the old surface
-		SDL_DestroyTexture(static_cast<SDLImage *>(source)->surface);
+		SDL_DestroyTexture(static_cast<SDL2Image *>(source)->surface);
 		textures_count-=1;
-		static_cast<SDLImage *>(source)->surface = static_cast<SDLImage *>(dest)->surface;
+		static_cast<SDL2Image *>(source)->surface = static_cast<SDL2Image *>(dest)->surface;
 	}
 }
 
@@ -604,24 +606,11 @@ void SDL2RenderDevice::freeImage(Image *image) {
 
 	cacheRemove(image);
 
-	if (static_cast<SDLImage *>(image)->surface)
+	if (static_cast<SDL2Image *>(image)->surface)
 	{
-		SDL_DestroyTexture(static_cast<SDLImage *>(image)->surface);
+		SDL_DestroyTexture(static_cast<SDL2Image *>(image)->surface);
 		textures_count-=1;
 	}
 }
 
-void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	*rmask = 0xff000000;
-	*gmask = 0x00ff0000;
-	*bmask = 0x0000ff00;
-	*amask = 0x000000ff;
-#else
-	*rmask = 0x000000ff;
-	*gmask = 0x0000ff00;
-	*bmask = 0x00ff0000;
-	*amask = 0xff000000;
 #endif
-}
-

@@ -19,6 +19,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef SDL2RENDERDEVICE_H
 #define SDL2RENDERDEVICE_H
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+
 #include "RenderDevice.h"
 
 /** Provide rendering device using SDL_BlitSurface backend.
@@ -42,10 +44,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 
 /** SDL Image */
-class SDLImage : public Image {
+class SDL2Image : public Image {
 public:
-  SDLImage(RenderDevice *device);
-  virtual ~SDLImage();
+  SDL2Image(RenderDevice *device);
+  virtual ~SDL2Image();
   int getWidth() const;
   int getHeight() const;
 
@@ -118,5 +120,7 @@ private:
 	SDL_Renderer *renderer;
 	SDL_Surface* titlebar_icon;
 };
+
+#endif // SDL_VERSION_ATLEAST(2,0,0)
 
 #endif // SDL2RENDERDEVICE_H

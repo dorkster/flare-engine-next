@@ -22,10 +22,17 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "SDLRenderDevice.h"
 
+#if SDL_VERSION_ATLEAST(2,0,0)
+#include "SDL2RenderDevice.h"
+#endif
+
 RenderDevice* getRenderDevice(std::string name) {
 	// "sdl" is the default
 	if (name != "") {
 		if (name == "sdl") return new SDLRenderDevice();
+#if SDL_VERSION_ATLEAST(2,0,0)
+		else if (name == "sdl2") return new SDL2RenderDevice();
+#endif
 		else {
 			fprintf(stderr, "Render device '%s' not found. Falling back to the default.\n", name.c_str());
 			return new SDLRenderDevice();
