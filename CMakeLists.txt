@@ -136,17 +136,8 @@ EndIf (NOT USE_SDL2)
 
 # Sources
 
-if (USE_SDL2)
-	Set (FLARE_SOURCES ./src/SDL2RenderDevice.cpp)
-else (USE_SDL2)
-	Set (FLARE_SOURCES
-		./src/SDL_gfxBlitFunc.c
-		./src/SDLRenderDevice.cpp
-	)
-endif(USE_SDL2)
-
 Set (FLARE_SOURCES
-	${FLARE_SOURCES}
+	./src/SDL2RenderDevice.cpp
 	./src/BehaviorAlly.cpp
 	./src/Entity.cpp
 	./src/Animation.cpp
@@ -214,7 +205,10 @@ Set (FLARE_SOURCES
 	./src/PowerManager.cpp
 	./src/QuestLog.cpp
 	./src/RenderDevice.cpp
+	./src/RenderDeviceList.cpp
 	./src/SaveLoad.cpp
+	./src/SDL_gfxBlitFunc.c
+	./src/SDLRenderDevice.cpp
 	./src/Settings.cpp
 	./src/SharedGameResources.cpp
 	./src/SharedResources.cpp

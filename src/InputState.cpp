@@ -730,5 +730,21 @@ void InputState::showCursor() {
 	SDL_ShowCursor(SDL_ENABLE);
 }
 
+std::string InputState::getJoystickName(int index) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+	return std::string(SDL_JoystickNameForIndex(index));
+#else
+	return std::string(SDL_JoystickName(index));
+#endif
+}
+
+std::string InputState::getKeyName(int key) {
+#if SDL_VERSION_ATLEAST(2,0,0)
+	return std::string(SDL_GetKeyName((SDL_Keycode)key));
+#else
+	return std::string(SDL_GetKeyName((SDLKey)key));
+#endif
+}
+
 InputState::~InputState() {
 }
