@@ -120,7 +120,7 @@ public:
 private:
   Image(RenderDevice *device);
   virtual ~Image();
-  friend class SDLImage;
+  friend class SDLSoftwareImage;
 #if SDL_VERSION_ATLEAST(2,0,0)
   friend class SDL2Image;
 #endif
