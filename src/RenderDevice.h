@@ -122,7 +122,7 @@ private:
   virtual ~Image();
   friend class SDLSoftwareImage;
 #if SDL_VERSION_ATLEAST(2,0,0)
-  friend class SDL2Image;
+  friend class SDLHardwareImage;
 #endif
 
 private:

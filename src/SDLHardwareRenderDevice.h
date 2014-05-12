@@ -16,8 +16,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 #pragma once
-#ifndef SDL2RENDERDEVICE_H
-#define SDL2RENDERDEVICE_H
+#ifndef SDLHARDWARERENDERDEVICE_H
+#define SDLHARDWARERENDERDEVICE_H
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 
@@ -31,7 +31,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * As this is for the FLARE engine, the implementation uses the engine's
  * global settings context, which is included by the interface.
  *
- * @class SDL2RenderDevice
+ * @class SDLHardwareRenderDevice
  * @see RenderDevice
  * @author Kurt Rinnert
  * @date 2013-07-06
@@ -44,21 +44,21 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 
 /** SDL Image */
-class SDL2Image : public Image {
+class SDLHardwareImage : public Image {
 public:
-  SDL2Image(RenderDevice *device);
-  virtual ~SDL2Image();
+  SDLHardwareImage(RenderDevice *device);
+  virtual ~SDLHardwareImage();
   int getWidth() const;
   int getHeight() const;
 
   SDL_Texture *surface;
 };
 
-class SDL2RenderDevice : public RenderDevice {
+class SDLHardwareRenderDevice : public RenderDevice {
 
 public:
 
-	SDL2RenderDevice();
+	SDLHardwareRenderDevice();
 	int createContext(int width, int height);
 	Rect getContextSize();
 
@@ -123,4 +123,4 @@ private:
 
 #endif // SDL_VERSION_ATLEAST(2,0,0)
 
-#endif // SDL2RENDERDEVICE_H
+#endif // SDLHARDWARERENDERDEVICE_H
