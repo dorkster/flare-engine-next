@@ -29,8 +29,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 using namespace std;
 
-SDLHardwareImage::SDLHardwareImage(RenderDevice *_device)
+SDLHardwareImage::SDLHardwareImage(RenderDevice *_device, SDL_Renderer *_renderer)
 	: Image(_device)
+	, renderer(_renderer)
 	, surface(NULL) {
 }
 
@@ -47,6 +48,119 @@ int SDLHardwareImage::getHeight() const {
 	int w, h;
 	SDL_QueryTexture(surface, NULL, NULL, &w, &h);
 	return (surface ? h : 0);
+}
+
+void SDLHardwareImage::fillWithColor(Rect *dstrect, Uint32 color) {
+	if (!surface) return;
+
+	Uint32 u_format;
+	SDL_QueryTexture(surface, &u_format, NULL, NULL, NULL);
+	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
+
+	if (!format) return;
+
+	SDL_Color rgba;
+	SDL_GetRGBA(color, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
+	SDL_FreeFormat(format);
+
+	SDL_SetRenderTarget(renderer, surface);
+	SDL_SetTextureBlendMode(surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g , rgba.b, rgba.a);
+	SDL_RenderClear(renderer);
+	SDL_SetRenderTarget(renderer, NULL);
+}
+
+/*
+ * Set the pixel at (x, y) to the given value
+ */
+void SDLHardwareImage::drawPixel(int x, int y, Uint32 pixel) {
+	if (!surface) return;
+
+	Uint32 u_format;
+	SDL_QueryTexture(surface, &u_format, NULL, NULL, NULL);
+	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
+
+	if (!format) return;
+
+	SDL_Color rgba;
+	SDL_GetRGBA(pixel, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
+	SDL_FreeFormat(format);
+
+	SDL_SetRenderTarget(renderer, surface);
+	SDL_SetTextureBlendMode(surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
+	SDL_RenderDrawPoint(renderer, x, y);
+	SDL_SetRenderTarget(renderer, NULL);
+}
+
+Uint32 SDLHardwareImage::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
+	if (!surface) return 0;
+
+	Uint32 u_format;
+	SDL_QueryTexture(surface, &u_format, NULL, NULL, NULL);
+	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
+
+	if (format) {
+		Uint32 ret = SDL_MapRGB(format, r, g, b);
+		SDL_FreeFormat(format);
+		return ret;
+	}
+	else {
+		return 0;
+	}
+}
+
+Uint32 SDLHardwareImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+	if (!surface) return 0;
+
+	Uint32 u_format;
+	SDL_QueryTexture(surface, &u_format, NULL, NULL, NULL);
+	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
+
+	if (format) {
+		Uint32 ret = SDL_MapRGBA(format, r, g, b, a);
+		SDL_FreeFormat(format);
+		return ret;
+	}
+	else {
+		return 0;
+	}
+}
+
+Image* SDLHardwareImage::resize(int width, int height) {
+	if(!surface || width <= 0 || height <= 0)
+		return NULL;
+
+	SDLHardwareImage *scaled = new SDLHardwareImage(device, renderer);
+	if (!scaled) return NULL;
+
+	scaled->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
+
+	if (scaled->surface != NULL) {
+		// copy the source texture to the new texture, stretching it in the process
+		SDL_SetRenderTarget(renderer, scaled->surface);
+		SDL_RenderCopyEx(renderer, surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
+		SDL_SetRenderTarget(renderer, NULL);
+
+		// Remove the old surface
+		this->unref();
+		return scaled;
+	}
+
+	return NULL;
+}
+
+Uint32 SDLHardwareImage::readPixel(int x, int y) {
+	//Unimplemented
+	return 0;
+}
+
+/*
+ * Returns false if a pixel at Point px is transparent
+ */
+bool SDLHardwareImage::checkPixel(Point px) {
+	//Unimplemented
+	return true;
 }
 
 SDLHardwareRenderDevice::SDLHardwareRenderDevice()
@@ -136,7 +250,7 @@ int SDLHardwareRenderDevice::render(Renderable& r, Rect dest) {
 	dest.h = r.src.h;
     SDL_Rect src = r.src;
     SDL_Rect _dest = dest;
-	return SDL_RenderCopy(renderer, static_cast<SDLHardwareImage *>(r.sprite)->surface, &src, &_dest);
+	return SDL_RenderCopy(renderer, static_cast<SDLHardwareImage *>(r.image)->surface, &src, &_dest);
 }
 
 int SDLHardwareRenderDevice::render(Sprite *r) {
@@ -215,7 +329,6 @@ int SDLHardwareRenderDevice::renderText(
 	Rect& dest
 ) {
 	int ret = 0;
-	SDL_Color _color = color;
 	SDL_Texture *surface;
 
 	SDL_Surface *cleanup = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), color);
@@ -249,8 +362,7 @@ int SDLHardwareRenderDevice::renderText(
 }
 
 Image * SDLHardwareRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
-	SDLHardwareImage *image = new SDLHardwareImage(this);
-	SDL_Color _color = color;
+	SDLHardwareImage *image = new SDLHardwareImage(this, renderer);
 
 	SDL_Surface *cleanup;
 
@@ -290,29 +402,6 @@ void SDLHardwareRenderDevice::drawPixel(
 	SDL_RenderDrawPoint(renderer, x, y);
 }
 
-/*
- * Set the pixel at (x, y) to the given value
- */
-void SDLHardwareRenderDevice::drawPixel(Image *image, int x, int y, Uint32 pixel) {
-	if (!image) return;
-
-	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLHardwareImage *>(image)->surface, &u_format, NULL, NULL, NULL);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (!format) return;
-
-	SDL_Color rgba;
-	SDL_GetRGBA(pixel, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
-	SDL_FreeFormat(format);
-
-	SDL_SetRenderTarget(renderer, static_cast<SDLHardwareImage *>(image)->surface);
-	SDL_SetTextureBlendMode(static_cast<SDLHardwareImage *>(image)->surface, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
-	SDL_RenderDrawPoint(renderer, x, y);
-	SDL_SetRenderTarget(renderer, NULL);
-}
-
 void SDLHardwareRenderDevice::drawLine(
 	int x0,
 	int y0,
@@ -331,14 +420,6 @@ void SDLHardwareRenderDevice::drawLine(
 
 	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g, rgba.b, rgba.a);
 	SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
-}
-
-void SDLHardwareRenderDevice::drawLine(
-	const Point& p0,
-	const Point& p1,
-	Uint32 color
-) {
-	drawLine(p0.x, p0.y, p1.x, p1.y, color);
 }
 
 void SDLHardwareRenderDevice::drawRectangle(
@@ -371,66 +452,12 @@ void SDLHardwareRenderDevice::destroyContext() {
 	return;
 }
 
-void SDLHardwareRenderDevice::fillImageWithColor(Image *dst, Rect *dstrect, Uint32 color) {
-	if (!dst) return;
-
-	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLHardwareImage *>(dst)->surface, &u_format, NULL, NULL, NULL);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (!format) return;
-
-	SDL_Color rgba;
-	SDL_GetRGBA(color, format, &rgba.r, &rgba.g, &rgba.b, &rgba.a);
-	SDL_FreeFormat(format);
-
-	SDL_SetRenderTarget(renderer, static_cast<SDLHardwareImage *>(dst)->surface);
-	SDL_SetTextureBlendMode(static_cast<SDLHardwareImage *>(dst)->surface, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderDrawColor(renderer, rgba.r, rgba.g , rgba.b, rgba.a);
-	SDL_RenderClear(renderer);
-	SDL_SetRenderTarget(renderer, NULL);
-}
-
-Uint32 SDLHardwareRenderDevice::MapRGB(Image *src, Uint8 r, Uint8 g, Uint8 b) {
-	if (!src || !static_cast<SDLHardwareImage *>(src)->surface) return 0;
-
-	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLHardwareImage *>(src)->surface, &u_format, NULL, NULL, NULL);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (format) {
-		Uint32 ret = SDL_MapRGB(format, r, g, b);
-		SDL_FreeFormat(format);
-		return ret;
-	}
-	else {
-		return 0;
-	}
-}
-
 Uint32 SDLHardwareRenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
 	Uint32 u_format = SDL_GetWindowPixelFormat(screen);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
 		Uint32 ret = SDL_MapRGB(format, r, g, b);
-		SDL_FreeFormat(format);
-		return ret;
-	}
-	else {
-		return 0;
-	}
-}
-
-Uint32 SDLHardwareRenderDevice::MapRGBA(Image *src, Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	if (!src || !static_cast<SDLHardwareImage *>(src)->surface) return 0;
-
-	Uint32 u_format;
-	SDL_QueryTexture(static_cast<SDLHardwareImage *>(src)->surface, &u_format, NULL, NULL, NULL);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (format) {
-		Uint32 ret = SDL_MapRGBA(format, r, g, b, a);
 		SDL_FreeFormat(format);
 		return ret;
 	}
@@ -456,9 +483,9 @@ Uint32 SDLHardwareRenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 /**
  * create blank surface
  */
-Image *SDLHardwareRenderDevice::createAlphaSurface(int width, int height) {
+Image *SDLHardwareRenderDevice::createImage(int width, int height) {
 
-	SDLHardwareImage *image = new SDLHardwareImage(this);
+	SDLHardwareImage *image = new SDLHardwareImage(this, renderer);
 
 	if (width > 0 && height > 0) {
 		image->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
@@ -543,14 +570,14 @@ void SDLHardwareRenderDevice::listModes(std::vector<Rect> &modes) {
 		free(detect_modes);
 }
 
-Image *SDLHardwareRenderDevice::loadGraphicSurface(std::string filename, std::string errormessage, bool IfNotFoundExit) {
+Image *SDLHardwareRenderDevice::loadImage(std::string filename, std::string errormessage, bool IfNotFoundExit) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);
 	if (img != NULL) return img;
 
 	// load image
-	SDLHardwareImage *image = new SDLHardwareImage(this);
+	SDLHardwareImage *image = new SDLHardwareImage(this, renderer);
 	if (!image) return NULL;
 
 	image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
@@ -568,37 +595,6 @@ Image *SDLHardwareRenderDevice::loadGraphicSurface(std::string filename, std::st
 	// store image to cache
 	cacheStore(filename, image);
 	return image;
-}
-
-void SDLHardwareRenderDevice::scaleSurface(Image *source, int width, int height) {
-	if(!source || !width || !height)
-		return;
-
-	Image *dest = createAlphaSurface(width, height);
-	if (dest != NULL) {
-		// copy the source texture to the new texture, stretching it in the process
-		SDL_SetRenderTarget(renderer, static_cast<SDLHardwareImage *>(dest)->surface);
-		SDL_RenderCopyEx(renderer, static_cast<SDLHardwareImage *>(source)->surface, NULL, NULL, 0, NULL, SDL_FLIP_NONE);
-		SDL_SetRenderTarget(renderer, NULL);
-
-		// Remove the old surface
-		SDL_DestroyTexture(static_cast<SDLHardwareImage *>(source)->surface);
-		textures_count-=1;
-		static_cast<SDLHardwareImage *>(source)->surface = static_cast<SDLHardwareImage *>(dest)->surface;
-	}
-}
-
-Uint32 SDLHardwareRenderDevice::readPixel(Image *image, int x, int y) {
-	//Unimplemented
-	return 0;
-}
-
-/*
- * Returns false if a pixel at Point px is transparent
- */
-bool SDLHardwareRenderDevice::checkPixel(Point px, Image *image) {
-	//Unimplemented
-	return true;
 }
 
 void SDLHardwareRenderDevice::freeImage(Image *image) {

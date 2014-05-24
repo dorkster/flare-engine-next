@@ -50,7 +50,7 @@ class RenderDevice;
 class Sprite {
 
 public:
-        virtual ~Sprite();
+	virtual ~Sprite();
 
 	Rect local_frame;
 
@@ -74,7 +74,7 @@ public:
 	virtual int getGraphicsWidth();
 	virtual int getGraphicsHeight();
 private:
-        Sprite(Image *);
+	Sprite(Image *);
 	friend class Image;
 
 protected:
