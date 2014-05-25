@@ -296,7 +296,7 @@ void MapRenderer::render(vector<Renderable> &r, vector<Renderable> &r_dead) {
 }
 
 void MapRenderer::drawRenderable(vector<Renderable>::iterator r_cursor) {
-	if (r_cursor->sprite != NULL) {
+	if (r_cursor->image != NULL) {
 		Rect dest;
 		Point p = map_to_screen(r_cursor->map_pos.x, r_cursor->map_pos.y, shakycam.x, shakycam.y);
 		dest.x = p.x - r_cursor->offset.x;
@@ -310,11 +310,11 @@ void MapRenderer::renderIsoLayer(const unsigned short layerdata[256][256]) {
 	int_fast16_t j; // second index of the map array
 	Rect dest;
 	const Point upperleft = floor(screen_to_map(0, 0, shakycam.x, shakycam.y));
-	const int_fast16_t max_tiles_width =   (VIEW_W / TILE_W) + 2 * tset.max_size_x;
-	const int_fast16_t max_tiles_height = ((2 * VIEW_H / TILE_H) + 2 * tset.max_size_y) * 2;
+	const int_fast16_t max_tiles_width =   (VIEW_W / TILE_W) + 2*tset.max_size_x;
+	const int_fast16_t max_tiles_height = (2 * VIEW_H / TILE_H) + 2*tset.max_size_y;
 
-	j = upperleft.y - tset.max_size_y + tset.max_size_x;
-	i = upperleft.x - tset.max_size_y - tset.max_size_x;
+	j = upperleft.y - tset.max_size_y/2 + tset.max_size_x;
+	i = upperleft.x - tset.max_size_y/2 - tset.max_size_x;
 
 	for (uint_fast16_t y = max_tiles_height ; y; --y) {
 		int_fast16_t tiles_width = 0;
@@ -424,9 +424,7 @@ void MapRenderer::renderIsoFrontObjects(vector<Renderable> &r) {
 				dest.x = p.x - tset.tiles[current_tile].offset.x;
 				dest.y = p.y - tset.tiles[current_tile].offset.y;
 				tset.tiles[current_tile].tile->setDest(dest);
-				//tset.tiles[current_tile].tile.setGraphics(*tset.sprites.getGraphics(), false);
 				render_device->render(tset.tiles[current_tile].tile);
-				//tset.tiles[current_tile].tile.setGraphics(Image());
 			}
 
 			// some renderable entities go in this layer
@@ -484,9 +482,7 @@ void MapRenderer::renderOrthoLayer(const unsigned short layerdata[256][256]) {
 				dest.x = p.x - tset.tiles[current_tile].offset.x;
 				dest.y = p.y - tset.tiles[current_tile].offset.y;
 				tset.tiles[current_tile].tile->setDest(dest);
-				//tset.tiles[current_tile].tile.setGraphics(*tset.sprites.getGraphics(), false);
 				render_device->render(tset.tiles[current_tile].tile);
-				//tset.tiles[current_tile].tile.setGraphics(Image());
 			}
 			p.x += TILE_W;
 		}
@@ -531,9 +527,7 @@ void MapRenderer::renderOrthoFrontObjects(std::vector<Renderable> &r) {
 				dest.x = p.x - tset.tiles[current_tile].offset.x;
 				dest.y = p.y - tset.tiles[current_tile].offset.y;
 				tset.tiles[current_tile].tile->setDest(dest);
-				//tset.tiles[current_tile].tile.setGraphics(*tset.sprites.getGraphics(), false);
 				render_device->render(tset.tiles[current_tile].tile);
-				//tset.tiles[current_tile].tile.setGraphics(Image());
 			}
 			p.x += TILE_W;
 
@@ -693,7 +687,7 @@ void MapRenderer::checkHotspots() {
 							Point p1;
 							p1.x = inpt->mouse.x - dest.x + tset.tiles[current_tile].tile->getClip().x;
 							p1.y = inpt->mouse.y - dest.y + tset.tiles[current_tile].tile->getClip().y;
-							matched |= render_device->checkPixel(p1, tset.sprites->getGraphics());
+							matched |= tset.sprites->getGraphics()->checkPixel(p1);
 							tip_pos.x = dest.x + dest.w/2;
 							tip_pos.y = dest.y;
 						}
