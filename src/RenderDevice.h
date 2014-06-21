@@ -151,8 +151,8 @@ public:
 		, src(Rect())
 		, map_pos()
 		, offset()
-		, prio(0)
-	{}
+		, prio(0) {
+	}
 };
 
 
@@ -189,8 +189,8 @@ public:
 
 	/** factory functions for Image */
 	virtual Image *loadImage(std::string filename,
-					  std::string errormessage = "Couldn't load image",
-					  bool IfNotFoundExit = false) = 0;
+							 std::string errormessage = "Couldn't load image",
+							 bool IfNotFoundExit = false) = 0;
 	virtual Image *createImage(int width, int height) = 0;
 	virtual void freeImage(Image *image) = 0;
 
@@ -199,7 +199,7 @@ public:
 	virtual int render(Renderable& r, Rect dest) = 0;
 	virtual int renderImage(Image* image, Rect& src) = 0;
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest,
-				  bool dest_is_transparent = false) = 0;
+							  bool dest_is_transparent = false) = 0;
 	virtual int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest) = 0;
 	virtual Image* renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true) = 0;
 	virtual void blankScreen() = 0;
