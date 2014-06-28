@@ -116,6 +116,7 @@ static void init(const std::string render_device_name) {
 	}
 	else {
 		printf("No joysticks were found.\n");
+		ENABLE_JOYSTICK = false;
 	}
 	for(int i = 0; i < SDL_NumJoysticks(); i++) {
 		printf("  Joy %d) %s\n", i, inpt->getJoystickName(i).c_str());
@@ -136,7 +137,7 @@ static void init(const std::string render_device_name) {
 
 static void mainLoop (bool debug_event) {
 	bool done = false;
-	int delay = floor((1000.f/MAX_FRAMES_PER_SEC)+0.5f);
+	int delay = int(floor((1000.f/MAX_FRAMES_PER_SEC)+0.5f));
 	int logic_ticks = SDL_GetTicks();
 	int loops = 0;
 
