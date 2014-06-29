@@ -75,3 +75,9 @@ If permissions are correct, the game is automatically saved when you exit. In ad
 | --debug-event   | Prints verbose hardware input information.
 | --renderer      | Specifies the rendering backend to use. The default is 'sdl'.
 
+## Notes specific to flare-engine-next
+
+Below is a list of things that only apply to the flare-engine-next fork.
+
+- To use the GPU-based SDL renderer, use `--renderer=sdl_hardware` when launching
+
