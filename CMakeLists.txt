@@ -188,6 +188,8 @@ Set (FLARE_SOURCES
 	./src/MenuBook.cpp
 	./src/MenuCharacter.cpp
 	./src/MenuConfirm.cpp
+	./src/MenuDevHUD.cpp
+	./src/MenuDevConsole.cpp
 	./src/MenuEnemy.cpp
 	./src/MenuExit.cpp
 	./src/MenuHUDLog.cpp
@@ -232,6 +234,7 @@ Set (FLARE_SOURCES
 	./src/WidgetInput.cpp
  	./src/WidgetLabel.cpp
  	./src/WidgetListBox.cpp
+	./src/WidgetLog.cpp
 	./src/WidgetScrollBar.cpp
 	./src/WidgetScrollBox.cpp
 	./src/WidgetSlider.cpp
