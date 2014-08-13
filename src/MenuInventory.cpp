@@ -559,6 +559,12 @@ void MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound) {
 				drop_stack.push(leftover);
 			}
 		}
+		else if (area == EQUIPMENT) {
+			ItemStack leftover = inventory[EQUIPMENT].add(stack, slot);
+			if (leftover.quantity > 0) {
+				add(leftover, CARRIED, -1, false);
+			}
+		}
 	}
 	drag_prev_src = -1;
 }
@@ -867,23 +873,6 @@ void MenuInventory::applyItemStats(ItemStack *equipped) {
 		stats->dmg_ranged_max_add += item.dmg_ranged_max;
 		stats->dmg_ment_min_add += item.dmg_ment_min;
 		stats->dmg_ment_max_add += item.dmg_ment_max;
-
-		// apply power mod
-		if (find(item.equip_flags.begin(), item.equip_flags.end(), "melee") != item.equip_flags.end()) {
-			if (item.power_mod != 0) {
-				stats->melee_weapon_power = item.power_mod;
-			}
-		}
-		if (find(item.equip_flags.begin(), item.equip_flags.end(), "ranged") != item.equip_flags.end()) {
-			if (item.power_mod != 0) {
-				stats->ranged_weapon_power = item.power_mod;
-			}
-		}
-		if (find(item.equip_flags.begin(), item.equip_flags.end(), "mental") != item.equip_flags.end()) {
-			if (item.power_mod != 0) {
-				stats->mental_weapon_power = item.power_mod;
-			}
-		}
 
 		// set equip flags
 		for (unsigned j=0; j<item.equip_flags.size(); ++j) {
