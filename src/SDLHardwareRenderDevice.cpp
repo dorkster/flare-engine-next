@@ -231,7 +231,7 @@ int SDLHardwareRenderDevice::createContext(int width, int height) {
 		return (set_fullscreen == 0 ? 0 : -1);
 	}
 	else {
-		fprintf(stderr, "createContext() failed: %s\n", SDL_GetError());
+		logError("SDLHardwareRenderDevice: createContext() failed: %s\n", SDL_GetError());
 		SDL_Quit();
 		exit(1);
 	}
@@ -491,7 +491,7 @@ Image *SDLHardwareRenderDevice::createImage(int width, int height) {
 		image->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
 		textures_count+=1;
 		if(image->surface == NULL) {
-			fprintf(stderr, "CreateRGBSurface failed: %s\n", SDL_GetError());
+			logError("SDLHardwareRenderDevice: SDL_CreateTexture failed: %s\n", SDL_GetError());
 		}
 		else {
 				SDL_SetRenderTarget(renderer, image->surface);
@@ -541,13 +541,13 @@ void SDLHardwareRenderDevice::listModes(std::vector<Rect> &modes) {
 	vec_detect_modes.clear();
 	// Check if there are any modes available
 	if (detect_modes == (Rect**)0) {
-		fprintf(stderr, "No modes available!\n");
+		logError("SDLHardwareRenderDevice: No modes available!\n");
 		return;
 	}
 
 	// Check if our resolution is restricted
 	if (detect_modes == (Rect**)-1) {
-		fprintf(stderr, "All resolutions available.\n");
+		logError("SDLHardwareRenderDevice: All resolutions available.\n");
 	}
 
 	for (unsigned i=0; detect_modes[i]; ++i) {
@@ -585,7 +585,7 @@ Image *SDLHardwareRenderDevice::loadImage(std::string filename, std::string erro
 
 	if(image == NULL) {
 		if (!errormessage.empty())
-			fprintf(stderr, "%s: %s\n", errormessage.c_str(), IMG_GetError());
+			logError("SDLHardwareRenderDevice: %s: %s\n", errormessage.c_str(), IMG_GetError());
 		if (IfNotFoundExit) {
 			SDL_Quit();
 			exit(1);
