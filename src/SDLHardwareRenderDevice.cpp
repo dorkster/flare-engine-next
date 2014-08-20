@@ -155,14 +155,6 @@ Uint32 SDLHardwareImage::readPixel(int x, int y) {
 	return 0;
 }
 
-/*
- * Returns false if a pixel at Point px is transparent
- */
-bool SDLHardwareImage::checkPixel(Point px) {
-	//Unimplemented
-	return true;
-}
-
 SDLHardwareRenderDevice::SDLHardwareRenderDevice()
 	: screen(NULL)
 	, titlebar_icon(NULL) {

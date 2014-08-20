@@ -56,7 +56,6 @@ public:
 	Uint32 MapRGB(Uint8 r, Uint8 g, Uint8 b);
 	Uint32 MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 	Image* resize(int width, int height);
-	bool checkPixel(Point px);
 
 	SDL_Renderer *renderer;
 	SDL_Texture *surface;
