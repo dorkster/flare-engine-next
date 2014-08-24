@@ -274,33 +274,6 @@ int SDLHardwareRenderDevice::render(Sprite *r) {
 	return SDL_RenderCopy(renderer, static_cast<SDLHardwareImage *>(r->getGraphics())->surface, &src, &dest);
 }
 
-int SDLHardwareRenderDevice::renderImage(Image* image, Rect& src) {
-	if (!image) return -1;
-
-    SDL_Rect _src = src;
-	SDL_Rect dest;
-	dest.x = 0;
-	dest.y = 0;
-
-	// negative x and y clip causes weird stretching
-	// adjust for that here
-	if (src.x < 0) {
-		src.w -= abs(src.x);
-		dest.x += abs(src.x);
-		src.x = 0;
-	}
-	if (src.y < 0) {
-		src.h -= abs(src.y);
-		dest.y += abs(src.y);
-		src.y = 0;
-	}
-
-	dest.w = src.w;
-	dest.h = src.h;
-
-	return SDL_RenderCopy(renderer, static_cast<SDLHardwareImage *>(image)->surface, &_src, &dest);
-}
-
 int SDLHardwareRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
 	if (!src_image || !dest_image) return -1;
 	if (SDL_SetRenderTarget(renderer, static_cast<SDLHardwareImage *>(dest_image)->surface) != 0) return -1;
