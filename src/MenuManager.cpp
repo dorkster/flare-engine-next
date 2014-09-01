@@ -762,7 +762,7 @@ void MenuManager::logic() {
 				}
 			}
 			// action bar
-			if (isWithin(act->numberArea,inpt->mouse) || isWithin(act->mouseArea,inpt->mouse) || isWithin(act->menuArea, inpt->mouse)) {
+			if (!inpt->touch_locked && (isWithin(act->numberArea,inpt->mouse) || isWithin(act->mouseArea,inpt->mouse) || isWithin(act->menuArea, inpt->mouse))) {
 				inpt->lock[MAIN1] = true;
 
 				// ctrl-click action bar to clear that slot
