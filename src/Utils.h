@@ -92,6 +92,7 @@ public:
 	int z;
 	int a;
 	int b;
+	int c;
 
 	Event_Component()
 		: type("")
@@ -100,7 +101,27 @@ public:
 		, y(0)
 		, z(0)
 		, a(0)
-		, b(0) {
+		, b(0)
+		, c(0) {
+	}
+};
+
+class EffectDef {
+public:
+	std::string name;
+	std::string type;
+	int icon;
+	std::string animation;
+	bool can_stack;
+	bool render_above;
+
+	EffectDef()
+		: name("")
+		, type("")
+		, icon(-1)
+		, animation("")
+		, can_stack(true)
+		, render_above(false) {
 	}
 };
 
