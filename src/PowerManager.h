@@ -24,23 +24,17 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * Special code for handling spells, special powers, item effects, etc.
  */
 
-#pragma once
 #ifndef POWER_MANAGER_H
 #define POWER_MANAGER_H
 
-#include "CommonIncludes.h"
 #include "LootManager.h"
 #include "MapRenderer.h"
-#include "Utils.h"
+#include "Map.h"
 
 #include <cassert>
 
-class Animation;
 class AnimationSet;
 class Hazard;
-class MapCollision;
-class Map_Enemy;
-class StatBlock;
 
 const int POWTYPE_FIXED = 0;
 const int POWTYPE_MISSILE = 1;
@@ -207,6 +201,7 @@ public:
 	int transform_duration;
 	bool manual_untransform; // true binds to the power another recurrence power
 	bool keep_equipment;
+	bool untransform_on_hit;
 
 	// special effects
 	bool buff;
@@ -307,6 +302,7 @@ public:
 		, transform_duration(0)
 		, manual_untransform(false)
 		, keep_equipment(false)
+		, untransform_on_hit(false)
 
 		, buff(false)
 		, buff_teleport(false)

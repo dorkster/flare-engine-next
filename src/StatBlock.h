@@ -22,8 +22,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * Character stats and calculations
  */
 
-
-#pragma once
 #ifndef STAT_BLOCK_H
 #define STAT_BLOCK_H
 
@@ -215,6 +213,7 @@ public:
 	int transform_duration_total;
 	bool manual_untransform;
 	bool transform_with_equipment;
+	bool untransform_on_hit;
 	EffectManager effects;
 
 	FPoint pos;
