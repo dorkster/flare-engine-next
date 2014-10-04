@@ -318,6 +318,7 @@ Set (FLARE_HEADERS
 	./src/RenderDeviceList.h
 	./src/SDL_gfxBlitFunc.c
 	./src/SDLSoftwareRenderDevice.h
+	./src/SDLHardwareRenderDevice.h
 	./src/Settings.h
 	./src/SharedGameResources.h
 	./src/SharedResources.h
