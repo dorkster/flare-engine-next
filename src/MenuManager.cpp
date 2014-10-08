@@ -140,8 +140,7 @@ MenuManager::MenuManager(StatBlock *_stats)
 	pause = false;
 	mouse_dragging = false;
 	keyboard_dragging = false;
-	drag_stack.item = 0;
-	drag_stack.quantity = 0;
+	drag_stack.clear();
 	drag_power = 0;
 	drag_src = 0;
 
@@ -182,7 +181,7 @@ void MenuManager::setDragIcon(int icon_id) {
 
 void MenuManager::setDragIconItem(ItemStack stack) {
 	if (!drag_icon) {
-		if (stack.item == 0) return;
+		if (stack.empty()) return;
 
 		setDragIcon(items->items[stack.item].icon);
 
@@ -655,7 +654,7 @@ void MenuManager::logic() {
 				if (inpt->pressing[CTRL]) {
 					// buy item from a vendor
 					stack = vendor->click(inpt->mouse);
-					if (stack.item > 0) {
+					if (!stack.empty()) {
 						if (!inv->buy(stack,vendor->getTab())) {
 							log->add(msg->get("Not enough %s.", CURRENCY), LOG_TYPE_MESSAGES);
 							hudlog->add(msg->get("Not enough %s.", CURRENCY));
@@ -676,7 +675,7 @@ void MenuManager::logic() {
 				else {
 					// start dragging a vendor item
 					drag_stack = vendor->click(inpt->mouse);
-					if (drag_stack.item > 0) {
+					if (!drag_stack.empty()) {
 						mouse_dragging = true;
 						drag_src = DRAG_SRC_VENDOR;
 					}
@@ -688,7 +687,7 @@ void MenuManager::logic() {
 				if (inpt->pressing[CTRL]) {
 					// take an item from the stash
 					stack = stash->click(inpt->mouse);
-					if (stack.item > 0) {
+					if (!stack.empty()) {
 						if (inv->full(stack)) {
 							log->add(msg->get("Inventory is full."), LOG_TYPE_MESSAGES);
 							hudlog->add(msg->get("Inventory is full."));
@@ -702,7 +701,7 @@ void MenuManager::logic() {
 				else {
 					// start dragging a stash item
 					drag_stack = stash->click(inpt->mouse);
-					if (drag_stack.item > 0) {
+					if (!drag_stack.empty()) {
 						mouse_dragging = true;
 						drag_src = DRAG_SRC_STASH;
 					}
@@ -718,7 +717,7 @@ void MenuManager::logic() {
 				if (inpt->pressing[CTRL]) {
 					inpt->lock[MAIN1] = true;
 					stack = inv->click(inpt->mouse);
-					if (stack.item > 0) {
+					if (!stack.empty()) {
 						if (stash->visible) {
 							if (inv->stashAdd(stack) && !stash->full(stack.item)) {
 								stash->add(stack);
@@ -742,7 +741,7 @@ void MenuManager::logic() {
 				else {
 					inpt->lock[MAIN1] = true;
 					drag_stack = inv->click(inpt->mouse);
-					if (drag_stack.item > 0) {
+					if (!drag_stack.empty()) {
 						mouse_dragging = true;
 						drag_src = DRAG_SRC_INVENTORY;
 					}
@@ -752,16 +751,12 @@ void MenuManager::logic() {
 			if (pow->visible && isWithin(pow->window_area,inpt->mouse)) {
 				inpt->lock[MAIN1] = true;
 
-				// check for unlock first
-				if (!pow->unlockClick(inpt->mouse)) {
-
-					// otherwise, check for dragging
-					drag_power = pow->click(inpt->mouse);
-					if (drag_power > 0) {
-						mouse_dragging = true;
-						keyboard_dragging = false;
-						drag_src = DRAG_SRC_POWERS;
-					}
+				// check for unlock/dragging
+				drag_power = pow->click(inpt->mouse);
+				if (drag_power > 0) {
+					mouse_dragging = true;
+					keyboard_dragging = false;
+					drag_src = DRAG_SRC_POWERS;
 				}
 			}
 			// action bar
@@ -882,10 +877,7 @@ void MenuManager::logic() {
 							drop_stack.push(drag_stack);
 						}
 						else {
-							if (inv->areaOver(inpt->mouse) == CARRIED)
-								inv->drop(inpt->mouse,drag_stack);
-							else
-								inv->add(drag_stack);
+							inv->drop(inpt->mouse,drag_stack);
 						}
 					}
 				}
@@ -904,10 +896,7 @@ void MenuManager::logic() {
 						splitStack(drag_stack);
 					}
 					else {
-						if (inv->areaOver(inpt->mouse) == CARRIED)
-							inv->drop(inpt->mouse,drag_stack);
-						else
-							inv->add(drag_stack);
+						inv->drop(inpt->mouse,drag_stack);
 					}
 					stash->updated = true;
 				}
@@ -920,8 +909,7 @@ void MenuManager::logic() {
 				}
 			}
 
-			drag_stack.item = 0;
-			drag_stack.quantity = 0;
+			drag_stack.clear();
 			drag_power = 0;
 			drag_src = 0;
 			mouse_dragging = false;
@@ -938,7 +926,7 @@ void MenuManager::logic() {
 	}
 
 	// handle equipment changes affecting hero stats
-	if (inv->changed_equipment || inv->changed_artifact) {
+	if (inv->changed_equipment) {
 		inv->applyEquipment(inv->inventory[EQUIPMENT].storage);
 		// the equipment flags get reset in GameStatePlay
 	}
@@ -1002,23 +990,23 @@ void MenuManager::dragAndDropWithKeyboard() {
 		slotClick = inv_slot->checkClick();
 
 		// pick up item
-		if (slotClick == CHECKED && drag_stack.item == 0) {
+		if (slotClick == CHECKED && drag_stack.empty()) {
 			drag_stack = inv->click(src_slot);
-			if (drag_stack.item > 0) {
+			if (!drag_stack.empty()) {
 				keyboard_dragging = true;
 				drag_src = DRAG_SRC_INVENTORY;
 			}
 		}
 		// rearrange item
-		else if (slotClick == CHECKED && drag_stack.item > 0) {
+		else if (slotClick == CHECKED && !drag_stack.empty()) {
 			inv->drop(src_slot, drag_stack);
 			inv_slot->checked = false;
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 		}
 		// sell, stash, or use item
-		else if (slotClick == ACTIVATED && drag_stack.item > 0) {
+		else if (slotClick == ACTIVATED && !drag_stack.empty()) {
 			bool not_quest_item = items->items[drag_stack.item].type != "quest";
 			if (vendor->visible && inv->sell(drag_stack) && not_quest_item) {
 				vendor->setTab(VENDOR_SELL);
@@ -1034,7 +1022,7 @@ void MenuManager::dragAndDropWithKeyboard() {
 			}
 			inv->clearHighlight();
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 		}
 	}
@@ -1055,21 +1043,21 @@ void MenuManager::dragAndDropWithKeyboard() {
 		slotClick = vendor_slot->checkClick();
 
 		// buy item
-		if (slotClick == CHECKED && drag_stack.item == 0) {
+		if (slotClick == CHECKED && drag_stack.empty()) {
 			drag_stack = vendor->click(src_slot);
-			if (drag_stack.item > 0) {
+			if (!drag_stack.empty()) {
 				keyboard_dragging = true;
 				drag_src = DRAG_SRC_VENDOR;
 			}
 		}
-		else if (slotClick == CHECKED && drag_stack.item > 0) {
+		else if (slotClick == CHECKED && !drag_stack.empty()) {
 			vendor->itemReturn(drag_stack);
 			vendor_slot->checked = false;
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 		}
-		else if (slotClick == ACTIVATED && drag_stack.item > 0) {
+		else if (slotClick == ACTIVATED && !drag_stack.empty()) {
 			if (!inv->buy(drag_stack,vendor->getTab())) {
 				log->add(msg->get("Not enough %s.", CURRENCY), LOG_TYPE_MESSAGES);
 				hudlog->add(msg->get("Not enough %s.", CURRENCY));
@@ -1086,7 +1074,7 @@ void MenuManager::dragAndDropWithKeyboard() {
 				}
 			}
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 		}
 	}
@@ -1097,23 +1085,23 @@ void MenuManager::dragAndDropWithKeyboard() {
 		Point src_slot(stash->stock.slots[stash->tablist.getCurrent()]->pos.x, stash->stock.slots[stash->tablist.getCurrent()]->pos.y);
 
 		// pick up item
-		if (slotClick == CHECKED && drag_stack.item == 0) {
+		if (slotClick == CHECKED && drag_stack.empty()) {
 			drag_stack = stash->click(src_slot);
-			if (drag_stack.item > 0) {
+			if (!drag_stack.empty()) {
 				keyboard_dragging = true;
 				drag_src = DRAG_SRC_STASH;
 			}
 		}
 		// rearrange item
-		else if (slotClick == CHECKED && drag_stack.item > 0) {
+		else if (slotClick == CHECKED && !drag_stack.empty()) {
 			stash->stock.slots[stash->tablist.getCurrent()]->checked = false;
 			stash->drop(src_slot, drag_stack);
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 		}
 		// send to inventory
-		else if (slotClick == ACTIVATED && drag_stack.item > 0) {
+		else if (slotClick == ACTIVATED && !drag_stack.empty()) {
 			if (!inv->full(drag_stack)) {
 				inv->add(drag_stack);
 			}
@@ -1123,7 +1111,7 @@ void MenuManager::dragAndDropWithKeyboard() {
 				splitStack(drag_stack);
 			}
 			drag_src = 0;
-			drag_stack.item = 0;
+			drag_stack.clear();
 			keyboard_dragging = false;
 			stash->updated = true;
 		}
@@ -1133,16 +1121,12 @@ void MenuManager::dragAndDropWithKeyboard() {
 	if (pow->visible && pow->tablist.getCurrent() != -1 && drag_src != DRAG_SRC_ACTIONBAR) {
 		CLICK_TYPE slotClick = pow->slots[pow->tablist.getCurrent()]->checkClick();
 		if (slotClick == CHECKED) {
-			// check for unlock first
 			Point src_slot(pow->slots[pow->tablist.getCurrent()]->pos.x, pow->slots[pow->tablist.getCurrent()]->pos.y);
-			if (!pow->unlockClick(src_slot)) {
-
-				// otherwise, check for dragging
-				drag_power = pow->click(src_slot);
-				if (drag_power > 0) {
-					keyboard_dragging = true;
-					drag_src = DRAG_SRC_POWERS;
-				}
+			// check for unlock/dragging
+			drag_power = pow->click(src_slot);
+			if (drag_power > 0) {
+				keyboard_dragging = true;
+				drag_src = DRAG_SRC_POWERS;
 			}
 			else {
 				pow->slots[pow->tablist.getCurrent()]->checked = false;
@@ -1150,6 +1134,9 @@ void MenuManager::dragAndDropWithKeyboard() {
 		}
 		// clear power dragging if power slot was pressed twice
 		else if (slotClick == ACTIVATED) {
+			if (drag_power > 0 && pow->canUpgrade(pow->tablist.getCurrent())) {
+				pow->upgradePower(pow->tablist.getCurrent());
+			}
 			drag_src = 0;
 			drag_power = 0;
 			keyboard_dragging = false;
@@ -1162,7 +1149,7 @@ void MenuManager::dragAndDropWithKeyboard() {
 		Point dest_slot(act->slots[act->tablist.getCurrent()]->pos.x, act->slots[act->tablist.getCurrent()]->pos.y);
 
 		// pick up power
-		if (slotClick == CHECKED && drag_stack.item == 0 && drag_power == 0) {
+		if (slotClick == CHECKED && drag_stack.empty() && drag_power == 0) {
 			drag_power = act->checkDrag(dest_slot);
 			if (drag_power > 0) {
 				keyboard_dragging = true;
@@ -1170,7 +1157,7 @@ void MenuManager::dragAndDropWithKeyboard() {
 			}
 		}
 		// drop power/item from other menu
-		else if (slotClick == CHECKED && drag_src != DRAG_SRC_ACTIONBAR && (drag_stack.item > 0 || drag_power > 0)) {
+		else if (slotClick == CHECKED && drag_src != DRAG_SRC_ACTIONBAR && (!drag_stack.empty() || drag_power > 0)) {
 			if (drag_src == DRAG_SRC_POWERS) {
 				act->drop(dest_slot, drag_power, 0);
 				pow->slots[pow->tablist.getCurrent()]->checked = false;
@@ -1207,8 +1194,7 @@ void MenuManager::resetDrag() {
 	else if (drag_src == DRAG_SRC_INVENTORY) inv->itemReturn(drag_stack);
 	else if (drag_src == DRAG_SRC_ACTIONBAR) act->actionReturn(drag_power);
 	drag_src = 0;
-	drag_stack.item = 0;
-	drag_stack.quantity = 0;
+	drag_stack.clear();
 	drag_power = 0;
 
 	if (keyboard_dragging && DRAG_SRC_ACTIONBAR) {
@@ -1231,48 +1217,49 @@ void MenuManager::render() {
 		menus[i]->render();
 	}
 
-	TooltipData tip_new;
-
-	// Find tooltips depending on mouse position
-	if (!book->visible) {
-		if (chr->visible && isWithin(chr->window_area,inpt->mouse)) {
-			tip_new = chr->checkTooltip();
-		}
-		if (vendor->visible && isWithin(vendor->window_area,inpt->mouse)) {
-			tip_new = vendor->checkTooltip(inpt->mouse);
-		}
-		if (stash->visible && isWithin(stash->window_area,inpt->mouse)) {
-			tip_new = stash->checkTooltip(inpt->mouse);
-		}
-		if (pow->visible && isWithin(pow->window_area,inpt->mouse)) {
-			tip_new = pow->checkTooltip(inpt->mouse);
-		}
-		if (inv->visible && !mouse_dragging && isWithin(inv->window_area,inpt->mouse)) {
-			tip_new = inv->checkTooltip(inpt->mouse);
-		}
-	}
-	if (isWithin(act->window_area,inpt->mouse)) {
-		tip_new = act->checkTooltip(inpt->mouse);
-	}
-
-	if (!tip_new.isEmpty()) {
-
-		// when we render a tooltip it buffers the rasterized text for performance.
-		// If this new tooltip is the same as the existing one, reuse.
-
-		if (!tip_new.compare(&tip_buf)) {
-			tip_buf.clear();
-			tip_buf = tip_new;
-		}
-		tip->render(tip_buf, inpt->mouse, STYLE_FLOAT);
-		TOOLTIP_CONTEXT = TOOLTIP_MENU;
-	}
-	else if (TOOLTIP_CONTEXT != TOOLTIP_MAP) {
-		TOOLTIP_CONTEXT = TOOLTIP_NONE;
-	}
-
-	if (NO_MOUSE)
+	if (NO_MOUSE || TOUCHSCREEN)
 		handleKeyboardTooltips();
+	else {
+		TooltipData tip_new;
+
+		// Find tooltips depending on mouse position
+		if (!book->visible) {
+			if (chr->visible && isWithin(chr->window_area,inpt->mouse)) {
+				tip_new = chr->checkTooltip();
+			}
+			if (vendor->visible && isWithin(vendor->window_area,inpt->mouse)) {
+				tip_new = vendor->checkTooltip(inpt->mouse);
+			}
+			if (stash->visible && isWithin(stash->window_area,inpt->mouse)) {
+				tip_new = stash->checkTooltip(inpt->mouse);
+			}
+			if (pow->visible && isWithin(pow->window_area,inpt->mouse)) {
+				tip_new = pow->checkTooltip(inpt->mouse);
+			}
+			if (inv->visible && !mouse_dragging && isWithin(inv->window_area,inpt->mouse)) {
+				tip_new = inv->checkTooltip(inpt->mouse);
+			}
+		}
+		if (isWithin(act->window_area,inpt->mouse)) {
+			tip_new = act->checkTooltip(inpt->mouse);
+		}
+
+		if (!tip_new.isEmpty()) {
+
+			// when we render a tooltip it buffers the rasterized text for performance.
+			// If this new tooltip is the same as the existing one, reuse.
+
+			if (!tip_new.compare(&tip_buf)) {
+				tip_buf.clear();
+				tip_buf = tip_new;
+			}
+			tip->render(tip_buf, inpt->mouse, STYLE_FLOAT);
+			TOOLTIP_CONTEXT = TOOLTIP_MENU;
+		}
+		else if (TOOLTIP_CONTEXT != TOOLTIP_MAP) {
+			TOOLTIP_CONTEXT = TOOLTIP_NONE;
+		}
+	}
 
 	// draw icon under cursor if dragging
 	if (mouse_dragging) {
@@ -1431,7 +1418,7 @@ bool MenuManager::isDragging() {
  * Splits an item stack between the stash and the inventory when the latter is full
  */
 void MenuManager::splitStack(ItemStack stack) {
-	if (stack.item == 0) return;
+	if (stack.empty()) return;
 
 	if (items->items[stack.item].max_quantity > 1) {
 		inv->add(stack);

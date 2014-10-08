@@ -234,14 +234,14 @@ void GameStatePlay::checkLoot() {
 	// Autopickup
 	if (AUTOPICKUP_CURRENCY) {
 		pickup = loot->checkAutoPickup(pc->stats.pos, menu->inv);
-		if (pickup.item > 0) menu->inv->add(pickup);
+		if (!pickup.empty()) menu->inv->add(pickup);
 	}
 
 	// Normal pickups
 	if (!pc->stats.attacking)
 		pickup = loot->checkPickup(inpt->mouse, mapr->cam, pc->stats.pos, menu->inv);
 
-	if (pickup.item > 0) {
+	if (!pickup.empty()) {
 		menu->inv->add(pickup);
 		camp->setStatus(items->items[pickup.item].pickup_status);
 	}
@@ -520,7 +520,7 @@ void GameStatePlay::checkTitle() {
 
 void GameStatePlay::checkEquipmentChange() {
 	// force the actionbar to update when we change gear
-	if (menu->inv->changed_equipment || menu->inv->changed_artifact) {
+	if (menu->inv->changed_equipment) {
 		menu->act->updated = true;
 	}
 
@@ -562,14 +562,13 @@ void GameStatePlay::checkEquipmentChange() {
 	}
 
 	menu->inv->changed_equipment = false;
-	menu->inv->changed_artifact = false;
 }
 
 void GameStatePlay::checkLootDrop() {
 
 	// if the player has dropped an item from the inventory
 	while (!menu->drop_stack.empty()) {
-		if (menu->drop_stack.front().item > 0) {
+		if (!menu->drop_stack.front().empty()) {
 			loot->addLoot(menu->drop_stack.front(), pc->stats.pos, true);
 		}
 		menu->drop_stack.pop();
@@ -577,7 +576,7 @@ void GameStatePlay::checkLootDrop() {
 
 	// if the player has dropped a quest reward because inventory full
 	while (!camp->drop_stack.empty()) {
-		if (camp->drop_stack.front().item > 0) {
+		if (!camp->drop_stack.front().empty()) {
 			loot->addLoot(camp->drop_stack.front(), pc->stats.pos, true);
 		}
 		camp->drop_stack.pop();
@@ -586,7 +585,7 @@ void GameStatePlay::checkLootDrop() {
 	// if the player been directly given items, but their inventory is full
 	// this happens when adding currency from older save files
 	while (!menu->inv->drop_stack.empty()) {
-		if (menu->inv->drop_stack.front().item > 0) {
+		if (!menu->inv->drop_stack.front().empty()) {
 			loot->addLoot(menu->inv->drop_stack.front(), pc->stats.pos, true);
 		}
 		menu->inv->drop_stack.pop();
