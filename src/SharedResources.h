@@ -51,7 +51,6 @@ extern MessageEngine *msg;
 extern ModManager *mods;
 extern SoundManager *snd;
 extern Sprite *icons;
-extern int textures_count;
 extern RenderDevice *render_device;
 
 class SharedResources {

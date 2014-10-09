@@ -28,8 +28,6 @@ Created and destroyed by main.cpp
 
 #include "SharedResources.h"
 
-int textures_count;
-
 AnimationManager *anim;
 CombatText *comb;
 CursorManager *curs;

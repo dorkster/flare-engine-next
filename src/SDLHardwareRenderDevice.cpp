@@ -159,17 +159,12 @@ SDLHardwareRenderDevice::SDLHardwareRenderDevice()
 	: screen(NULL)
 	, titlebar_icon(NULL) {
 	cout << "Using Render Device: SDLHardwareRenderDevice (hardware, SDL 2)" << endl;
-	textures_count = 0;
 }
 
 int SDLHardwareRenderDevice::createContext(int width, int height) {
 	int set_fullscreen = 0;
 
 	if (is_initialized) {
-		if (textures_count != 0) {
-			cout << "Trying to change video mode. Number of not freed textures:" << textures_count << endl;
-			cout << "This can cause graphical issues or even game exit" << endl;
-		}
 		SDL_DestroyRenderer(renderer);
 		Uint32 flags = 0;
 
@@ -299,7 +294,6 @@ int SDLHardwareRenderDevice::renderText(
 	SDL_Surface *cleanup = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), color);
 	if (cleanup) {
 		surface = SDL_CreateTextureFromSurface(renderer,cleanup);
-		textures_count+=1;
 		SDL_FreeSurface(cleanup);
 	}
 
@@ -321,7 +315,6 @@ int SDLHardwareRenderDevice::renderText(
 	ret = SDL_RenderCopy(renderer, surface, &clip, &_dest);
 
 	SDL_DestroyTexture(surface);
-	textures_count-=1;
 
 	return ret;
 }
@@ -340,7 +333,6 @@ Image * SDLHardwareRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std
 
 	if (cleanup) {
 		image->surface = SDL_CreateTextureFromSurface(renderer, cleanup);
-		textures_count+=1;
 		SDL_FreeSurface(cleanup);
 		return image;
 	}
@@ -454,7 +446,6 @@ Image *SDLHardwareRenderDevice::createImage(int width, int height) {
 
 	if (width > 0 && height > 0) {
 		image->surface = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
-		textures_count+=1;
 		if(image->surface == NULL) {
 			logError("SDLHardwareRenderDevice: SDL_CreateTexture failed: %s\n", SDL_GetError());
 		}
@@ -546,7 +537,6 @@ Image *SDLHardwareRenderDevice::loadImage(std::string filename, std::string erro
 	if (!image) return NULL;
 
 	image->surface = IMG_LoadTexture(renderer, mods->locate(filename).c_str());
-	textures_count+=1;
 
 	if(image == NULL) {
 		if (!errormessage.empty())
@@ -567,10 +557,8 @@ void SDLHardwareRenderDevice::freeImage(Image *image) {
 
 	cacheRemove(image);
 
-	if (static_cast<SDLHardwareImage *>(image)->surface)
-	{
+	if (static_cast<SDLHardwareImage *>(image)->surface) {
 		SDL_DestroyTexture(static_cast<SDLHardwareImage *>(image)->surface);
-		textures_count-=1;
 	}
 }
 
