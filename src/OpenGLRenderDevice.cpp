@@ -82,6 +82,11 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	, titlebar_icon(NULL) {
 	cout << "Using Render Device: SDLHardwareRenderDevice (hardware, SDL 2)" << endl;
 
+	bufferData[0] = -1.0f; bufferData[1] = -1.0f;
+	bufferData[2] =  1.0f; bufferData[3] = -1.0f;
+	bufferData[4] = -1.0f; bufferData[5] =  1.0f;
+	bufferData[6] =  1.0f; bufferData[7] =  1.0f;
+
 	elementBufferData[0] = 0;
 	elementBufferData[1] = 1;
 	elementBufferData[2] = 2;
@@ -272,6 +277,7 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
 
 int OpenGLRenderDevice::buildResources()
 {
+	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, bufferData, sizeof(bufferData));
     element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
     vertex_shader = getShader(GL_VERTEX_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\vertex.glsl");
@@ -286,8 +292,11 @@ int OpenGLRenderDevice::buildResources()
     if (program == 0)
         return 1;
 
-    uniformTexture = glGetUniformLocation(program, "texture");
-    attributePosition = glGetAttribLocation(program, "position");
+    uniforms.texture = glGetUniformLocation(program, "texture");
+    attributes.position = glGetAttribLocation(program, "position");
+
+    uniforms.offsetX = glGetUniformLocation(program, "offsetX");
+    uniforms.offsetY = glGetUniformLocation(program, "offsetY");
 
     return 0;
 }
@@ -309,14 +318,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 	relative(dest, point, size);
 
-	std::vector<GLfloat> bufferData(8);
-
-	bufferData[0] = (point.x);          bufferData[1] = (point.y + size.y);
-	bufferData[2] = (point.x + size.x); bufferData[3] = (point.y + size.y);
-	bufferData[4] = (point.x);          bufferData[5] = (point.y);
-	bufferData[6] = (point.x + size.x); bufferData[7] = (point.y);
-
-	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, bufferData.data(), sizeof(bufferData.data()));
+	offsetX = point.x;
+	offsetY = point.y;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
@@ -325,20 +328,23 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 	glUseProgram(program);
     
+	glUniform1f(uniforms.offsetX, offsetX);
+	glUniform1f(uniforms.offsetY, offsetY);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glUniform1i(uniformTexture, 0);
+    glUniform1i(uniforms.texture, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
-        attributePosition,                /* attribute */
+        attributes.position,                /* attribute */
         2,                                /* size */
         GL_FLOAT,                         /* type */
         GL_FALSE,                         /* normalized? */
         sizeof(GLfloat)*2,                /* stride */
         (void*)0                          /* array buffer offset */
     );
-    glEnableVertexAttribArray(attributePosition);
+    glEnableVertexAttribArray(attributes.position);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
     glDrawElements(
@@ -348,7 +354,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
         (void*)0            /* element array buffer offset */
     );
 
-    glDisableVertexAttribArray(attributePosition);
+    glDisableVertexAttribArray(attributes.position);
 
 	return 0;
 }

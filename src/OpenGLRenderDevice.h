@@ -115,10 +115,21 @@ private:
     GLuint vertex_shader, fragment_shader, program;
 	GLuint texture;
 
-    GLint uniformTexture;
-    GLint attributePosition;
+	GLfloat offsetX;
+	GLfloat offsetY;
+
+    struct {
+        GLint offsetX;
+        GLint offsetY;
+        GLint texture;
+    } uniforms;
+
+    struct {
+        GLint position;
+    } attributes;
 
 	GLushort elementBufferData[4];
+	GLfloat bufferData[8];
 };
 
 #endif // OPENGL_RENDERDEVICE_H
