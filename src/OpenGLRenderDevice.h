@@ -103,7 +103,7 @@ private:
 	void relative(SDL_Rect rect, FPoint& point, FPoint& size);
 	void* openShaderFile(const char *filename, GLint *length);
 	GLuint getShader(GLenum type, const char *filename);
-	GLuint createProgram(GLuint vertex_shader);
+	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 	GLuint getTexturePatch(OpenGLImage* image, SDL_Rect src);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 
@@ -112,7 +112,7 @@ private:
 	SDL_Surface* titlebar_icon;
 
     GLuint vertex_buffer, element_buffer;
-    GLuint vertex_shader, program;
+    GLuint vertex_shader, fragment_shader, program;
 	GLuint texture;
 
     GLint uniformTexture;

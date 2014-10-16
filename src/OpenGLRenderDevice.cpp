@@ -213,13 +213,14 @@ GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
     return shader;
 }
 
-GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader)
+GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_shader)
 {
     GLint program_ok;
 
     GLuint program = glCreateProgram();
 
     glAttachShader(program, vertex_shader);
+	glAttachShader(program, fragment_shader);
     glLinkProgram(program);
 
     glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
@@ -277,7 +278,11 @@ int OpenGLRenderDevice::buildResources()
     if (vertex_shader == 0)
         return 1;
 
-    program = createProgram(vertex_shader);
+	fragment_shader = getShader(GL_FRAGMENT_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\fragment.glsl");
+    if (vertex_shader == 0)
+        return 1;
+
+	program = createProgram(vertex_shader, fragment_shader);
     if (program == 0)
         return 1;
 
