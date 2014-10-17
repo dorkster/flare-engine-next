@@ -273,8 +273,8 @@ void OpenGLRenderDevice::relative(SDL_Rect rect, FPoint& point, FPoint& size)
 	point.x = ((float)rect.x/VIEW_W - 0.5f)/0.5f;
 	point.y = ((float)rect.y/VIEW_H - 0.5f)/0.5f;
 
-	size.x = ((float)rect.w/VIEW_W - 0.5f)/0.5f;
-	size.y = ((float)rect.h/VIEW_H - 0.5f)/0.5f;
+	size.x = (float)rect.w/VIEW_W/0.5f;
+	size.y = (float)rect.h/VIEW_H/0.5f;
 }
 
 void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
@@ -406,6 +406,7 @@ int OpenGLRenderDevice::buildResources()
 
     uniforms.texture = glGetUniformLocation(program, "texture");
     attributes.position = glGetAttribLocation(program, "position");
+	attributes.texScale = glGetAttribLocation(program, "texScale");
 
     return 0;
 }
@@ -419,6 +420,22 @@ int OpenGLRenderDevice::render(Sprite *r) {
 		return -1;
 	}
 
+	// negative x and y clip causes weird stretching
+	// adjust for that here
+	if (m_clip.x < 0) {
+		m_clip.w -= abs(m_clip.x);
+		m_dest.x += abs(m_clip.x);
+		m_clip.x = 0;
+	}
+	if (m_clip.y < 0) {
+		m_clip.h -= abs(m_clip.y);
+		m_dest.y += abs(m_clip.y);
+		m_clip.y = 0;
+	}
+
+	m_dest.w = m_clip.w;
+	m_dest.h = m_clip.h;
+
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
@@ -431,6 +448,9 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	positionData[2] = point.x + size.x; positionData[3] = point.y + size.y;
 	positionData[4] = point.x;          positionData[5] = point.y;
 	positionData[6] = point.x + size.x; positionData[7] = point.y;
+
+	// X and Y scales
+	positionData[8] = (float)dest.w/VIEW_W; positionData[9] = (float)dest.h/VIEW_H;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
@@ -447,14 +467,18 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
-        attributes.position,                /* attribute */
-        2,                                /* size */
-        GL_FLOAT,                         /* type */
-        GL_FALSE,                         /* normalized? */
-        sizeof(GLfloat)*2,                /* stride */
-        (void*)0                          /* array buffer offset */
+        attributes.position,
+        2, GL_FLOAT, GL_FALSE,
+        sizeof(GLfloat)*2, (void*)0
     );
+    glVertexAttribPointer(
+        attributes.texScale,
+        2, GL_FLOAT, GL_FALSE,
+        sizeof(GLfloat), (void*)(sizeof(GLfloat)*8)
+    );
+
     glEnableVertexAttribArray(attributes.position);
+	glEnableVertexAttribArray(attributes.texScale);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
     glDrawElements(
@@ -465,6 +489,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
     );
 
     glDisableVertexAttribArray(attributes.position);
+	glDisableVertexAttribArray(attributes.texScale);
 
 	glDeleteTextures(1, &texture);
 
