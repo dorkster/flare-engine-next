@@ -19,6 +19,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "SDL_gfxBlitFunc.h"
 
 #include "SharedResources.h"
 #include "Settings.h"
@@ -54,6 +56,36 @@ void OpenGLImage::fillWithColor(Uint32 color) {
  */
 void OpenGLImage::drawPixel(int x, int y, Uint32 pixel) {
 	if (!surface) return;
+
+	int bpp = surface->format->BytesPerPixel;
+	/* Here p is the address to the pixel we want to set */
+	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+	switch(bpp) {
+		case 1:
+			*p = pixel;
+			break;
+
+		case 2:
+			*(Uint16 *)p = pixel;
+			break;
+
+		case 3:
+#if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+			p[0] = (pixel >> 16) & 0xff;
+			p[1] = (pixel >> 8) & 0xff;
+			p[2] = pixel & 0xff;
+#else
+			p[0] = pixel & 0xff;
+			p[1] = (pixel >> 8) & 0xff;
+			p[2] = (pixel >> 16) & 0xff;
+#endif
+			break;
+
+		case 4:
+			*(Uint32 *)p = pixel;
+			break;
+	}
 }
 
 Uint32 OpenGLImage::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
@@ -66,26 +98,100 @@ Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	return SDL_MapRGBA(surface->format, r, g, b, a);
 }
 
+/**
+ * Resizes an image
+ * Deletes the original image and returns a pointer to the resized version
+ */
 Image* OpenGLImage::resize(int width, int height) {
 	if(!surface || width <= 0 || height <= 0)
 		return NULL;
 
 	OpenGLImage *scaled = new OpenGLImage(device);
-	if (!scaled) return NULL;
+
+	if (scaled) {
+		scaled->surface = SDL_CreateRGBSurface(surface->flags, width, height,
+											   surface->format->BitsPerPixel,
+											   surface->format->Rmask,
+											   surface->format->Gmask,
+											   surface->format->Bmask,
+											   surface->format->Amask);
+
+		if (scaled->surface) {
+			double _stretch_factor_x, _stretch_factor_y;
+			_stretch_factor_x = width / (double)surface->w;
+			_stretch_factor_y = height / (double)surface->h;
+
+			for(Uint32 y = 0; y < (Uint32)surface->h; y++) {
+				for(Uint32 x = 0; x < (Uint32)surface->w; x++) {
+					Uint32 spixel = readPixel(x, y);
+					for(Uint32 o_y = 0; o_y < _stretch_factor_y; ++o_y) {
+						for(Uint32 o_x = 0; o_x < _stretch_factor_x; ++o_x) {
+							Uint32 dx = (Sint32)(_stretch_factor_x * x) + o_x;
+							Uint32 dy = (Sint32)(_stretch_factor_y * y) + o_y;
+							scaled->drawPixel(dx, dy, spixel);
+						}
+					}
+				}
+			}
+			// delete the old image and return the new one
+			this->unref();
+			return scaled;
+		}
+		else {
+			delete scaled;
+		}
+	}
 
 	return NULL;
+}
+
+Uint32 OpenGLImage::readPixel(int x, int y) {
+	if (!surface) return 0;
+
+	SDL_LockSurface(surface);
+	int bpp = surface->format->BytesPerPixel;
+	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+	Uint32 pixel;
+
+	switch (bpp) {
+		case 1:
+			pixel = *p;
+			break;
+
+		case 2:
+			pixel = *(Uint16 *)p;
+			break;
+
+		case 3:
+			if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+				pixel = p[0] << 16 | p[1] << 8 | p[2];
+			else
+				pixel = p[0] | p[1] << 8 | p[2] << 16;
+			break;
+
+		case 4:
+			pixel = *(Uint32 *)p;
+			break;
+
+		default:
+			SDL_UnlockSurface(surface);
+			return 0;
+	}
+
+	SDL_UnlockSurface(surface);
+	return pixel;
 }
 
 OpenGLRenderDevice::OpenGLRenderDevice()
 	: screen(NULL)
 	, renderer(NULL)
 	, titlebar_icon(NULL) {
-	cout << "Using Render Device: SDLHardwareRenderDevice (hardware, SDL 2)" << endl;
+	cout << "Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)" << endl;
 
-	bufferData[0] = -1.0f; bufferData[1] = -1.0f;
-	bufferData[2] =  1.0f; bufferData[3] = -1.0f;
-	bufferData[4] = -1.0f; bufferData[5] =  1.0f;
-	bufferData[6] =  1.0f; bufferData[7] =  1.0f;
+	positionData[0] = -1.0f; positionData[1] = -1.0f;
+	positionData[2] =  1.0f; positionData[3] = -1.0f;
+	positionData[4] = -1.0f; positionData[5] =  1.0f;
+	positionData[6] =  1.0f; positionData[7] =  1.0f;
 
 	elementBufferData[0] = 0;
 	elementBufferData[1] = 1;
@@ -142,7 +248,7 @@ int OpenGLRenderDevice::createContext(int width, int height) {
 		return 0;
 	}
 	else {
-		logError("SDLHardwareRenderDevice: createContext() failed: %s\n", SDL_GetError());
+		logError("OpenGLRenderDevice: createContext() failed: %s\n", SDL_GetError());
 		SDL_Quit();
 		exit(1);
 	}
@@ -264,9 +370,9 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
     glTexImage2D(
         GL_TEXTURE_2D, 0,           /* target, level */
-        GL_RGBA,                    /* internal format */
+        4,                    /* internal format */
         width, height, 0,           /* width, height, border */
-        GL_RGBA, GL_UNSIGNED_BYTE,   /* external format, type */
+		GL_BGRA, GL_UNSIGNED_BYTE,   /* external format, type */
         pixels                      /* pixels */
     );
 
@@ -284,7 +390,6 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
 
 int OpenGLRenderDevice::buildResources()
 {
-	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, bufferData, sizeof(bufferData));
     element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
     vertex_shader = getShader(GL_VERTEX_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\vertex.glsl");
@@ -301,9 +406,6 @@ int OpenGLRenderDevice::buildResources()
 
     uniforms.texture = glGetUniformLocation(program, "texture");
     attributes.position = glGetAttribLocation(program, "position");
-
-    uniforms.offsetX = glGetUniformLocation(program, "offsetX");
-    uniforms.offsetY = glGetUniformLocation(program, "offsetY");
 
     return 0;
 }
@@ -325,18 +427,19 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 	relative(dest, point, size);
 
-	offsetX = point.x;
-	offsetY = point.y;
+	positionData[0] = point.x;          positionData[1] = point.y + size.y;
+	positionData[2] = point.x + size.x; positionData[3] = point.y + size.y;
+	positionData[4] = point.x;          positionData[5] = point.y;
+	positionData[6] = point.x + size.x; positionData[7] = point.y;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
     if (texture == 0)
         return 1;
 
+	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
+
 	glUseProgram(program);
-    
-	glUniform1f(uniforms.offsetX, offsetX);
-	glUniform1f(uniforms.offsetY, offsetY);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -369,7 +472,17 @@ int OpenGLRenderDevice::render(Sprite *r) {
 }
 
 int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
-	return 0;
+	if (!src_image || !dest_image) return -1;
+
+	SDL_Rect _src = src;
+	SDL_Rect _dest = dest;
+
+	if (dest_is_transparent)
+		return SDL_gfxBlitRGBA(static_cast<OpenGLImage *>(src_image)->surface, &_src,
+							   static_cast<OpenGLImage *>(dest_image)->surface, &_dest);
+	else
+		return SDL_BlitSurface(static_cast<OpenGLImage *>(src_image)->surface, &_src,
+							   static_cast<OpenGLImage *>(dest_image)->surface, &_dest);
 }
 
 int OpenGLRenderDevice::renderText(
@@ -385,6 +498,17 @@ int OpenGLRenderDevice::renderText(
 
 Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
 	OpenGLImage *image = new OpenGLImage(this);
+	if (!image) return NULL;
+
+	SDL_Color _color = color;
+
+	if (blended)
+		image->surface = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), _color);
+	else
+		image->surface = TTF_RenderUTF8_Solid(ttf_font, text.c_str(), _color);
+
+	if (image->surface)
+		return image;
 
 	delete image;
 	return NULL;
@@ -425,6 +549,7 @@ void OpenGLRenderDevice::blankScreen() {
 
 void OpenGLRenderDevice::commitFrame() {
 
+	glFlush();
 	SDL_GL_SwapWindow(screen);
 	return;
 }
@@ -488,7 +613,7 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 #endif
 
 	if(image->surface == NULL) {
-		logError("SDLSoftwareRenderDevice: CreateRGBSurface failed: %s\n", SDL_GetError());
+		logError("OpenGLRenderDevice: CreateRGBSurface failed: %s\n", SDL_GetError());
 		delete image;
 		return NULL;
 	}
@@ -553,7 +678,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	SDL_Surface *cleanup = IMG_Load(mods->locate(filename).c_str());
 	if(!cleanup) {
 		if (!errormessage.empty())
-			logError("SDLSoftwareRenderDevice: %s: %s\n", errormessage.c_str(), IMG_GetError());
+			logError("OpenGLRenderDevice: %s: %s\n", errormessage.c_str(), IMG_GetError());
 		if (IfNotFoundExit) {
 			SDL_Quit();
 			exit(1);
