@@ -348,15 +348,30 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
 {
 	int width = src.w;
 	int height = src.h;
+	SDL_Surface* surface;
+	void *pixels;
+	bool patch = false;
 
-	SDL_Surface* surface = SDL_CreateRGBSurface(image->surface->flags, src.w, src.h, image->surface->format->BitsPerPixel,
-																					 image->surface->format->Rmask,
-																					 image->surface->format->Gmask,
-																					 image->surface->format->Bmask,
-																					 image->surface->format->Amask);
-    SDL_BlitSurface(image->surface, &src, surface, 0);
+	if (src.x != 0 || src.y != 0 || src.w != image->surface->w || src.h != image->surface->h)
+	{
+		patch = true;
+	}
 
-	void *pixels = surface->pixels;
+	if (patch)
+	{
+		surface = SDL_CreateRGBSurface(image->surface->flags, src.w, src.h, image->surface->format->BitsPerPixel,
+																						 image->surface->format->Rmask,
+																						 image->surface->format->Gmask,
+																						 image->surface->format->Bmask,
+																						 image->surface->format->Amask);
+		SDL_BlitSurface(image->surface, &src, surface, 0);
+
+		pixels = surface->pixels;
+	}
+	else
+	{
+		pixels = image->surface->pixels;
+	}
     GLuint texture;
 
     if (!pixels)
@@ -375,6 +390,9 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
 		GL_BGRA, GL_UNSIGNED_BYTE,   /* external format, type */
         pixels                      /* pixels */
     );
+
+	if (patch)
+		SDL_FreeSurface(surface);
 
     return texture;
 }
