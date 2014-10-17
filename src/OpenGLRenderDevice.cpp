@@ -240,10 +240,17 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
 
 GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
 {
-	// TODO: cut out surface patch
-	int width = image->getWidth();
-	int height = image->getHeight();
-	void *pixels = image->surface->pixels;
+	int width = src.w;
+	int height = src.h;
+
+	SDL_Surface* surface = SDL_CreateRGBSurface(image->surface->flags, src.w, src.h, image->surface->format->BitsPerPixel,
+																					 image->surface->format->Rmask,
+																					 image->surface->format->Gmask,
+																					 image->surface->format->Bmask,
+																					 image->surface->format->Amask);
+    SDL_BlitSurface(image->surface, &src, surface, 0);
+
+	void *pixels = surface->pixels;
     GLuint texture;
 
     if (!pixels)
@@ -355,6 +362,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
     );
 
     glDisableVertexAttribArray(attributes.position);
+
+	glDeleteTextures(1, &texture);
 
 	return 0;
 }
