@@ -100,7 +100,6 @@ private:
 	void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask);
 
 	int buildResources();
-	void relative(SDL_Rect rect, FPoint& point, FPoint& size);
 	void* openShaderFile(const char *filename, GLint *length);
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
@@ -121,13 +120,16 @@ private:
 
     struct {
         GLint position;
-		GLint texScaleX;
-		GLint texScaleY;
+		GLint scaleX;
+		GLint scaleY;
+		GLint offsetX;
+		GLint offsetY;
     } attributes;
 
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
 	FPoint scale;
+	FPoint offset;
 };
 
 #endif // OPENGL_RENDERDEVICE_H

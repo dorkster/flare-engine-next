@@ -268,15 +268,6 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	return 0;
 }
 
-void OpenGLRenderDevice::relative(SDL_Rect rect, FPoint& point, FPoint& size)
-{
-	point.x = ((float)rect.x/VIEW_W - 0.5f)/0.5f;
-	point.y = ((float)rect.y/VIEW_H - 0.5f)/0.5f;
-
-	size.x = (float)rect.w/VIEW_W/0.5f;
-	size.y = (float)rect.h/VIEW_H/0.5f;
-}
-
 void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
 {
     FILE *f = fopen(filename, "r");
@@ -408,6 +399,7 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
 
 int OpenGLRenderDevice::buildResources()
 {
+	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
     element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
     vertex_shader = getShader(GL_VERTEX_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\vertex.glsl");
@@ -424,8 +416,10 @@ int OpenGLRenderDevice::buildResources()
 
     uniforms.texture = glGetUniformLocation(program, "texture");
     attributes.position = glGetAttribLocation(program, "position");
-	attributes.texScaleX = glGetAttribLocation(program, "texScaleX");
-	attributes.texScaleY = glGetAttribLocation(program, "texScaleY");
+	attributes.scaleX = glGetAttribLocation(program, "scaleX");
+	attributes.scaleY = glGetAttribLocation(program, "scaleY");
+	attributes.offsetX = glGetAttribLocation(program, "offsetX");
+	attributes.offsetY = glGetAttribLocation(program, "offsetY");
 
     return 0;
 }
@@ -461,30 +455,26 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	FPoint point;
 	FPoint size;
 
-	relative(dest, point, size);
-
-	positionData[0] = point.x;          positionData[1] = point.y + size.y;
-	positionData[2] = point.x + size.x; positionData[3] = point.y + size.y;
-	positionData[4] = point.x;          positionData[5] = point.y;
-	positionData[6] = point.x + size.x; positionData[7] = point.y;
-
 	scale.x = (float)src.w/VIEW_W;
 	scale.y = (float)src.h/VIEW_H;
+
+	offset.x = (float)dest.x/VIEW_W;
+	offset.y = (float)dest.y/VIEW_H;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
     if (texture == 0)
         return 1;
 
-	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
-
 	glUseProgram(program);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(uniforms.texture, 0);
-	glVertexAttrib1f(attributes.texScaleX, scale.x);
-	glVertexAttrib1f(attributes.texScaleY, scale.y);
+	glVertexAttrib1f(attributes.scaleX, scale.x);
+	glVertexAttrib1f(attributes.scaleY, scale.y);
+	glVertexAttrib1f(attributes.offsetX, offset.x);
+	glVertexAttrib1f(attributes.offsetY, offset.y);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
@@ -505,7 +495,6 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
     glDisableVertexAttribArray(attributes.position);
 
-	glDeleteBuffers(1, &vertex_buffer);
 	glDeleteTextures(1, &texture);
 
 	return 0;

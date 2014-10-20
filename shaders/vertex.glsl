@@ -1,17 +1,17 @@
 #version 110
 
 attribute vec2 position;
-attribute float texScaleX;
-attribute float texScaleY;
+attribute float scaleX;
+attribute float scaleY;
+
+attribute float offsetX;
+attribute float offsetY;
 
 varying vec2 texcoord;
 
 void main()
 {
-    gl_Position = vec4(position.x, -position.y, 0.0, 1.0);
+    gl_Position = vec4(position.x * scaleX - 1.0 + offsetX/0.5, -position.y * scaleY + 1.0 - offsetY/0.5, 0.0, 1.0);
 
-	float xCoord = position.x / texScaleX * 0.5 + 0.5;
-	float yCoord = position.y / texScaleY * 0.5 + 0.5;
-
-    texcoord = vec2(xCoord, yCoord);
+    texcoord = position * vec2(0.5) + vec2(0.5);
 }
