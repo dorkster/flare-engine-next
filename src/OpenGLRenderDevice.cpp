@@ -458,8 +458,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	scale.x = (float)src.w/VIEW_W;
 	scale.y = (float)src.h/VIEW_H;
 
-	offset.x = (float)dest.x/VIEW_W;
-	offset.y = (float)dest.y/VIEW_H;
+	offset.x = 2.0f * (float)dest.x/VIEW_W;
+	offset.y = 2.0f * (float)dest.y/VIEW_H;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
