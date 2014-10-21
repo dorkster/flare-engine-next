@@ -77,6 +77,7 @@ public:
 	virtual int render(Renderable& r, Rect dest);
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false);
+	void composeFrame(FPoint scale, FPoint offset);
 
 	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
 	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
@@ -100,6 +101,8 @@ private:
 	void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask);
 
 	int buildResources();
+	int createFrameBuffer();
+	void clearBufferTexture();
 	void* openShaderFile(const char *filename, GLint *length);
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
@@ -113,6 +116,8 @@ private:
     GLuint vertex_buffer, element_buffer;
     GLuint vertex_shader, fragment_shader, program;
 	GLuint texture;
+	GLuint frameBuffer;
+	GLuint destTexture;
 
     struct {
         GLint texture;

@@ -397,6 +397,35 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
     return buffer;
 }
 
+int OpenGLRenderDevice::createFrameBuffer()
+{
+	glGenFramebuffers(1, &frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+	clearBufferTexture();
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
+
+	GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, drawBuffers);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		return -1;
+	}
+
+	return 0;
+}
+
+void OpenGLRenderDevice::clearBufferTexture()
+{
+	glGenTextures(1, &destTexture);
+	glBindTexture(GL_TEXTURE_2D, destTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, 4, VIEW_W, VIEW_H, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+}
+
 int OpenGLRenderDevice::buildResources()
 {
 	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
@@ -421,6 +450,8 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.scaleY = glGetUniformLocation(program, "scaleY");
 	uniforms.offsetX = glGetUniformLocation(program, "offsetX");
 	uniforms.offsetY = glGetUniformLocation(program, "offsetY");
+
+	//createFrameBuffer();
 
     return 0;
 }
@@ -453,24 +484,34 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
-	FPoint point;
-	FPoint size;
-
 	scale.x = (float)src.w/VIEW_W;
 	scale.y = (float)src.h/VIEW_H;
 
 	offset.x = 2.0f * (float)dest.x/VIEW_W;
 	offset.y = 2.0f * (float)dest.y/VIEW_H;
 
+	//glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
     if (texture == 0)
         return 1;
 
+    glActiveTexture(GL_TEXTURE0);
+    //glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+	composeFrame(scale, offset);
+
+	glDeleteTextures(1, &texture);
+
+	return 0;
+}
+
+void OpenGLRenderDevice::composeFrame(FPoint scale, FPoint offset)
+{
 	glUseProgram(program);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(uniforms.texture, 0);
 	glUniform1f(uniforms.scaleX, scale.x);
 	glUniform1f(uniforms.scaleY, scale.y);
@@ -495,10 +536,6 @@ int OpenGLRenderDevice::render(Sprite *r) {
     );
 
     glDisableVertexAttribArray(attributes.position);
-
-	glDeleteTextures(1, &texture);
-
-	return 0;
 }
 
 int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
@@ -572,15 +609,26 @@ void OpenGLRenderDevice::drawRectangle(
 }
 
 void OpenGLRenderDevice::blankScreen() {
+	// FIXME: clear buffer texture 
+	//glDeleteTextures(1, &destTexture);
+	//clearBufferTexture();
+
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT);
+
 	return;
 }
 
 void OpenGLRenderDevice::commitFrame() {
 
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glActiveTexture(GL_TEXTURE0);
+    //glBindTexture(GL_TEXTURE_2D, destTexture);
+	//composeFrame(FPoint(), FPoint());
+
 	glFlush();
 	SDL_GL_SwapWindow(screen);
+
 	return;
 }
 

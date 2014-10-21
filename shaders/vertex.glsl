@@ -11,10 +11,17 @@ varying vec2 texcoord;
 
 void main()
 {
-	float leftCornerX = position.x * scaleX - 1.0 + scaleX;
-	float leftCornerY =  - (position.y * scaleY - 1.0 + scaleY);
+	if (offsetX == 0.0 && offsetY == 0.0 && scaleX == 0.0 && scaleY == 0.0)
+	{
+		gl_Position = vec4(position, 0.0, 1.0);
+	}
+	else
+	{
+		float leftCornerX = position.x * scaleX - 1.0 + scaleX;
+		float leftCornerY =  - (position.y * scaleY - 1.0 + scaleY);
 
-    gl_Position = vec4(leftCornerX + offsetX, leftCornerY - offsetY, 0.0, 1.0);
+		gl_Position = vec4(leftCornerX + offsetX, leftCornerY - offsetY, 0.0, 1.0);
+	}
 
     texcoord = position * vec2(0.5) + vec2(0.5);
 }
