@@ -414,12 +414,13 @@ int OpenGLRenderDevice::buildResources()
     if (program == 0)
         return 1;
 
-    uniforms.texture = glGetUniformLocation(program, "texture");
     attributes.position = glGetAttribLocation(program, "position");
-	attributes.scaleX = glGetAttribLocation(program, "scaleX");
-	attributes.scaleY = glGetAttribLocation(program, "scaleY");
-	attributes.offsetX = glGetAttribLocation(program, "offsetX");
-	attributes.offsetY = glGetAttribLocation(program, "offsetY");
+
+    uniforms.texture = glGetUniformLocation(program, "texture");
+	uniforms.scaleX = glGetUniformLocation(program, "scaleX");
+	uniforms.scaleY = glGetUniformLocation(program, "scaleY");
+	uniforms.offsetX = glGetUniformLocation(program, "offsetX");
+	uniforms.offsetY = glGetUniformLocation(program, "offsetY");
 
     return 0;
 }
@@ -471,10 +472,10 @@ int OpenGLRenderDevice::render(Sprite *r) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(uniforms.texture, 0);
-	glVertexAttrib1f(attributes.scaleX, scale.x);
-	glVertexAttrib1f(attributes.scaleY, scale.y);
-	glVertexAttrib1f(attributes.offsetX, offset.x);
-	glVertexAttrib1f(attributes.offsetY, offset.y);
+	glUniform1f(uniforms.scaleX, scale.x);
+	glUniform1f(uniforms.scaleY, scale.y);
+	glUniform1f(uniforms.offsetX, offset.x);
+	glUniform1f(uniforms.offsetY, offset.y);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(

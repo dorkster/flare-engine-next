@@ -116,14 +116,14 @@ private:
 
     struct {
         GLint texture;
-    } uniforms;
-
-    struct {
-        GLint position;
 		GLint scaleX;
 		GLint scaleY;
 		GLint offsetX;
 		GLint offsetY;
+    } uniforms;
+
+    struct {
+        GLint position;
     } attributes;
 
 	GLushort elementBufferData[4];

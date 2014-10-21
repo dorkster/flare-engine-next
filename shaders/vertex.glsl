@@ -1,11 +1,11 @@
 #version 110
 
 attribute vec2 position;
-attribute float scaleX;
-attribute float scaleY;
+uniform float scaleX;
+uniform float scaleY;
 
-attribute float offsetX;
-attribute float offsetY;
+uniform float offsetX;
+uniform float offsetY;
 
 varying vec2 texcoord;
 
