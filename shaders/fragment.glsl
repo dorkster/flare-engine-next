@@ -13,8 +13,12 @@ void main()
 
 	if (destination != vec4(0.0))
 	{
-		//color = texture2D(texture, texcoord);
-		color = mix(color, destColor, color.a);
+		color = texture2D(texture, texcoord);
+
+		if (color.a == 0.0)
+		{
+			discard;
+		}
 	}
 	else
 	{

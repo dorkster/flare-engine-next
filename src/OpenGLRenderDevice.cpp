@@ -265,6 +265,30 @@ Rect OpenGLRenderDevice::getContextSize() {
 int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
+
+	scale.x = (float)src.w/VIEW_W;
+	scale.y = (float)src.h/VIEW_H;
+
+	offset.x = 2.0f * (float)_dest.x/VIEW_W;
+	offset.y = 2.0f * (float)_dest.y/VIEW_H;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
+ 
+    texture = getTexturePatch(static_cast<OpenGLImage *>(r.image), src);
+
+    if (texture == 0)
+        return 1;
+
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+	composeFrame(scale, offset);
+
+    glActiveTexture(GL_TEXTURE0);
+	glDeleteTextures(1, &texture);
+
 	return 0;
 }
 
@@ -502,6 +526,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 	composeFrame(scale, offset);
 
+    glActiveTexture(GL_TEXTURE0);
 	glDeleteTextures(1, &texture);
 
 	return 0;
