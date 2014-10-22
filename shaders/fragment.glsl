@@ -1,16 +1,25 @@
 #version 110
 
 uniform sampler2D texture;
+uniform sampler2D destTexture;
 
 varying vec2 texcoord;
+varying vec4 destination;
 
 void main()
 {
-	vec4 color = texture2D(texture, texcoord);
+	vec4 color;
+	vec4 destColor = texture2D(destTexture, texcoord);
 
-	// mix colors in brameBuffer instead of discarding transparent pixels
-	if (color.rgb == vec3(0.0,0.0,0.0))
-		  discard;
+	if (destination != vec4(0.0))
+	{
+		//color = texture2D(texture, texcoord);
+		color = mix(color, destColor, color.a);
+	}
+	else
+	{
+		color = destColor;
+	}
 
     gl_FragColor = color;
 }

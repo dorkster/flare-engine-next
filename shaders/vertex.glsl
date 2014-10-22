@@ -8,6 +8,7 @@ uniform float offsetX;
 uniform float offsetY;
 
 varying vec2 texcoord;
+varying vec4 destination;
 
 void main()
 {
@@ -22,6 +23,6 @@ void main()
 
 		gl_Position = vec4(leftCornerX + offsetX, leftCornerY - offsetY, 0.0, 1.0);
 	}
-
+	destination = vec4(offsetX, offsetY, scaleX, scaleY);
     texcoord = position * vec2(0.5) + vec2(0.5);
 }

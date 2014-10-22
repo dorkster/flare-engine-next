@@ -117,6 +117,7 @@ private:
     GLuint vertex_shader, fragment_shader, program;
 	GLuint texture;
 	GLuint frameBuffer;
+	//GLuint renderBuffer;
 	GLuint destTexture;
 
     struct {

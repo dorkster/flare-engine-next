@@ -374,13 +374,7 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-    glTexImage2D(
-        GL_TEXTURE_2D, 0,           /* target, level */
-        4,                    /* internal format */
-        width, height, 0,           /* width, height, border */
-		GL_BGRA, GL_UNSIGNED_BYTE,   /* external format, type */
-        pixels                      /* pixels */
-    );
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
 
 	if (patch)
 		SDL_FreeSurface(surface);
@@ -402,28 +396,30 @@ int OpenGLRenderDevice::createFrameBuffer()
 	glGenFramebuffers(1, &frameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
+	//glGenRenderbuffers(1, &renderBuffer);
+	//glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
+
 	clearBufferTexture();
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-
-	GLenum drawBuffers[1] = {GL_COLOR_ATTACHMENT0};
-	glDrawBuffers(1, drawBuffers);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		return -1;
-	}
+	//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, VIEW_W, VIEW_H);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
 
 	return 0;
 }
 
 void OpenGLRenderDevice::clearBufferTexture()
 {
+	auto channels = 4;
+	char* buffer = (char*)calloc(VIEW_W * VIEW_H * channels, sizeof(char));
+
 	glGenTextures(1, &destTexture);
 	glBindTexture(GL_TEXTURE_2D, destTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, VIEW_W, VIEW_H, 0, GL_BGRA, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_BGRA, GL_UNSIGNED_BYTE, buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	free(buffer);
 }
 
 int OpenGLRenderDevice::buildResources()
@@ -451,7 +447,9 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.offsetX = glGetUniformLocation(program, "offsetX");
 	uniforms.offsetY = glGetUniformLocation(program, "offsetY");
 
-	//createFrameBuffer();
+    destTexture = glGetUniformLocation(program, "destTexture");
+
+	createFrameBuffer();
 
     return 0;
 }
@@ -490,15 +488,16 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	offset.x = 2.0f * (float)dest.x/VIEW_W;
 	offset.y = 2.0f * (float)dest.y/VIEW_H;
 
-	//glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
+ 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
     if (texture == 0)
         return 1;
 
-    glActiveTexture(GL_TEXTURE0);
-    //glActiveTexture(GL_TEXTURE1);
+    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture);
 
 	composeFrame(scale, offset);
@@ -513,6 +512,7 @@ void OpenGLRenderDevice::composeFrame(FPoint scale, FPoint offset)
 	glUseProgram(program);
 
     glUniform1i(uniforms.texture, 0);
+    glUniform1i(destTexture, 0);
 	glUniform1f(uniforms.scaleX, scale.x);
 	glUniform1f(uniforms.scaleY, scale.y);
 	glUniform1f(uniforms.offsetX, offset.x);
@@ -609,9 +609,8 @@ void OpenGLRenderDevice::drawRectangle(
 }
 
 void OpenGLRenderDevice::blankScreen() {
-	// FIXME: clear buffer texture 
-	//glDeleteTextures(1, &destTexture);
-	//clearBufferTexture();
+	glDeleteTextures(1, &destTexture);
+	clearBufferTexture();
 
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -621,10 +620,10 @@ void OpenGLRenderDevice::blankScreen() {
 
 void OpenGLRenderDevice::commitFrame() {
 
-	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    //glActiveTexture(GL_TEXTURE0);
-    //glBindTexture(GL_TEXTURE_2D, destTexture);
-	//composeFrame(FPoint(), FPoint());
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, destTexture);
+	composeFrame(FPoint(), FPoint());
 
 	glFlush();
 	SDL_GL_SwapWindow(screen);
