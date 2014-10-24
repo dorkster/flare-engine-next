@@ -77,7 +77,7 @@ public:
 	virtual int render(Renderable& r, Rect dest);
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false);
-	void composeFrame(FPoint scale, FPoint offset);
+	void composeFrame(GLfloat* offset);
 
 	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
 	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
@@ -122,10 +122,7 @@ private:
 
     struct {
         GLint texture;
-		GLint scaleX;
-		GLint scaleY;
-		GLint offsetX;
-		GLint offsetY;
+		GLint offset;
     } uniforms;
 
     struct {
@@ -134,8 +131,7 @@ private:
 
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
-	FPoint scale;
-	FPoint offset;
+	GLfloat offset[4];
 };
 
 #endif // OPENGL_RENDERDEVICE_H

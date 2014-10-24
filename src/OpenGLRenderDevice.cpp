@@ -233,6 +233,8 @@ int OpenGLRenderDevice::createContext(int width, int height) {
 		// TODO: Can we avoid using GLEW?
 		glewInit();
 
+		//glEnable(GL_CULL_FACE);
+
 		buildResources();
 	}
 
@@ -266,11 +268,11 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 
-	scale.x = (float)src.w/VIEW_W;
-	scale.y = (float)src.h/VIEW_H;
+	offset[0] = 2.0f * (float)_dest.x/VIEW_W;
+	offset[1] = 2.0f * (float)_dest.y/VIEW_H;
 
-	offset.x = 2.0f * (float)_dest.x/VIEW_W;
-	offset.y = 2.0f * (float)_dest.y/VIEW_H;
+	offset[2] = (float)src.w/VIEW_W;
+	offset[3] = (float)src.h/VIEW_H;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
@@ -284,7 +286,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(scale, offset);
+	composeFrame(offset);
 
     glActiveTexture(GL_TEXTURE0);
 	glDeleteTextures(1, &texture);
@@ -466,10 +468,7 @@ int OpenGLRenderDevice::buildResources()
     attributes.position = glGetAttribLocation(program, "position");
 
     uniforms.texture = glGetUniformLocation(program, "texture");
-	uniforms.scaleX = glGetUniformLocation(program, "scaleX");
-	uniforms.scaleY = glGetUniformLocation(program, "scaleY");
-	uniforms.offsetX = glGetUniformLocation(program, "offsetX");
-	uniforms.offsetY = glGetUniformLocation(program, "offsetY");
+	uniforms.offset = glGetUniformLocation(program, "offset");
 
     destTexture = glGetUniformLocation(program, "destTexture");
 
@@ -506,11 +505,11 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
-	scale.x = (float)src.w/VIEW_W;
-	scale.y = (float)src.h/VIEW_H;
+	offset[0] = 2.0f * (float)dest.x/VIEW_W;
+	offset[1] = 2.0f * (float)dest.y/VIEW_H;
 
-	offset.x = 2.0f * (float)dest.x/VIEW_W;
-	offset.y = 2.0f * (float)dest.y/VIEW_H;
+	offset[2] = (float)src.w/VIEW_W;
+	offset[3] = (float)src.h/VIEW_H;
 
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
@@ -524,7 +523,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(scale, offset);
+	composeFrame(offset);
 
     glActiveTexture(GL_TEXTURE0);
 	glDeleteTextures(1, &texture);
@@ -532,16 +531,14 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	return 0;
 }
 
-void OpenGLRenderDevice::composeFrame(FPoint scale, FPoint offset)
+void OpenGLRenderDevice::composeFrame(GLfloat* offset)
 {
 	glUseProgram(program);
 
     glUniform1i(uniforms.texture, 0);
     glUniform1i(destTexture, 0);
-	glUniform1f(uniforms.scaleX, scale.x);
-	glUniform1f(uniforms.scaleY, scale.y);
-	glUniform1f(uniforms.offsetX, offset.x);
-	glUniform1f(uniforms.offsetY, offset.y);
+
+	glUniform4fv(uniforms.offset, 1, offset);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
@@ -648,7 +645,8 @@ void OpenGLRenderDevice::commitFrame() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, destTexture);
-	composeFrame(FPoint(), FPoint());
+	GLfloat offset[4] = {0};
+	composeFrame(offset);
 
 	glFlush();
 	SDL_GL_SwapWindow(screen);

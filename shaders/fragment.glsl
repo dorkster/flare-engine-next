@@ -2,16 +2,16 @@
 
 uniform sampler2D texture;
 uniform sampler2D destTexture;
+uniform vec4 offset;
 
 varying vec2 texcoord;
-varying vec4 destination;
 
 void main()
 {
 	vec4 color;
 	vec4 destColor = texture2D(destTexture, texcoord);
 
-	if (destination != vec4(0.0))
+	if (offset != vec4(0.0))
 	{
 		color = texture2D(texture, texcoord);
 
