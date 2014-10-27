@@ -77,7 +77,7 @@ public:
 	virtual int render(Renderable& r, Rect dest);
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false);
-	void composeFrame(GLfloat* offset);
+	void composeFrame(GLfloat* offset, GLfloat* texelOffset);
 
 	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
 	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
@@ -106,7 +106,7 @@ private:
 	void* openShaderFile(const char *filename, GLint *length);
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
-	GLuint getTexturePatch(OpenGLImage* image, SDL_Rect src);
+	GLuint generateTexture(OpenGLImage* image);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 
 	SDL_Window *screen;
@@ -117,12 +117,12 @@ private:
     GLuint vertex_shader, fragment_shader, program;
 	GLuint texture;
 	GLuint frameBuffer;
-	//GLuint renderBuffer;
 	GLuint destTexture;
 
     struct {
         GLint texture;
 		GLint offset;
+		GLint texelOffset;
     } uniforms;
 
     struct {
@@ -132,6 +132,7 @@ private:
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
 	GLfloat offset[4];
+	GLfloat texelOffset[4];
 };
 
 #endif // OPENGL_RENDERDEVICE_H

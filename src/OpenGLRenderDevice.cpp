@@ -276,12 +276,21 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	offset[2] = (float)src.w/VIEW_W;
 	offset[3] = (float)src.h/VIEW_H;
 
+	auto height = static_cast<OpenGLImage *>(r.image)->getHeight();
+	auto width = static_cast<OpenGLImage *>(r.image)->getWidth();
+
+	texelOffset[0] = (float)width / src.w;
+	texelOffset[1] = (float)src.x / width;
+
+	texelOffset[2] = (float)height / src.h;
+	texelOffset[3] = (float)src.y / height;
+
 #ifdef FRAMEBUFFER
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
 #endif
  
-    texture = getTexturePatch(static_cast<OpenGLImage *>(r.image), src);
+    texture = generateTexture(static_cast<OpenGLImage *>(r.image));
 
     if (texture == 0)
         return 1;
@@ -293,7 +302,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 #endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset);
+	composeFrame(offset, texelOffset);
 
     glActiveTexture(GL_TEXTURE0);
 	glDeleteTextures(1, &texture);
@@ -368,38 +377,13 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
     return program;
 }
 
-GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
+GLuint OpenGLRenderDevice::generateTexture(OpenGLImage* image)
 {
-	int width = src.w;
-	int height = src.h;
-	SDL_Surface* surface;
-	void *pixels;
-	bool patch = false;
+	int width = image->getWidth();
+	int height = image->getHeight();
+	void *pixels = image->surface->pixels;
 
-	if (src.x != 0 || src.y != 0 || src.w != image->surface->w || src.h != image->surface->h)
-	{
-		patch = true;
-	}
-
-	if (patch)
-	{
-		surface = SDL_CreateRGBSurface(image->surface->flags, src.w, src.h, image->surface->format->BitsPerPixel,
-																						 image->surface->format->Rmask,
-																						 image->surface->format->Gmask,
-																						 image->surface->format->Bmask,
-																						 image->surface->format->Amask);
-		SDL_BlitSurface(image->surface, &src, surface, 0);
-
-		pixels = surface->pixels;
-	}
-	else
-	{
-		pixels = image->surface->pixels;
-	}
     GLuint texture;
-
-    if (!pixels)
-        return 1;
 
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -409,9 +393,6 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
     //glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-
-	if (patch)
-		SDL_FreeSurface(surface);
 
     return texture;
 }
@@ -473,6 +454,7 @@ int OpenGLRenderDevice::buildResources()
 
     uniforms.texture = glGetUniformLocation(program, "texture");
 	uniforms.offset = glGetUniformLocation(program, "offset");
+	uniforms.texelOffset = glGetUniformLocation(program, "texelOffset");
 
 #ifdef FRAMEBUFFER
     destTexture = glGetUniformLocation(program, "destTexture");
@@ -520,11 +502,20 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	offset[2] = (float)src.w/VIEW_W;
 	offset[3] = (float)src.h/VIEW_H;
 
+	auto height = r->getGraphics()->getHeight();
+	auto width = r->getGraphics()->getWidth();
+
+	texelOffset[0] = (float)width / src.w;
+	texelOffset[1] = (float)src.x / width;
+
+	texelOffset[2] = (float)height / src.h;
+	texelOffset[3] = (float)src.y / height;
+
 #ifdef FRAMEBUFFER
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
 #endif
-    texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
+    texture = generateTexture(static_cast<OpenGLImage *>(r->getGraphics()));
 
     if (texture == 0)
         return 1;
@@ -536,7 +527,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
 #endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset);
+	composeFrame(offset, texelOffset);
 
     glActiveTexture(GL_TEXTURE0);
 	glDeleteTextures(1, &texture);
@@ -544,7 +535,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	return 0;
 }
 
-void OpenGLRenderDevice::composeFrame(GLfloat* offset)
+void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset)
 {
 	glUseProgram(program);
 
@@ -555,6 +546,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset)
 #endif
 
 	glUniform4fv(uniforms.offset, 1, offset);
+	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(

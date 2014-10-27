@@ -4,6 +4,8 @@ attribute vec2 position;
 
 uniform vec4 offset;
 
+uniform vec4 texelOffset;
+
 varying vec2 texcoord;
 
 void main()
@@ -19,5 +21,6 @@ void main()
 
 		gl_Position = vec4(leftCornerX + offset.x, leftCornerY - offset.y, 0.0, 1.0);
 	}
-    texcoord = position * vec2(0.5) + vec2(0.5);
+    texcoord.x = (position.x * 0.5 + 0.5) / texelOffset.x + texelOffset.y;
+    texcoord.y = (position.y * 0.5 + 0.5) / texelOffset.z + texelOffset.w;
 }
