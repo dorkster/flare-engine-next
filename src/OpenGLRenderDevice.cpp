@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+//#define FRAMEBUFFER
+
 #include <iostream>
 
 #include <stdio.h>
@@ -274,16 +276,21 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	offset[2] = (float)src.w/VIEW_W;
 	offset[3] = (float)src.h/VIEW_H;
 
+#ifdef FRAMEBUFFER
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
+#endif
  
     texture = getTexturePatch(static_cast<OpenGLImage *>(r.image), src);
 
     if (texture == 0)
         return 1;
 
+#ifdef FRAMEBUFFER
     glActiveTexture(GL_TEXTURE1);
+#else
+    glActiveTexture(GL_TEXTURE0);
+#endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
 	composeFrame(offset);
@@ -400,6 +407,7 @@ GLuint OpenGLRenderDevice::getTexturePatch(OpenGLImage* image, SDL_Rect src)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+    //glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
 
 	if (patch)
@@ -422,14 +430,9 @@ int OpenGLRenderDevice::createFrameBuffer()
 	glGenFramebuffers(1, &frameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 
-	//glGenRenderbuffers(1, &renderBuffer);
-	//glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
-
 	clearBufferTexture();
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-	//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, VIEW_W, VIEW_H);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
 
 	return 0;
 }
@@ -441,9 +444,10 @@ void OpenGLRenderDevice::clearBufferTexture()
 
 	glGenTextures(1, &destTexture);
 	glBindTexture(GL_TEXTURE_2D, destTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_BGRA, GL_UNSIGNED_BYTE, buffer);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_BGRA, GL_UNSIGNED_BYTE, buffer);
 
 	free(buffer);
 }
@@ -470,9 +474,14 @@ int OpenGLRenderDevice::buildResources()
     uniforms.texture = glGetUniformLocation(program, "texture");
 	uniforms.offset = glGetUniformLocation(program, "offset");
 
+#ifdef FRAMEBUFFER
     destTexture = glGetUniformLocation(program, "destTexture");
 
 	createFrameBuffer();
+#else
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+#endif
 
     return 0;
 }
@@ -511,16 +520,20 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	offset[2] = (float)src.w/VIEW_W;
 	offset[3] = (float)src.h/VIEW_H;
 
+#ifdef FRAMEBUFFER
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, renderBuffer);
- 
+#endif
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
     if (texture == 0)
         return 1;
 
+#ifdef FRAMEBUFFER
     glActiveTexture(GL_TEXTURE1);
+#else
+    glActiveTexture(GL_TEXTURE0);
+#endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
 	composeFrame(offset);
@@ -536,7 +549,10 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset)
 	glUseProgram(program);
 
     glUniform1i(uniforms.texture, 0);
+
+#ifdef FRAMEBUFFER
     glUniform1i(destTexture, 0);
+#endif
 
 	glUniform4fv(uniforms.offset, 1, offset);
 
@@ -631,9 +647,10 @@ void OpenGLRenderDevice::drawRectangle(
 }
 
 void OpenGLRenderDevice::blankScreen() {
+#ifdef FRAMEBUFFER
 	glDeleteTextures(1, &destTexture);
 	clearBufferTexture();
-
+#endif
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -641,13 +658,13 @@ void OpenGLRenderDevice::blankScreen() {
 }
 
 void OpenGLRenderDevice::commitFrame() {
-
+#ifdef FRAMEBUFFER
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, destTexture);
 	GLfloat offset[4] = {0};
 	composeFrame(offset);
-
+#endif
 	glFlush();
 	SDL_GL_SwapWindow(screen);
 
