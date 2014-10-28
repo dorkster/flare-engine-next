@@ -436,9 +436,8 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, int
 {
 	glUseProgram(program);
 
-	// FIXME: incorrect textureNumber
+	// FIXME: incorrect textureNumber ?
     //glUniform1i(uniforms.texture, textureNumber);
-    glUniform1i(uniforms.texture, 1);
 
 #ifdef FRAMEBUFFER
     glUniform1i(destTexture, 0);
@@ -596,9 +595,11 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 	char* buffer = (char*)calloc(width * height * channels, sizeof(char));
 
 	glGenTextures(1, &(image->texture));
-	glBindTexture(GL_TEXTURE_2D, image->texture);
+
 	image->textureNumber = textureCount;
 	textureCount += 1;
+	glActiveTexture(GL_TEXTURE0 + image->textureNumber);
+	glBindTexture(GL_TEXTURE_2D, image->texture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -668,9 +669,11 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		SDL_Surface *surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
 
 		glGenTextures(1, &(image->texture));
-		glBindTexture(GL_TEXTURE_2D, image->texture);
+
 		image->textureNumber = textureCount;
 		textureCount += 1;
+		glActiveTexture(GL_TEXTURE0 + image->textureNumber);
+		glBindTexture(GL_TEXTURE_2D, image->texture);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
