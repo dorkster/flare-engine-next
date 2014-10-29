@@ -33,8 +33,7 @@ using namespace std;
 
 OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
-	, texture(-1) 
-	, textureNumber(-1) {
+	, texture(-1) {
 }
 
 OpenGLImage::~OpenGLImage() {
@@ -62,13 +61,18 @@ void OpenGLImage::fillWithColor(Uint32 color) {
 	if (texture == -1) return;
 
 	auto channels = 4;
-	// TODO fill with color
-	char* buffer = (char*)calloc(VIEW_W * VIEW_H * channels, sizeof(char));
+
+	char* buffer = new char[VIEW_W * VIEW_H * channels];
+
+	for(int i = 0; i < VIEW_W * VIEW_H * channels; i++)
+	{
+		buffer[i] = color;
+	}
 
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
  
-	free(buffer);
+	delete [] buffer;
 }
 
 /*
@@ -108,8 +112,7 @@ Uint32 OpenGLImage::readPixel(int x, int y) {
 OpenGLRenderDevice::OpenGLRenderDevice()
 	: screen(NULL)
 	, renderer(NULL)
-	, titlebar_icon(NULL)
-	, textureCount(0) {
+	, titlebar_icon(NULL) {
 	cout << "Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)" << endl;
 
 	positionData[0] = -1.0f; positionData[1] = -1.0f;
@@ -213,7 +216,6 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 #endif
  
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
-	int textureNumber = static_cast<OpenGLImage *>(r.image)->textureNumber;
 
     if (texture == 0)
         return 1;
@@ -221,11 +223,11 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 #ifdef FRAMEBUFFER
     glActiveTexture(GL_TEXTURE1);
 #else
-	glActiveTexture(GL_TEXTURE0 + textureNumber);
+	glActiveTexture(GL_TEXTURE0);
 #endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset, texelOffset, textureNumber);
+	composeFrame(offset, texelOffset);
 
 	return 0;
 }
@@ -415,7 +417,6 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
 #endif
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
-    int textureNumber = static_cast<OpenGLImage *>(r->getGraphics())->textureNumber;
 
     if (texture == 0)
         return 1;
@@ -423,21 +424,20 @@ int OpenGLRenderDevice::render(Sprite *r) {
 #ifdef FRAMEBUFFER
     glActiveTexture(GL_TEXTURE1);
 #else
-	glActiveTexture(GL_TEXTURE0 + textureNumber);
+	glActiveTexture(GL_TEXTURE0);
 #endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset, texelOffset, textureNumber);
+	composeFrame(offset, texelOffset);
 
 	return 0;
 }
 
-void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, int textureNumber)
+void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset)
 {
 	glUseProgram(program);
 
-	// FIXME: incorrect textureNumber ?
-    //glUniform1i(uniforms.texture, textureNumber);
+    glUniform1i(uniforms.texture, 0);
 
 #ifdef FRAMEBUFFER
     glUniform1i(destTexture, 0);
@@ -483,11 +483,56 @@ int OpenGLRenderDevice::renderText(
 	return ret;
 }
 
+unsigned int nextPowerOfTwo( unsigned int v ) {
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+}
+
 Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended) {
 	OpenGLImage *image = new OpenGLImage(this);
 	if (!image) return NULL;
 
 	SDL_Color _color = color;
+
+	SDL_Surface* surface;
+	if (blended)
+		surface = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), _color);
+	else
+		surface = TTF_RenderUTF8_Solid(ttf_font, text.c_str(), _color);
+
+	if (surface)
+	{
+		// FIXME : doesn't produce correct texture
+		Uint32 rmask, gmask, bmask, amask;
+		setSDL_RGBA(&rmask, &gmask, &bmask, &amask);
+
+		SDL_Surface* scaled = SDL_CreateRGBSurface(0, nextPowerOfTwo(surface->w), nextPowerOfTwo(surface->h),
+			BITS_PER_PIXEL, rmask, gmask, bmask, amask);
+
+		SDL_BlitSurface(surface, 0, scaled, 0);
+		SDL_FreeSurface(surface);
+
+		glGenTextures(1, &(image->texture));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, image->texture);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, 4, scaled->w, scaled->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled->pixels);
+		SDL_FreeSurface(scaled);
+	}
+
+	if (image->texture != -1)
+		return image;
 
 	delete image;
 	return NULL;
@@ -596,9 +641,7 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 
 	glGenTextures(1, &(image->texture));
 
-	image->textureNumber = textureCount;
-	textureCount += 1;
-	glActiveTexture(GL_TEXTURE0 + image->textureNumber);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, image->texture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -670,9 +713,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 
 		glGenTextures(1, &(image->texture));
 
-		image->textureNumber = textureCount;
-		textureCount += 1;
-		glActiveTexture(GL_TEXTURE0 + image->textureNumber);
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, image->texture);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -696,11 +737,7 @@ void OpenGLRenderDevice::freeImage(Image *image) {
 	cacheRemove(image);
 
 	if (static_cast<OpenGLImage *>(image)->texture != -1)
-	{
 		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->texture));
-		textureCount -= 1;
-		static_cast<OpenGLImage *>(image)->textureNumber = -1;
-	}
 }
 
 void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {

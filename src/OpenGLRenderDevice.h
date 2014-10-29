@@ -61,7 +61,6 @@ public:
 	Image* resize(int width, int height);
 
 	GLuint texture;
-	int textureNumber;
 
 private:
 	Uint32 readPixel(int x, int y);
@@ -78,7 +77,6 @@ public:
 	virtual int render(Renderable& r, Rect dest);
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false);
-	void composeFrame(GLfloat* offset, GLfloat* texelOffset, int textureNumber);
 
 	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
 	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
@@ -108,6 +106,7 @@ private:
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
+	void composeFrame(GLfloat* offset, GLfloat* texelOffset);
 
 	SDL_Window *screen;
 	SDL_GLContext renderer;
@@ -132,8 +131,6 @@ private:
 	GLfloat positionData[8];
 	GLfloat offset[4];
 	GLfloat texelOffset[4];
-
-	int textureCount;
 };
 
 #endif // OPENGL_RENDERDEVICE_H
