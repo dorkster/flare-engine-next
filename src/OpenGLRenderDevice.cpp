@@ -15,8 +15,6 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
-//#define FRAMEBUFFER
-
 #include <iostream>
 
 #include <stdio.h>
@@ -209,22 +207,13 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 
 	texelOffset[2] = (float)height / src.h;
 	texelOffset[3] = (float)src.y / height;
-
-#ifdef FRAMEBUFFER
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-#endif
  
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 
     if (texture == 0)
         return 1;
 
-#ifdef FRAMEBUFFER
-    glActiveTexture(GL_TEXTURE1);
-#else
 	glActiveTexture(GL_TEXTURE0);
-#endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
 	composeFrame(offset, texelOffset);
@@ -308,32 +297,6 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
     return buffer;
 }
 
-int OpenGLRenderDevice::createFrameBuffer()
-{
-	glGenFramebuffers(1, &frameBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-
-	clearBufferTexture();
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-
-	return 0;
-}
-
-void OpenGLRenderDevice::clearBufferTexture()
-{
-	auto channels = 4;
-	char* buffer = (char*)calloc(VIEW_W * VIEW_H * channels, sizeof(char));
-
-	glGenTextures(1, &destTexture);
-	glBindTexture(GL_TEXTURE_2D, destTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, channels, VIEW_W, VIEW_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
-	free(buffer);
-}
-
 int OpenGLRenderDevice::buildResources()
 {
 	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
@@ -357,14 +320,8 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.offset = glGetUniformLocation(program, "offset");
 	uniforms.texelOffset = glGetUniformLocation(program, "texelOffset");
 
-#ifdef FRAMEBUFFER
-    destTexture = glGetUniformLocation(program, "destTexture");
-
-	createFrameBuffer();
-#else
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
-#endif
 
     return 0;
 }
@@ -412,20 +369,12 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	texelOffset[2] = (float)height / src.h;
 	texelOffset[3] = (float)src.y / height;
 
-#ifdef FRAMEBUFFER
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, destTexture, 0);
-#endif
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
 
     if (texture == 0)
         return 1;
 
-#ifdef FRAMEBUFFER
-    glActiveTexture(GL_TEXTURE1);
-#else
 	glActiveTexture(GL_TEXTURE0);
-#endif
     glBindTexture(GL_TEXTURE_2D, texture);
 
 	composeFrame(offset, texelOffset);
@@ -438,11 +387,6 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset)
 	glUseProgram(program);
 
     glUniform1i(uniforms.texture, 0);
-
-#ifdef FRAMEBUFFER
-    glUniform1i(destTexture, 0);
-#endif
-
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
@@ -566,10 +510,6 @@ void OpenGLRenderDevice::drawRectangle(
 }
 
 void OpenGLRenderDevice::blankScreen() {
-#ifdef FRAMEBUFFER
-	glDeleteTextures(1, &destTexture);
-	clearBufferTexture();
-#endif
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -577,13 +517,6 @@ void OpenGLRenderDevice::blankScreen() {
 }
 
 void OpenGLRenderDevice::commitFrame() {
-#ifdef FRAMEBUFFER
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, destTexture);
-	GLfloat offset[4] = {0};
-	composeFrame(offset);
-#endif
 	glFlush();
 	SDL_GL_SwapWindow(screen);
 

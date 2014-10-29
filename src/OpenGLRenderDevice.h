@@ -100,8 +100,6 @@ private:
 	void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask);
 
 	int buildResources();
-	int createFrameBuffer();
-	void clearBufferTexture();
 	void* openShaderFile(const char *filename, GLint *length);
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
@@ -114,8 +112,6 @@ private:
 
     GLuint vertex_buffer, element_buffer;
     GLuint vertex_shader, fragment_shader, program;
-	GLuint frameBuffer;
-	GLuint destTexture;
 
     struct {
         GLint texture;
