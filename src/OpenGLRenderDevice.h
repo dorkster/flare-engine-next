@@ -105,6 +105,7 @@ private:
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 	void composeFrame(GLfloat* offset, GLfloat* texelOffset);
+	SDL_Surface* copyTextureToSurface(GLuint texture);
 
 	SDL_Window *screen;
 	SDL_GLContext renderer;

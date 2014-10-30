@@ -98,13 +98,13 @@ Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 Image* OpenGLImage::resize(int width, int height) {
 	if(texture == -1 || width <= 0 || height <= 0)
 		return NULL;
-
+	// UNIMPLEMENTED
 	return NULL;
 }
 
 Uint32 OpenGLImage::readPixel(int x, int y) {
 	if (texture == -1) return 0;
-
+	// UNIMPLEMENTED
 	return 0;
 }
 
@@ -414,54 +414,58 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset)
 int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
 	if (!src_image || !dest_image) return -1;
 
-	dest.w = src.w;
-	dest.h = src.h;
-    SDL_Rect _src = src;
-    SDL_Rect _dest = dest;
+	SDL_Rect _src = src;
+	SDL_Rect _dest = dest;
 
+	SDL_Surface* src_surface = copyTextureToSurface(static_cast<OpenGLImage *>(src_image)->texture);
+
+	SDL_Surface* dst_surface = copyTextureToSurface(static_cast<OpenGLImage *>(dest_image)->texture);
+
+	if (dest_is_transparent)
+		SDL_gfxBlitRGBA(src_surface, &_src, dst_surface, &_dest);
+	else
+		SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
+
+	SDL_FreeSurface(src_surface);
+
+	glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLImage *>(dest_image)->texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dst_surface->w, dst_surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dst_surface->pixels);
+	SDL_FreeSurface(dst_surface);
+
+	return 0;
+}
+
+SDL_Surface* OpenGLRenderDevice::copyTextureToSurface(GLuint texture)
+{
+	// FIXME: there is a heap corruption somewhere here when viewing Credits screen
 	Uint32 rmask, gmask, bmask, amask;
 	setSDL_RGBA(&rmask, &gmask, &bmask, &amask);
 
 	GLint width, height, format;
 	GLint bytes = 0;
+	int pitch = 0;
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLImage *>(dest_image)->texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
-	bytes = 0;
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &format);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 
 	bytes = width * height * format;
+	pitch = width * BITS_PER_PIXEL / 8;
 
-	unsigned char *buffer = new unsigned char[bytes];
+	unsigned char *pixels = new unsigned char[bytes];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-	for(int i = 0; i < bytes; i++)
-	{
-		buffer[i] = 200;
-	}
+	SDL_Surface* cleanup;
+	
+	cleanup = SDL_CreateRGBSurfaceFrom(pixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
+	SDL_Surface* surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
+	SDL_FreeSurface(cleanup);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	delete [] buffer;
+	delete [] pixels;
 
-	//int pitch = width * BITS_PER_PIXEL / 8;
-
-	//unsigned char *dstPixels = new unsigned char[bytes];
-	//glGetTexImage(GL_TEXTURE_2D, 0, format, GL_UNSIGNED_BYTE, dstPixels);
-
-	//SDL_Surface* dst_surface = SDL_CreateRGBSurfaceFrom(dstPixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
-
-	//delete [] dstPixels;
-
-	//if (dest_is_transparent)
-	//	SDL_gfxBlitRGBA(src_surface, &_src, dst_surface, &_dest);
-	//else
-	//	SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
-
-	//SDL_FreeSurface(src_surface);
-
-	return 0;
+	return surface;
 }
 
 int OpenGLRenderDevice::renderText(
@@ -470,6 +474,7 @@ int OpenGLRenderDevice::renderText(
 	Color color,
 	Rect& dest
 ) {
+	// UNIMPLEMENTED
 	int ret = 0;
 
 	return ret;
@@ -494,14 +499,13 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 
 		glGenTextures(1, &(image->texture));
 
-		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, image->texture);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, 4, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
 		SDL_FreeSurface(surface);
 	}
 
@@ -517,6 +521,7 @@ void OpenGLRenderDevice::drawPixel(
 	int y,
 	Uint32 color
 ) {
+	// UNIMPLEMENTED
 }
 
 void OpenGLRenderDevice::drawLine(
@@ -526,6 +531,7 @@ void OpenGLRenderDevice::drawLine(
 	int y1,
 	Uint32 color
 ) {
+	// UNIMPLEMENTED
 }
 
 void OpenGLRenderDevice::drawRectangle(
