@@ -31,7 +31,8 @@ using namespace std;
 
 OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
-	, texture(-1) {
+	, texture(-1)
+	, normalTexture(-1) {
 }
 
 OpenGLImage::~OpenGLImage() {
@@ -210,6 +211,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	texelOffset[3] = (float)src.y / height;
  
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
+	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
 
     if (texture == 0)
         return 1;
@@ -217,7 +219,14 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset, texelOffset);
+	bool normals = (normalTexture != -1);
+	if (normals)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, normalTexture);
+	}
+
+	composeFrame(offset, texelOffset, normals);
 
 	return 0;
 }
@@ -321,6 +330,9 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.offset = glGetUniformLocation(program, "offset");
 	uniforms.texelOffset = glGetUniformLocation(program, "texelOffset");
 
+    uniforms.normals = glGetUniformLocation(program, "normals");
+    uniforms.light = glGetUniformLocation(program, "lightEnabled");
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
@@ -371,6 +383,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	texelOffset[3] = (float)src.y / height;
 
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
+    GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
 
     if (texture == 0)
         return 1;
@@ -378,16 +391,35 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	composeFrame(offset, texelOffset);
+	bool normals = (normalTexture != -1);
+	if (normals)
+	{
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, normalTexture);
+	}
+
+	composeFrame(offset, texelOffset , normals);
 
 	return 0;
 }
 
-void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset)
+void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight)
 {
 	glUseProgram(program);
 
     glUniform1i(uniforms.texture, 0);
+
+	if (withLight)
+	{
+		glUniform1i(uniforms.light, 1);
+		glUniform1i(uniforms.normals, 1);
+	}
+	else
+	{
+		glUniform1i(uniforms.light, 0);
+	}
+
+	
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
@@ -695,6 +727,26 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		SDL_FreeSurface(cleanup);
 	}
 
+	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
+
+	SDL_Surface *cleanupN = IMG_Load(mods->locate(normalFileName).c_str());
+	if(cleanupN) {
+		SDL_Surface *surfaceN = SDL_ConvertSurfaceFormat(cleanupN, SDL_PIXELFORMAT_ABGR8888, 0);
+
+		glGenTextures(1, &(image->normalTexture));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, image->normalTexture);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, 4, surfaceN->w, surfaceN->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceN->pixels);
+
+		SDL_FreeSurface(surfaceN);
+		SDL_FreeSurface(cleanupN);
+	}
 	// store image to cache
 	cacheStore(filename, image);
 	return image;
@@ -707,6 +759,9 @@ void OpenGLRenderDevice::freeImage(Image *image) {
 
 	if (static_cast<OpenGLImage *>(image)->texture != -1)
 		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->texture));
+
+	if (static_cast<OpenGLImage *>(image)->normalTexture != -1)
+		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->normalTexture));
 }
 
 void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {

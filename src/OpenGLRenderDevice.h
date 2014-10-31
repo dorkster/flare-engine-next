@@ -61,6 +61,7 @@ public:
 	Image* resize(int width, int height);
 
 	GLuint texture;
+	GLuint normalTexture;
 
 private:
 	Uint32 readPixel(int x, int y);
@@ -104,7 +105,7 @@ private:
 	GLuint getShader(GLenum type, const char *filename);
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
-	void composeFrame(GLfloat* offset, GLfloat* texelOffset);
+	void composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight = false);
 	SDL_Surface* copyTextureToSurface(GLuint texture);
 
 	SDL_Window *screen;
@@ -116,6 +117,8 @@ private:
 
     struct {
         GLint texture;
+        GLint normals;
+		GLint light;
 		GLint offset;
 		GLint texelOffset;
     } uniforms;
