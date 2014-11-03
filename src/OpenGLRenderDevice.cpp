@@ -312,11 +312,11 @@ int OpenGLRenderDevice::buildResources()
 	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
     element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
-    vertex_shader = getShader(GL_VERTEX_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\vertex.glsl");
+    vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
     if (vertex_shader == 0)
         return 1;
 
-	fragment_shader = getShader(GL_FRAGMENT_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\fragment.glsl");
+    fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
     if (fragment_shader == 0)
         return 1;
 
