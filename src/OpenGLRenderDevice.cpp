@@ -157,8 +157,7 @@ int OpenGLRenderDevice::createContext(int width, int height) {
 
 		if (screen != NULL) renderer = SDL_GL_CreateContext(screen);
 
-		// TODO: Can we avoid using GLEW?
-		glewInit();
+		glExt::init(&renderer);
 
 		//glEnable(GL_CULL_FACE);
 
@@ -263,16 +262,16 @@ GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
     if (!source)
         return 1;
 
-    shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const GLchar**)&source, &length);
+    shader = glExt::glCreateShader(type);
+    glExt::glShaderSource(shader, 1, (const GLchar**)&source, &length);
     free(source);
-    glCompileShader(shader);
+    glExt::glCompileShader(shader);
 
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
+    glExt::glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
     if (!shader_ok)
 	{
         logError("Failed to compile %s:\n", filename);
-        glDeleteShader(shader);
+        glExt::glDeleteShader(shader);
         return 1;
     }
     return shader;
@@ -282,17 +281,17 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
 {
     GLint program_ok;
 
-    GLuint program = glCreateProgram();
+    GLuint program = glExt::glCreateProgram();
 
-    glAttachShader(program, vertex_shader);
-	glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
+    glExt::glAttachShader(program, vertex_shader);
+	glExt::glAttachShader(program, fragment_shader);
+    glExt::glLinkProgram(program);
 
-    glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
+    glExt::glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
     if (!program_ok)
 	{
         logError("Failed to link shader program:\n");
-        glDeleteProgram(program);
+        glExt::glDeleteProgram(program);
         return 1;
     }
     return program;
@@ -301,9 +300,9 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
 GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size)
 {
     GLuint buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(target, buffer);
-    glBufferData(target, buffer_size, buffer_data, GL_STATIC_DRAW);
+    glExt::glGenBuffers(1, &buffer);
+    glExt::glBindBuffer(target, buffer);
+    glExt::glBufferData(target, buffer_size, buffer_data, GL_STATIC_DRAW);
     return buffer;
 }
 
@@ -324,14 +323,14 @@ int OpenGLRenderDevice::buildResources()
     if (m_program == 0)
         return 1;
 
-    attributes.position = glGetAttribLocation(m_program, "position");
+    attributes.position = glExt::glGetAttribLocation(m_program, "position");
 
-    uniforms.texture = glGetUniformLocation(m_program, "texture");
-	uniforms.offset = glGetUniformLocation(m_program, "offset");
-	uniforms.texelOffset = glGetUniformLocation(m_program, "texelOffset");
+    uniforms.texture = glExt::glGetUniformLocation(m_program, "texture");
+	uniforms.offset = glExt::glGetUniformLocation(m_program, "offset");
+	uniforms.texelOffset = glExt::glGetUniformLocation(m_program, "texelOffset");
 
-    uniforms.normals = glGetUniformLocation(m_program, "normals");
-    uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
+    uniforms.normals = glExt::glGetUniformLocation(m_program, "normals");
+    uniforms.light = glExt::glGetUniformLocation(m_program, "lightEnabled");
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -405,34 +404,34 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight)
 {
-	glUseProgram(m_program);
+	glExt::glUseProgram(m_program);
 
-    glUniform1i(uniforms.texture, 0);
+    glExt::glUniform1i(uniforms.texture, 0);
 
 	if (withLight)
 	{
-		glUniform1i(uniforms.light, 1);
-		glUniform1i(uniforms.normals, 1);
+		glExt::glUniform1i(uniforms.light, 1);
+		glExt::glUniform1i(uniforms.normals, 1);
 	}
 	else
 	{
-		glUniform1i(uniforms.light, 0);
+		glExt::glUniform1i(uniforms.light, 0);
 	}
 
 
-	glUniform4fv(uniforms.offset, 1, offset);
-	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
+	glExt::glUniform4fv(uniforms.offset, 1, offset);
+	glExt::glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glVertexAttribPointer(
+    glExt::glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+    glExt::glVertexAttribPointer(
         attributes.position,
         2, GL_FLOAT, GL_FALSE,
         sizeof(GLfloat)*2, (void*)0
     );
 
-    glEnableVertexAttribArray(attributes.position);
+    glExt::glEnableVertexAttribArray(attributes.position);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
+	glExt::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
     glDrawElements(
         GL_TRIANGLE_STRIP,  /* mode */
         4,                  /* count */
@@ -440,7 +439,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
         (void*)0            /* element array buffer offset */
     );
 
-    glDisableVertexAttribArray(attributes.position);
+    glExt::glDisableVertexAttribArray(attributes.position);
 }
 
 int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {

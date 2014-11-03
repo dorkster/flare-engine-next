@@ -27,7 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  *
  */
 
-#include <GL/glew.h>
+#include "OpenGL_EXT.h"
 #include "SDL_opengl.h"
 
 /** Provide rendering device using OpenGL backend.
