@@ -317,7 +317,7 @@ int OpenGLRenderDevice::buildResources()
         return 1;
 
 	fragment_shader = getShader(GL_FRAGMENT_SHADER, "D:\\media\\repos\\flare-engine\\shaders\\fragment.glsl");
-    if (vertex_shader == 0)
+    if (fragment_shader == 0)
         return 1;
 
 	program = createProgram(vertex_shader, fragment_shader);
