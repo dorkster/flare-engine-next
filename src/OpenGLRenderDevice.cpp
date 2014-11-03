@@ -40,7 +40,7 @@ OpenGLImage::~OpenGLImage() {
 
 int OpenGLImage::getWidth() const {
 	int width = 0;
-	if (texture == -1) return width;
+	if ((int)texture == -1) return width;
 
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
@@ -49,7 +49,7 @@ int OpenGLImage::getWidth() const {
 
 int OpenGLImage::getHeight() const {
 	int height = 0;
-	if (texture == -1) return height;
+	if ((int)texture == -1) return height;
 
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
@@ -57,10 +57,10 @@ int OpenGLImage::getHeight() const {
 }
 
 void OpenGLImage::fillWithColor(Uint32 color) {
-	if (texture == -1) return;
+	if ((int)texture == -1) return;
 
-	auto channels = 4;
-	auto bytes = getWidth() * getHeight() * channels;
+	int channels = 4;
+	int bytes = getWidth() * getHeight() * channels;
 
 	unsigned char* buffer = (unsigned char*)malloc(bytes);
 
@@ -71,7 +71,7 @@ void OpenGLImage::fillWithColor(Uint32 color) {
 
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, channels, getWidth(), getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
- 
+
 	free(buffer);
 }
 
@@ -79,16 +79,16 @@ void OpenGLImage::fillWithColor(Uint32 color) {
  * Set the pixel at (x, y) to the given value
  */
 void OpenGLImage::drawPixel(int x, int y, Uint32 pixel) {
-	if (texture == -1) return;
+	if ((int)texture == -1) return;
 }
 
 Uint32 OpenGLImage::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
-	if (texture == -1) return 0;
+	if ((int)texture == -1) return 0;
 	return 0;
 }
 
 Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	if (texture == -1) return 0;
+	if ((int)texture == -1) return 0;
 	return 0;
 }
 
@@ -97,14 +97,14 @@ Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
  * Deletes the original image and returns a pointer to the resized version
  */
 Image* OpenGLImage::resize(int width, int height) {
-	if(texture == -1 || width <= 0 || height <= 0)
+	if((int)texture == -1 || width <= 0 || height <= 0)
 		return NULL;
 	// UNIMPLEMENTED
 	return NULL;
 }
 
 Uint32 OpenGLImage::readPixel(int x, int y) {
-	if (texture == -1) return 0;
+	if ((int)texture == -1) return 0;
 	// UNIMPLEMENTED
 	return 0;
 }
@@ -195,21 +195,21 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 
-	offset[0] = 2.0f * (float)_dest.x/VIEW_W;
-	offset[1] = 2.0f * (float)_dest.y/VIEW_H;
+	m_offset[0] = 2.0f * (float)_dest.x/VIEW_W;
+	m_offset[1] = 2.0f * (float)_dest.y/VIEW_H;
 
-	offset[2] = (float)src.w/VIEW_W;
-	offset[3] = (float)src.h/VIEW_H;
+	m_offset[2] = (float)src.w/VIEW_W;
+	m_offset[3] = (float)src.h/VIEW_H;
 
-	auto height = static_cast<OpenGLImage *>(r.image)->getHeight();
-	auto width = static_cast<OpenGLImage *>(r.image)->getWidth();
+	int height = static_cast<OpenGLImage *>(r.image)->getHeight();
+	int width = static_cast<OpenGLImage *>(r.image)->getWidth();
 
-	texelOffset[0] = (float)width / src.w;
-	texelOffset[1] = (float)src.x / width;
+	m_texelOffset[0] = (float)width / src.w;
+	m_texelOffset[1] = (float)src.x / width;
 
-	texelOffset[2] = (float)height / src.h;
-	texelOffset[3] = (float)src.y / height;
- 
+	m_texelOffset[2] = (float)height / src.h;
+	m_texelOffset[3] = (float)src.y / height;
+
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
 
@@ -219,14 +219,14 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	bool normals = (normalTexture != -1);
+	bool normals = ((int)normalTexture != -1);
 	if (normals)
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, normalTexture);
 	}
 
-	composeFrame(offset, texelOffset, normals);
+	composeFrame(m_offset, m_texelOffset, normals);
 
 	return 0;
 }
@@ -312,26 +312,26 @@ int OpenGLRenderDevice::buildResources()
 	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
     element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
-    vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
-    if (vertex_shader == 0)
+    m_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
+    if (m_vertex_shader == 0)
         return 1;
 
-    fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
-    if (fragment_shader == 0)
+	m_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
+    if (m_fragment_shader == 0)
         return 1;
 
-	program = createProgram(vertex_shader, fragment_shader);
-    if (program == 0)
+	m_program = createProgram(m_vertex_shader, m_fragment_shader);
+    if (m_program == 0)
         return 1;
 
-    attributes.position = glGetAttribLocation(program, "position");
+    attributes.position = glGetAttribLocation(m_program, "position");
 
-    uniforms.texture = glGetUniformLocation(program, "texture");
-	uniforms.offset = glGetUniformLocation(program, "offset");
-	uniforms.texelOffset = glGetUniformLocation(program, "texelOffset");
+    uniforms.texture = glGetUniformLocation(m_program, "texture");
+	uniforms.offset = glGetUniformLocation(m_program, "offset");
+	uniforms.texelOffset = glGetUniformLocation(m_program, "texelOffset");
 
-    uniforms.normals = glGetUniformLocation(program, "normals");
-    uniforms.light = glGetUniformLocation(program, "lightEnabled");
+    uniforms.normals = glGetUniformLocation(m_program, "normals");
+    uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -367,20 +367,20 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
-	offset[0] = 2.0f * (float)dest.x/VIEW_W;
-	offset[1] = 2.0f * (float)dest.y/VIEW_H;
+	m_offset[0] = 2.0f * (float)dest.x/VIEW_W;
+	m_offset[1] = 2.0f * (float)dest.y/VIEW_H;
 
-	offset[2] = (float)src.w/VIEW_W;
-	offset[3] = (float)src.h/VIEW_H;
+	m_offset[2] = (float)src.w/VIEW_W;
+	m_offset[3] = (float)src.h/VIEW_H;
 
-	auto height = r->getGraphics()->getHeight();
-	auto width = r->getGraphics()->getWidth();
+	int height = r->getGraphics()->getHeight();
+	int width = r->getGraphics()->getWidth();
 
-	texelOffset[0] = (float)width / src.w;
-	texelOffset[1] = (float)src.x / width;
+	m_texelOffset[0] = (float)width / src.w;
+	m_texelOffset[1] = (float)src.x / width;
 
-	texelOffset[2] = (float)height / src.h;
-	texelOffset[3] = (float)src.y / height;
+	m_texelOffset[2] = (float)height / src.h;
+	m_texelOffset[3] = (float)src.y / height;
 
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
     GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
@@ -391,21 +391,21 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-	bool normals = (normalTexture != -1);
+	bool normals = ((int)normalTexture != -1);
 	if (normals)
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, normalTexture);
 	}
 
-	composeFrame(offset, texelOffset , normals);
+	composeFrame(m_offset, m_texelOffset , normals);
 
 	return 0;
 }
 
 void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight)
 {
-	glUseProgram(program);
+	glUseProgram(m_program);
 
     glUniform1i(uniforms.texture, 0);
 
@@ -419,7 +419,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 		glUniform1i(uniforms.light, 0);
 	}
 
-	
+
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
@@ -490,7 +490,7 @@ SDL_Surface* OpenGLRenderDevice::copyTextureToSurface(GLuint texture)
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
 	SDL_Surface* cleanup;
-	
+
 	cleanup = SDL_CreateRGBSurfaceFrom(pixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
 	SDL_Surface* surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
 	SDL_FreeSurface(cleanup);
@@ -541,7 +541,7 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 		SDL_FreeSurface(surface);
 	}
 
-	if (image->texture != -1)
+	if ((int)image->texture != -1)
 		return image;
 
 	delete image;
@@ -637,7 +637,7 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 	if (!image)
 		return NULL;
 
-	auto channels = 4;
+	int channels = 4;
 	char* buffer = (char*)calloc(width * height * channels, sizeof(char));
 
 	glGenTextures(1, &(image->texture));
@@ -757,10 +757,10 @@ void OpenGLRenderDevice::freeImage(Image *image) {
 
 	cacheRemove(image);
 
-	if (static_cast<OpenGLImage *>(image)->texture != -1)
+	if ((int)static_cast<OpenGLImage *>(image)->texture != -1)
 		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->texture));
 
-	if (static_cast<OpenGLImage *>(image)->normalTexture != -1)
+	if ((int)static_cast<OpenGLImage *>(image)->normalTexture != -1)
 		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->normalTexture));
 }
 
