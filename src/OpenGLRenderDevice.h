@@ -113,7 +113,7 @@ private:
 	SDL_Surface* titlebar_icon;
 
     GLuint vertex_buffer, element_buffer;
-    GLuint vertex_shader, fragment_shader, program;
+    GLuint m_vertex_shader, m_fragment_shader, m_program;
 
     struct {
         GLint texture;
@@ -129,8 +129,8 @@ private:
 
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
-	GLfloat offset[4];
-	GLfloat texelOffset[4];
+	GLfloat m_offset[4];
+	GLfloat m_texelOffset[4];
 };
 
 #endif // OPENGL_RENDERDEVICE_H
