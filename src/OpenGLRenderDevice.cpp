@@ -157,8 +157,7 @@ int OpenGLRenderDevice::createContext(int width, int height) {
 
 		if (screen != NULL) renderer = SDL_GL_CreateContext(screen);
 
-		// TODO: Can we avoid using GLEW?
-		glewInit();
+		init(&renderer);
 
 		//glEnable(GL_CULL_FACE);
 

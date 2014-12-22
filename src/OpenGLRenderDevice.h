@@ -20,15 +20,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "RenderDevice.h"
 
-/*
- *
- * We should use GLES instead of GLEW
- * #include "SDL_opengles2.h"
- *
- */
-
-#include <GL/glew.h>
-#include "SDL_opengl.h"
+#include "OpenGL_EXT.h"
 
 /** Provide rendering device using OpenGL backend.
  *

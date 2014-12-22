@@ -165,6 +165,7 @@ Set (FLARE_SOURCES
 	./src/NPC.cpp
 	./src/NPCManager.cpp
 	./src/OpenGLRenderDevice.cpp
+	./src/OpenGL_EXT.cpp
 	./src/PowerManager.cpp
 	./src/QuestLog.cpp
 	./src/RenderDevice.cpp
@@ -277,6 +278,7 @@ Set (FLARE_HEADERS
 	./src/NPC.h
 	./src/NPCManager.h
 	./src/OpenGLRenderDevice.h
+	./src/OpenGL_EXT.h
 	./src/PowerManager.h
 	./src/QuestLog.h
 	./src/RenderDevice.h
