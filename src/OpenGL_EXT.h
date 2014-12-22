@@ -70,12 +70,3 @@ extern void init(void **context);
 
 
 #endif //OPENGL_EXT_H
-
-/*
-look into #define glGetProcAddressARB(x) (*glXGetProcAddressARB)((const GLubyte*)(x))
-ah, do not bother with functons that are not implemented
-thst's why we have unused parameters
-#define glGetProcAddressARB(x) (*glXGetProcAddressARB)((const GLubyte*)(x))
-hm. I have copied this line from inet, maybe it should be without *
-your initial version was glXGetProcAddressARB((const unsigned char*)"glActiveTextureARB"), if you remmember
-*/
