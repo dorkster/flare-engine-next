@@ -73,3 +73,9 @@ If permissions are correct, the game is automatically saved when you exit. In ad
 | --debug-event   | Prints verbose hardware input information.
 | --renderer      | Specifies the rendering backend to use. The default is 'sdl'. Also available is 'sdl_hardware', which is a GPU-based renderer.
 
+
+
+## Changes in this fork:
+  * a Codeblocks Linux project for (64-bit) Linux was added
+  ** the codeblocks project needs the game files from flare-game below ~/.local/share/flare/mods 
+  * Weather implementation (work in progress)
