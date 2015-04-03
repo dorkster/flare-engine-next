@@ -89,7 +89,7 @@ float ListWeatherCloud::getWindForce(){
 }
 
 void ListWeatherCloud::logicClouds() {
-    logicDebug();
+    //logicDebug();
     cycle_i+=1;
     moveClouds();
 
@@ -171,7 +171,7 @@ void ListWeatherCloud::createClouds(int cloudiness){
     std::list<WeatherCloud>::iterator it=cloud_list.begin();
     int i=0;
 
-    std::cout<<"cloudiness value: " << cloudiness << std::endl; // TODO: should be removed
+    //std::cout<<"cloudiness value: " << cloudiness << std::endl; // TODO: should be removed
 
     // Note: to make it easier no randomness when placing clouds,
       // could be optimized later...
@@ -185,7 +185,7 @@ void ListWeatherCloud::createClouds(int cloudiness){
         size=WeatherCloud::SizeType(randBetween(0,2));
         intensity=WeatherCloud::IntensityType(randBetween(0,2));
         cloud_list.insert(it, WeatherCloud(FPoint(X_CORDS_ARR[i],Y_CORDS_ARR[i]), size, intensity));
-        std::cout << "create Cloud: with size " << size << "; with intensity: " << intensity << std::endl; // TODO: should be removed
+        //std::cout << "create Cloud: with size " << size << "; with intensity: " << intensity << std::endl; // TODO: should be removed
         cloudiness-=(size+intensity+2)*3;
         i+=1;
         it++;

@@ -218,12 +218,6 @@
 		<Unit filename="src/GameStatePlay.h">
 			<Option target="Debug" />
 		</Unit>
-		<Unit filename="src/GameStateResolution.cpp">
-			<Option target="Debug" />
-		</Unit>
-		<Unit filename="src/GameStateResolution.h">
-			<Option target="Debug" />
-		</Unit>
 		<Unit filename="src/GameStateTitle.cpp">
 			<Option target="Debug" />
 		</Unit>
@@ -579,18 +573,10 @@
 		<Unit filename="src/UtilsParsing.h">
 			<Option target="Debug" />
 		</Unit>
-		<Unit filename="src/Weather.cpp">
-			<Option target="Debug" />
-		</Unit>
-		<Unit filename="src/Weather.h">
-			<Option target="Debug" />
-		</Unit>
-		<Unit filename="src/WeatherClimate.cpp">
-			<Option target="Debug" />
-		</Unit>
-		<Unit filename="src/WeatherClimate.h">
-			<Option target="Debug" />
-		</Unit>
+		<Unit filename="src/Weather.cpp" />
+		<Unit filename="src/Weather.h" />
+		<Unit filename="src/WeatherClimate.cpp" />
+		<Unit filename="src/WeatherClimate.h" />
 		<Unit filename="src/Widget.cpp">
 			<Option target="Debug" />
 		</Unit>
