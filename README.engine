@@ -77,5 +77,5 @@ If permissions are correct, the game is automatically saved when you exit. In ad
 
 ## Changes in this fork:
   * a Codeblocks Linux project for (64-bit) Linux was added
-  ** the codeblocks project needs the game files from flare-game below ~/.local/share/flare/mods 
+    * the codeblocks project needs the game files from flare-game below ~/.local/share/flare/mods 
   * Weather implementation (work in progress)
