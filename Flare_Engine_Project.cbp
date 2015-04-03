@@ -1,0 +1,683 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="Weather" />
+		<Option platforms="Unix;" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/Weather" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add directory="/usr/include" />
+				</Compiler>
+				<Linker>
+					<Add library="SDL2" />
+					<Add library="SDL2_image" />
+					<Add library="SDL2_ttf" />
+					<Add directory="/usr/lib/x86_64-linux-gnu" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/Weather" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-O" />
+			<Add option="-std=c++98" />
+			<Add option="-Wall" />
+			<Add directory="/usr/include/SDL2" />
+		</Compiler>
+		<Linker>
+			<Add library="SDL2" />
+			<Add library="SDL2main" />
+			<Add library="SDL2_image" />
+			<Add library="SDL2_ttf" />
+			<Add library="SDL2_mixer" />
+			<Add directory="/usr/lib/x86_64-linux-gnu" />
+		</Linker>
+		<Unit filename="README.engine">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AStarContainer.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AStarContainer.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AStarNode.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AStarNode.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Animation.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Animation.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AnimationManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AnimationManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AnimationSet.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/AnimationSet.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Avatar.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Avatar.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/BehaviorAlly.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/BehaviorAlly.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/BehaviorStandard.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/BehaviorStandard.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CampaignManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CampaignManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CombatText.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CombatText.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CommonIncludes.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CursorManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/CursorManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EffectManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EffectManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Enemy.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Enemy.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyBehavior.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyBehavior.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyGroupManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyGroupManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EnemyManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Entity.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Entity.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EventManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/EventManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/FileParser.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/FileParser.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/FontEngine.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/FontEngine.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameState.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameState.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateConfigBase.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateConfigBase.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateConfigDesktop.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateConfigDesktop.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateCutscene.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateCutscene.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateLoad.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateLoad.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateNew.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateNew.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStatePlay.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStatePlay.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateResolution.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateResolution.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateTitle.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameStateTitle.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameSwitcher.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GameSwitcher.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GetText.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/GetText.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Hazard.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Hazard.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/HazardManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/HazardManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/InputState.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/InputState.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ItemManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ItemManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ItemStorage.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ItemStorage.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Loot.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Loot.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/LootManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/LootManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Map.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Map.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MapCollision.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MapCollision.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MapRenderer.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MapRenderer.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Menu.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Menu.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuActionBar.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuActionBar.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuActiveEffects.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuActiveEffects.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuBook.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuBook.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuCharacter.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuCharacter.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuConfirm.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuConfirm.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuDevConsole.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuDevConsole.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuDevHUD.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuDevHUD.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuEnemy.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuEnemy.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuExit.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuExit.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuHUDLog.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuHUDLog.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuInventory.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuInventory.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuItemStorage.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuItemStorage.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuLog.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuLog.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuMiniMap.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuMiniMap.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuNPCActions.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuNPCActions.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuPowers.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuPowers.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuStash.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuStash.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuStatBar.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuStatBar.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuTalker.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuTalker.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuVendor.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MenuVendor.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MessageEngine.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/MessageEngine.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ModManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/ModManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/NPC.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/NPC.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/NPCManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/NPCManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/PowerManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/PowerManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/QuestLog.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/QuestLog.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/RenderDevice.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/RenderDevice.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/RenderDeviceList.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/RenderDeviceList.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDLHardwareRenderDevice.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDLHardwareRenderDevice.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDLSoftwareRenderDevice.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDLSoftwareRenderDevice.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDL_gfxBlitFunc.c">
+			<Option compilerVar="CC" />
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SDL_gfxBlitFunc.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SaveLoad.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Settings.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Settings.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SharedGameResources.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SharedGameResources.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SharedResources.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SharedResources.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SoundManager.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/SoundManager.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/StatBlock.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/StatBlock.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Stats.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Stats.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/TileSet.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/TileSet.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/TooltipData.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/TooltipData.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Utils.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Utils.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsDebug.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsDebug.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsFileSystem.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsFileSystem.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsMath.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsParsing.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/UtilsParsing.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Weather.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Weather.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WeatherClimate.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WeatherClimate.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Widget.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/Widget.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetButton.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetButton.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetCheckBox.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetCheckBox.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetInput.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetInput.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetLabel.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetLabel.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetListBox.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetListBox.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetLog.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetLog.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetScrollBar.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetScrollBar.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetScrollBox.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetScrollBox.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetSlider.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetSlider.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetSlot.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetSlot.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetTabControl.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetTabControl.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetTooltip.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/WidgetTooltip.h">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/main.cpp">
+			<Option target="Debug" />
+		</Unit>
+		<Unit filename="src/resource.h">
+			<Option target="Debug" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
