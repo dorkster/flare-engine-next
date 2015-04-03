@@ -30,6 +30,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "GameState.h"
 #include "PowerManager.h"
 #include "Utils.h"
+#include "Weather.h"
 
 class Avatar;
 class Enemy;
@@ -68,6 +69,7 @@ private:
 	MenuManager *menu;
 	NPCManager *npcs;
 	QuestLog *quests;
+	WeatherManager *weathers;
 
 	WidgetLabel *loading;
 	Sprite *loading_bg;
