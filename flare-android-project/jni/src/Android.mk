@@ -100,6 +100,8 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	../../../src/UtilsDebug.cpp \
 	../../../src/UtilsFileSystem.cpp \
 	../../../src/UtilsParsing.cpp \
+	../../../src/WeatherClimate.cpp \
+	../../../src/Weather.cpp \
 	../../../src/Widget.cpp \
 	../../../src/WidgetCheckBox.cpp \
 	../../../src/WidgetButton.cpp \
