@@ -5,8 +5,8 @@ Copyright © 2015 Wolfgang Pirker
 */
 
 
-#ifndef __WeatherRainfall_H__
-#define __WeatherRainfall_H__
+#ifndef WEATHERRAINFALL_H
+#define WEATHERRAINFALL_H
 
 #include <list>
 #include "CommonIncludes.h" // --> includes several common-used headers, such as iostream, SDL2 etc.

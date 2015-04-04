@@ -17,9 +17,10 @@ Copyright © 2015 Wolfgang Pirker
 
 //==============================================================================
 WeatherCloud::WeatherCloud(FPoint poi, WeatherCloud::SizeType c_size,
-WeatherCloud::IntensityType c_intensity){
-    size = c_size;
-    intensity = c_intensity;
+WeatherCloud::IntensityType c_intensity)
+	: size(c_size)
+	, intensity(c_intensity)
+{
 };
 
 
@@ -48,12 +49,19 @@ void WeatherCloud::fadeOff(WeatherCloud cloud, int dur){
     // TODO: fade off
 }
 
-ListWeatherCloud::ListWeatherCloud(){
-    is_snow=false;
-    direction=2;
-    speed=1.0;
-    is_strong_rainfall = true;
-    state_is_initialized = false;
+ListWeatherCloud::ListWeatherCloud()
+	: is_snow(false)
+	, direction(2)
+	, speed(1.0)
+	, cycle_i(0)
+	, cycle_max(0)
+	, time_of_rain(0)
+	, is_strong_rainfall(true)
+	, state_is_initialized(false)
+	, img_cloud(NULL)
+	, img_rainfall(NULL)
+	, spr_flake(NULL)
+{
 };
 
 ListWeatherCloud::~ListWeatherCloud(){
@@ -204,7 +212,7 @@ void ListWeatherCloud::clearUp(){ // affects both: clouds and rainfall
     while (true){
         WeatherCloud::fadeOff(cloud, dur);
         if (!remove_first_cloud()) break;
-        WeatherCloud cloud=get_first_cloud();
+        cloud=get_first_cloud();
     }
     render_device->freeImage(img_rainfall);
     state_is_initialized = false;
@@ -247,6 +255,9 @@ void ListWeatherCloud::renderRainfall(){
 }
 
 void ListWeatherCloud::renderSnow(){
+	if (!img_rainfall)
+		return;
+
     int w = img_rainfall->getWidth();
     int h = img_rainfall->getHeight();
     int nr = 0;
@@ -329,10 +340,12 @@ void ListWeatherCloud::renderRain(){
 
 }
 
-WeatherManager::WeatherManager(){
+WeatherManager::WeatherManager()
+	: initialized(false)
+	, list_weather_cloud(NULL)
+{
     WeatherClimate *klima = WeatherClimate::getInstance();
     enabled = klima->getEnabled();
-    initialized = false;
 };
 
 WeatherManager::~WeatherManager(){
@@ -342,8 +355,8 @@ WeatherManager::~WeatherManager(){
 void WeatherManager::init(){
     //ListWeatherCloud *list_weather_cloud;
     WeatherClimate *klima = WeatherClimate::getInstance();
-    SeasonType season = SeasonType(klima->getSeason());
-    HumidityType humidity = HumidityType(klima->getHumidity());
+    SeasonType season_type = SeasonType(klima->getSeason());
+    HumidityType humidity_type = HumidityType(klima->getHumidity());
 
     int cloudiness = 0;
     int fogginess = 20;
@@ -354,7 +367,7 @@ void WeatherManager::init(){
 
     //if (!enabled) return; // better check outside of this method
 
-    if (season==klima->WINTER) is_snow=true;
+    if (season_type==klima->WINTER) is_snow=true;
     // Note: Likeliness of rain and clouds is not ONLY influenced by the
         // WeatherClimate setting, but is partly also random
         // the random part of both cloudiness and cycle_max is done in
@@ -362,16 +375,16 @@ void WeatherManager::init(){
     cloudiness = 10;
     // TODO: wind variables changes
       // ...
-    if (humidity==WeatherClimate::NORMAL){
+    if (humidity_type==WeatherClimate::NORMAL){
         cloudiness+=12;
     }
-    else if(humidity==WeatherClimate::WET){
+    else if(humidity_type==WeatherClimate::WET){
         cloudiness+=24;
     } // else DRY, stays
-    if (season==WeatherClimate::SUMMER){ // dryer in the summer
+    if (season_type==WeatherClimate::SUMMER){ // dryer in the summer
         cloudiness-=14;
     }
-    else if (season==WeatherClimate::AUTUNM){
+    else if (season_type==WeatherClimate::AUTUNM){
         cloudiness+=10;
         fogginess = 50; // TODO, fog
     }

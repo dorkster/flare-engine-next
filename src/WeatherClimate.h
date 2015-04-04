@@ -1,7 +1,7 @@
 //==============================================================================
 
-#ifndef __WeatherClimate_H__
-	#define __WeatherClimate_H__
+#ifndef WEATHERCLIMATE_H
+#define WEATHERCLIMATE_H
 
 // Note for me: it might make sense, to use the existing class Entity as base
 
