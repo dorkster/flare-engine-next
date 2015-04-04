@@ -36,7 +36,9 @@ void WeatherClimate::cleanup() {
 
 }
 
-// TODO: make use of a settings file e.g. engine/weather.txt
+// TODO: make use of a settings from files
+// settings to be used in maps setting files: season, humidity, enabled
+// settings to be used in engine/weather.txt: enabled
 int WeatherClimate::getSeason(){
     return season;
 }

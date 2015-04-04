@@ -19,16 +19,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define WEATHERRAINFALL_H
 
 #include <list>
-#include "CommonIncludes.h" // --> includes several common-used headers, such as iostream, SDL2 etc.
-#include "SharedResources.h" // --> includes loadIcons
-#include "UtilsMath.h" // --> includes random number function and rand chance function
+#include "CommonIncludes.h"
+#include "SharedResources.h"
+#include "UtilsMath.h"
 #include "WeatherClimate.h"
-//#include "Entity.h"
 
 const int MAX_NUMBER_OF_CLOUDS=4; // atm shouldnt be higher than 6!
                                     // see below ListWeatherCloud::createClouds()
-//extern const int directionDeltaX;
-//extern const int directionDeltaY;
 
 class WeatherCloud{
 	private:
@@ -108,9 +105,6 @@ class ListWeatherCloud{ // Container for weather clouds
         Image *img_cloud;
         Image *img_rainfall;
         Sprite *spr_flake;
-        //std::list<Sprite> spr_rainfall_list;
-
-        //virtual Renderable getRender();
 
         WeatherCloud get_first_cloud();
         bool remove_first_cloud();
@@ -129,10 +123,6 @@ class ListWeatherCloud{ // Container for weather clouds
 		void renderRainfall();
 		void renderSnow();
 		void renderRain();
-
-
-
-
 };
 
 

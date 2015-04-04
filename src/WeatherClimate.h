@@ -18,8 +18,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef WEATHERCLIMATE_H
 #define WEATHERCLIMATE_H
 
-// Note for me: it might make sense, to use the existing class Entity as base
-
 class WeatherClimate{
 
 	private:

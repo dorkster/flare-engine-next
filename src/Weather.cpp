@@ -24,6 +24,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WeatherClimate.h"
 #include "Utils.h"
 #include "SharedGameResources.h"
+//#include "Map.h"
+#include "MapCollision.h"
 
 
 //==============================================================================
@@ -283,6 +285,7 @@ void ListWeatherCloud::renderSnow(){
     int density = 3; // best values: 2, 3
     Rect screen_size = render_device->getContextSize();
     Point p;
+    FPoint fp; // needed to check if is_valid_position
 
     if (is_strong_rainfall){
         density = 2;
@@ -317,7 +320,7 @@ void ListWeatherCloud::renderSnow(){
         if (nr>47) nr=0;
         // update of position info should be rather slow...
           // the snowflakes appear to move with the character if true
-        if (cycle_i % (change_after * 8) == 0) {
+        if ((cycle_i % (change_after * 16) == 0) || mapr->map_change) {
             flake_state[nr][1] = mapr->cam.x;
             flake_state[nr][2] = mapr->cam.y;
         }
@@ -333,9 +336,11 @@ void ListWeatherCloud::renderSnow(){
 
         spr_flake->setOffset(flake_state[nr][3],0);
         spr_flake->setDestX(p.x + flake_state[nr][4]);
-        spr_flake->setDestY(p.y + flake_state[nr][5] % screen_size.h);
+        spr_flake->setDestY(p.y + (flake_state[nr][5] % (screen_size.h/4)) - screen_size.h/4);
 
-        render_device->render(spr_flake);
+        if (mapr->collider.is_valid_position(flake_state[nr][1] + i, flake_state[nr][2] + j, MOVEMENT_FLYING, false)){
+            render_device->render(spr_flake);
+        }
         i+=density;
         if (i>RADIUS){
             i= -2*RADIUS;
@@ -343,7 +348,6 @@ void ListWeatherCloud::renderSnow(){
         }
         nr+=1;
     }
-    render_device->render(spr_flake);
 }
 
 void ListWeatherCloud::renderRain(){
