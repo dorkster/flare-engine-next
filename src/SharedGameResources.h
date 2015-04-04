@@ -25,6 +25,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuActionBar.h"
 #include "MenuPowers.h"
 #include "PowerManager.h"
+#include "Weather.h"
 
 extern MenuActionBar *menu_act;
 extern MenuPowers *menu_powers;
@@ -40,5 +41,6 @@ extern ItemManager *items;
 extern LootManager *loot;
 extern MapRenderer *mapr;
 extern PowerManager *powers;
+extern WeatherManager *weathers;
 
 #endif // SHAREDGAMEOBJECTS_H
