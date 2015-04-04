@@ -176,6 +176,8 @@ Set (FLARE_SOURCES
 	./src/UtilsDebug.cpp
 	./src/UtilsFileSystem.cpp
 	./src/UtilsParsing.cpp
+	./src/WeatherClimate.cpp
+	./src/Weather.cpp
 	./src/Widget.cpp
 	./src/WidgetCheckBox.cpp
 	./src/WidgetButton.cpp
@@ -280,6 +282,8 @@ Set (FLARE_HEADERS
 	./src/UtilsFileSystem.h
 	./src/UtilsMath.h
 	./src/UtilsParsing.h
+	./src/WeatherClimate.h
+	./src/Weather.h
 	./src/Widget.h
 	./src/WidgetCheckBox.h
 	./src/WidgetButton.h
