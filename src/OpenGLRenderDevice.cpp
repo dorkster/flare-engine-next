@@ -853,7 +853,8 @@ void OpenGLRenderDevice::windowResize() {
 
 	VIEW_W_HALF = VIEW_W/2;
 
-	//SDL_RenderSetLogicalSize(renderer, VIEW_W, VIEW_H);
+	// FIXME: fix vertical scaling
+	glViewport(0, 0, SCREEN_W, VIEW_H);
 }
 
 void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {
