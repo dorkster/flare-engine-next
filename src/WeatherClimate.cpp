@@ -49,11 +49,6 @@ int WeatherClimate::getHumidity(){
 }
 
 int WeatherClimate::getEnabled(){
-	// Note: following might be better set in map settings files,
-	  // instead of checking it here -> TODO
-	if (mapr->map_change){
-		std::cout<<mapr->getTileset()<<std::endl;
-	}
     return enabled;
 }
 

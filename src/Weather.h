@@ -24,47 +24,24 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "WeatherClimate.h"
 
-const int MAX_NUMBER_OF_CLOUDS=3;
+const int MAX_NUMBER_OF_CLOUDS=8;
+const int RENDER_CHANGE_AFTER=8;
 
 class WeatherCloud{
 	private:
-        //static WeatherCloud instance;
-        int size;
-        int intensity;
-        //int direction;
-        //float speed;
-        Point curr_p;
-        int shape;
-        //bool to_be_rendered;
-
-		// Free up resources
-		void cleanup(WeatherCloud *cloud);
-
-
+        Sprite *spr_cloud;
     public:
         enum SizeType {
-            SMALL = 0, // -> intensity: thin or modest
-            MID = 1, // -> intesity modest or thick
-            BIG = 2 // -> intesity modest or thick
-        };
-
-        enum IntensityType { // depends on size and cloudiness
-            THIN = 0,
-            MODEST = 1,
-            THICK = 2
+            SMALL = 0,
+            MID = 1,
+            BIG = 2
         };
 
         WeatherCloud();
-        WeatherCloud(Point poi, SizeType c_size, IntensityType c_intensity,	int shape);
+        WeatherCloud(SizeType c_size, int shape);
 		~WeatherCloud();
 
-		int getSize();
-		int getIntensity();
-		Point getCurrentPoint();
-		void setPoint(Point p);
-		int getShape();
-		bool reduceIntensity(); // returns false if smallest possible intensity
-		//void setToBeRendered(bool flag);
+		Sprite* getSprite();
 };
 
 
@@ -103,16 +80,18 @@ class ListWeatherCloud{ // Container for weather clouds
                                 // 0: type, 1: cam.x, 2: cam.y, 3: offset,
                                 // 4: rand val delta x, 5: rand val delta y
 
+		int cloud_state[MAX_NUMBER_OF_CLOUDS][5]; // stores info about location of clouds
+								 // 0: p.x, 1: p.y, 2: offset, TODO ==> needs CORRECTION
+								 // 3: rand val delta x, 4: rand val delta y
+
         bool state_is_initialized;
 
 
         Image *img_cloud;
         Image *img_rainfall;
         Sprite *spr_flake;
-        Sprite *spr_small_cloud;
-        Sprite *spr_mid_cloud;
-        Sprite *spr_big_cloud;
         Image *weather_surface;
+        Sprite *spr_weather;
 
         //WeatherCloud* getFirstCloud();
         //bool removeFirstCloud();
@@ -120,8 +99,8 @@ class ListWeatherCloud{ // Container for weather clouds
         void createClouds(int cloudiness); // base.. depends on settings
                                                                     // TODO: cycle setting
 		Point findValidPos(uint radiant=32);
-        void moveCloud(); // only logic!
-        void clearUp(int frame_intervall); // only logic!
+        Point moveCloud(int number); // only logic!
+
         /*void rainfall(); // only logic
         void snow(); // only logic
 		void rain(); // only logic*/
