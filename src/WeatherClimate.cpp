@@ -16,6 +16,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 #include "WeatherClimate.h"
+#include "SharedGameResources.h"
 
 WeatherClimate WeatherClimate::instance;
 
@@ -48,6 +49,11 @@ int WeatherClimate::getHumidity(){
 }
 
 int WeatherClimate::getEnabled(){
+	// Note: following might be better set in map settings files,
+	  // instead of checking it here -> TODO
+	if (mapr->map_change){
+		std::cout<<mapr->getTileset()<<std::endl;
+	}
     return enabled;
 }
 

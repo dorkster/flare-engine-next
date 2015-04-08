@@ -24,8 +24,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "WeatherClimate.h"
 
-const int MAX_NUMBER_OF_CLOUDS=4; // atm shouldnt be higher than 6!
-                                    // see below ListWeatherCloud::createClouds()
+const int MAX_NUMBER_OF_CLOUDS=3;
 
 class WeatherCloud{
 	private:
@@ -34,7 +33,9 @@ class WeatherCloud{
         int intensity;
         //int direction;
         //float speed;
-        FPoint curr_p;
+        Point curr_p;
+        int shape;
+        //bool to_be_rendered;
 
 		// Free up resources
 		void cleanup(WeatherCloud *cloud);
@@ -42,27 +43,28 @@ class WeatherCloud{
 
     public:
         enum SizeType {
-        // influences rain (amount and if it rains)
-            SMALL = 0,
-            MID = 1,
-            BIG = 2
+            SMALL = 0, // -> intensity: thin or modest
+            MID = 1, // -> intesity modest or thick
+            BIG = 2 // -> intesity modest or thick
         };
 
-        enum IntensityType {
-        // influences rain (amount and if)
+        enum IntensityType { // depends on size and cloudiness
             THIN = 0,
             MODEST = 1,
             THICK = 2
         };
 
         WeatherCloud();
-        WeatherCloud(FPoint poi, SizeType c_size, IntensityType c_intensity);
+        WeatherCloud(Point poi, SizeType c_size, IntensityType c_intensity,	int shape);
 		~WeatherCloud();
 
-		static int getSize(WeatherCloud *cloud);
-		static int getIntensity(WeatherCloud *cloud);
-		static FPoint getCurrentPoint(WeatherCloud *cloud);
-		static void fadeOff(WeatherCloud cloud, int fade_dur);
+		int getSize();
+		int getIntensity();
+		Point getCurrentPoint();
+		void setPoint(Point p);
+		int getShape();
+		bool reduceIntensity(); // returns false if smallest possible intensity
+		//void setToBeRendered(bool flag);
 };
 
 
@@ -100,22 +102,30 @@ class ListWeatherCloud{ // Container for weather clouds
         int flake_state[48][6]; // stores info about type and x,y cordinates, offset
                                 // 0: type, 1: cam.x, 2: cam.y, 3: offset,
                                 // 4: rand val delta x, 5: rand val delta y
+
         bool state_is_initialized;
+
 
         Image *img_cloud;
         Image *img_rainfall;
         Sprite *spr_flake;
+        Sprite *spr_small_cloud;
+        Sprite *spr_mid_cloud;
+        Sprite *spr_big_cloud;
+        Image *weather_surface;
 
-        WeatherCloud get_first_cloud();
-        bool remove_first_cloud();
+        //WeatherCloud* getFirstCloud();
+        //bool removeFirstCloud();
 
         void createClouds(int cloudiness); // base.. depends on settings
                                                                     // TODO: cycle setting
-        void moveClouds(); // only logic!
-        void clearUp(); // only logic!
-        void rainfall(); // only logic
+		Point findValidPos(uint radiant=32);
+        void moveCloud(); // only logic!
+        void clearUp(int frame_intervall); // only logic!
+        /*void rainfall(); // only logic
         void snow(); // only logic
-		void rain(); // only logic
+		void rain(); // only logic*/
+
 
 		void logicDebug();
 
