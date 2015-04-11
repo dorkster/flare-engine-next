@@ -25,7 +25,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WeatherClimate.h"
 
 const int MAX_NUMBER_OF_CLOUDS=6;
-const int RENDER_CHANGE_AFTER=2; // after how many frames weather images change
+const int RENDER_CHANGE_AFTER=8;
 const int RADIUS = 20; // area of weather around hero
 
 class WeatherCloud{

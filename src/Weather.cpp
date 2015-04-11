@@ -32,7 +32,7 @@ WeatherCloud::WeatherCloud(WeatherCloud::SizeType c_size, int s)
 {
 	Image *img_cloud = render_device->loadImage("images/weather/clouds.png",
 				"Couldn't load cloud image!", false);
-
+	if (!img_cloud) return;
 	img_cloud->ref();
 	//if (c_size == SizeType(0)){
 		spr_cloud = img_cloud->createSprite();
@@ -62,7 +62,8 @@ WeatherCloud::~WeatherCloud(){
 };
 
 Sprite* WeatherCloud::getSprite(){
-    return WeatherCloud::spr_cloud;
+	if (!WeatherCloud::spr_cloud) return NULL;
+	return WeatherCloud::spr_cloud;
 }
 
 /*void WeatherCloud::setToBeRendered(bool flag){
@@ -275,7 +276,7 @@ void ListWeatherCloud::createClouds(int cloudiness){
 
 		cloud_state[i][0] = size;
 		cloud_state[i][1] = randBetween(-4,4);
-		std::cout<<"cloud distance: " << cloud_distance << std::endl;
+		//std::cout<<"cloud distance: " << cloud_distance << std::endl;
 		if (cloud_distance < 14) cloud_distance = 14; // => looks bad if too narrow
 		cloud_state[i][2] = randBetween(-cloud_distance*6,cloud_distance*6);
 		cloud_state[i][3] = randBetween(-cloud_distance*6,cloud_distance*6);
