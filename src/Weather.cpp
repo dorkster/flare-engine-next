@@ -83,8 +83,6 @@ ListWeatherCloud::ListWeatherCloud()
 	, clouds_arr_initialized(false)
 	, img_rainfall(NULL)
 	, spr_flake(NULL)
-	, weather_surface(NULL)
-	, spr_weather(NULL)
 	, cloud_state({})
 	, flake_state({})
 {
@@ -98,10 +96,6 @@ ListWeatherCloud::~ListWeatherCloud(){
 	if (img_cloud != NULL){
 		render_device->freeImage(img_cloud);
 		img_cloud->unref();
-	}
-	if (weather_surface != NULL){
-		render_device->freeImage(weather_surface);
-		weather_surface->unref();
 	}
 };
 
@@ -178,7 +172,6 @@ bool ListWeatherCloud::logicClouds(int base_cloudiness_a, long cycle_max_a){
 
 void ListWeatherCloud::renderClouds(){
 	Rect screen_size = render_device->getContextSize();
-	spr_weather = weather_surface->createSprite();
 
 	//if (cycle_i > time_of_rain) renderRainfall();
     renderRainfall(); // TODO: remove this line, uncomment previous
@@ -246,15 +239,6 @@ void ListWeatherCloud::renderClouds(){
         }
 
 	}
-
-	if (spr_weather==NULL) return;
-
-	spr_weather->setDestX(0);
-	spr_weather->setDestY(0);
-
-
-	weather_surface->unref();
-	render_device->render(spr_weather);
 }
 
 ListWeatherCloud* ListWeatherCloud::getInstance() { return &ListWeatherCloud::instance; }
@@ -267,7 +251,6 @@ void ListWeatherCloud::createClouds(int cloudiness){
     Point p;
 
     Rect screen_size = render_device->getContextSize();
-	weather_surface = render_device->createImage(screen_size.w, screen_size.h);
 
     while (cloudiness>4){ // create clouds
 		if (i >= MAX_NUMBER_OF_CLOUDS-1) break;

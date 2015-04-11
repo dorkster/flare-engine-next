@@ -96,8 +96,6 @@ class ListWeatherCloud{
         Image *img_cloud;
         Image *img_rainfall;
         Sprite *spr_flake;
-        Image *weather_surface;
-        Sprite *spr_weather;
 
         void createClouds(int cloudiness);
 
