@@ -30,23 +30,30 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 WeatherCloud::WeatherCloud(WeatherCloud::SizeType c_size, int s)
 	: spr_cloud(NULL)
 {
-	Image *img_cloud = render_device->loadImage("images/weather/clouds_dark.png",
+	Image *img_cloud = render_device->loadImage("images/weather/clouds.png",
 				"Couldn't load cloud image!", false);
 
-	spr_cloud = img_cloud->createSprite();
-            img_cloud->unref();
-	if (c_size == SizeType(0)){
+	img_cloud->ref();
+	//if (c_size == SizeType(0)){
+		spr_cloud = img_cloud->createSprite();
 		spr_cloud->setClipW(600);
 		spr_cloud->setClipX(s*600);
-	}
-	if (c_size == SizeType(1)){
-		spr_cloud->setClipW(1200);
-		spr_cloud->setClipX(s*1200);
+	//}
+	/*if (c_size == SizeType(1)){
+	// FIXME: SDL hardware renderer scaled images with graphic glitches
+		Image *resized = img_cloud->resize(img_cloud->getWidth()*1.5, img_cloud->getHeight()*1.5);
+		spr_cloud = resized->createSprite();
+		spr_cloud->setClipW(900);
+		spr_cloud->setClipX(s*900);
 	}
 	else {//(cloud->getSize() == 2){
-		spr_cloud->setClipW(1800);
-		spr_cloud->setClipX(s*1800);
-	}
+	// FIXME: SDL hardware renderer scaled images with graphic glitches
+		Image *resized = img_cloud->resize(img_cloud->getWidth()*2, img_cloud->getHeight()*2);
+		spr_cloud = resized->createSprite();
+		spr_cloud->setClipW(1200);
+		spr_cloud->setClipX(s*1200);
+	}*/
+	img_cloud->unref();
 
 };
 
@@ -69,12 +76,16 @@ ListWeatherCloud::ListWeatherCloud()
 	, cycle_i(0)
 	, cycle_max(0)
 	, time_of_rain(0)
+	, cloud_distance(0)
 	, is_strong_rainfall(true)
-	, state_is_initialized(false)
+	, flakes_arr_initialized(false)
+	, clouds_arr_initialized(false)
 	, img_rainfall(NULL)
 	, spr_flake(NULL)
 	, weather_surface(NULL)
 	, spr_weather(NULL)
+	, cloud_state({})
+	, flake_state({})
 {
 };
 
@@ -122,45 +133,15 @@ float ListWeatherCloud::getWindForce(){
 }
 
 void ListWeatherCloud::logicClouds() {
-    const int ACT_AFTER = 200; // frames
-								// TODO: as setting in weather.txt perhaps
-    int intervall;
-    bool is_valid_pos;
-	Point p;
-	int i=0;
-    WeatherCloud *cloud;
     cycle_i+=1;
-
-    // move them and check position
-    if (cycle_i % ACT_AFTER == 0){
-		while (i != MAX_NUMBER_OF_CLOUDS){
-
-
-			p = moveCloud(i);
-
-			is_valid_pos = mapr->collider.is_valid_position(p.x, p.y, MOVEMENT_FLYING, false);
-			if (!is_valid_pos){ // clouds on invalid positions due to maps change
-				p = findValidPos();
-				// FIXME: case if no valid position was found is not handled
-				cloud_state[i][0] = p.x;
-				cloud_state[i][1] = p.y;
-			}
-			i++;
-		}
-	}
-	/*if (cycle_i >= cycle_max){
-		intervall = randBetween(570,5700);
-		clearUp(intervall);
-		// rain should then stop sooner or later
-		is_strong_rainfall = false;
-		time_of_rain += 4; // TODO: needs adjustment
-	}*/
 }
 
 bool ListWeatherCloud::logicClouds(int base_cloudiness_a, long cycle_max_a){
     int cloudiness;
     cycle_max = cycle_max_a + randBetween(-5000,5000); // TODO: needs adjustment
     cloudiness=base_cloudiness_a + randBetween(-40, 40);
+
+    cloud_distance = 800 / cloudiness;
 
     if (cloud_list.empty()){
 
@@ -191,10 +172,6 @@ bool ListWeatherCloud::logicClouds(int base_cloudiness_a, long cycle_max_a){
 
         cycle_i = 0;
     }
-    /*else { // could happen after map was changed
-        // TODO: put clouds to new valid positions
-        return false;
-    }*/
     return true;
 }
 
@@ -205,60 +182,75 @@ void ListWeatherCloud::renderClouds(){
 	//if (cycle_i > time_of_rain) renderRainfall();
     renderRainfall(); // TODO: remove this line, uncomment previous
 
-	if (spr_weather->getGraphics() != NULL){
-		if ((cycle_i) % RENDER_CHANGE_AFTER == 0){
-			spr_weather->getGraphics()->fillWithColor(spr_weather->getGraphics()->MapRGBA(0,0,0,0));
-		}
-		else {
-			render_device->render(spr_weather);
-			return;
-		}
-	}
-
-	if (!cloud_list.empty()){
+	if ( (clouds_arr_initialized) && (!cloud_list.empty()) ){
 		std::list<WeatherCloud>::iterator it=cloud_list.begin();
 		WeatherCloud *cloud;
 		Sprite *spr_cloud;
-		int number_to_render=0;
 		Point p;
-		int i=0;
+		int i, j, nr=0;
+		Point dest_p;
 
 		Rect screen_size = render_device->getContextSize();
 		Rect spr_size;
 
-		while (it != cloud_list.end()){
+		i=-RADIUS;
+		j=0; // -> with j=-RADIUS: segmentation faults quite common
+
+		while (j < RADIUS){
+			// use a cloud from the list several times if needed
+			if ((it == cloud_list.end())) it=cloud_list.begin();
+
 			cloud = &*it;
 			if (cloud==NULL){
 				it++;
-				break;
+				continue; // break;
 			}
-
-			p.x = cloud_state[i][0];
-			p.y = cloud_state[i][1];
-			p = map_to_screen(p.x, p.y, mapr->cam.x, mapr->cam.y);
 
 			spr_cloud = cloud->getSprite();
 
-
 			if (spr_cloud==NULL) break;
-			spr_cloud->setDest(0,0);
 
-			spr_size = Rect();
-			spr_size.h = spr_cloud->getGraphicsHeight();
-			spr_size.w = spr_cloud->getGraphicsWidth();
-			//spr_size.x = flake_state[nr][0]*9;
+			// distance of cloud_state[nr][4] - mapr->cam.x is getting huge, then:
+			if (abs(floor(mapr->cam.x) - cloud_state[nr][4]) > 2*RADIUS){
+				cloud_state[nr][4] = floor(mapr->cam.x);
+			}
+			if (abs(floor(mapr->cam.y) - cloud_state[nr][5]) > 2*RADIUS){
+				cloud_state[nr][5] = floor(mapr->cam.y);
+			}
 
-			screen_size.x = p.x;
-			screen_size.y = p.y;
+			p = map_to_screen(cloud_state[nr][4] + i, cloud_state[nr][5] + j, mapr->cam.x, mapr->cam.y);
+			if (cycle_i % RENDER_CHANGE_AFTER == 0) {
+				// TODO: should depend on wind direction and perhaps speed;
+				  // RENDER_CHANGE_AFTER could be a class variable which depends on the variable speed
+				cloud_state[nr][2] = cloud_state[nr][2] + randBetween(1,2);
+				cloud_state[nr][3] = cloud_state[nr][3] + randBetween(1,2);
+				direction = calcDirection(0.0,0.0, cloud_state[nr][2], cloud_state[nr][3]);
+			} // FIXME: overflow possible (if playing many hours)
 
-			render_device->renderToImage(spr_cloud->getGraphics(), spr_size, weather_surface, screen_size, true);
+			dest_p.x = p.x + (cloud_state[nr][2] % screen_size.w) - screen_size.w/2;
+			dest_p.y = p.y + (cloud_state[nr][3] % screen_size.h/2) - screen_size.h/4;
 
+			spr_cloud->setOffset(cloud_state[nr][1],cloud_state[nr][1]);
+			spr_cloud->setDest(dest_p);
+
+			render_device->render(spr_cloud);
+
+			i+=cloud_distance;
+			if (i>RADIUS){
+				i=-RADIUS;
+				j+=cloud_distance;
+			}
 			it++;
-			i++;
+			nr++;
         }
+
 	}
 
 	if (spr_weather==NULL) return;
+
+	spr_weather->setDestX(0);
+	spr_weather->setDestY(0);
+
 
 	weather_surface->unref();
 	render_device->render(spr_weather);
@@ -279,51 +271,25 @@ void ListWeatherCloud::createClouds(int cloudiness){
     while (cloudiness>4){ // create clouds
 		if (i >= MAX_NUMBER_OF_CLOUDS-1) break;
 
-		p = findValidPos();
-		if (p.x == 1000) break; // no valid pos. for this cloud found
-								// FIXME; can be handled better
-
-		cloud_state[i][0] = p.x;
-		cloud_state[i][1] = p.y;
-
-
 		size=WeatherCloud::SizeType(randBetween(0,2));
+
+		cloud_state[i][0] = size;
+		cloud_state[i][1] = randBetween(-4,4);
+		std::cout<<"cloud distance: " << cloud_distance << std::endl;
+		if (cloud_distance < 14) cloud_distance = 14; // => looks bad if too narrow
+		cloud_state[i][2] = randBetween(-cloud_distance*6,cloud_distance*6);
+		cloud_state[i][3] = randBetween(-cloud_distance*6,cloud_distance*6);
+		cloud_state[i][4] = floor(mapr->cam.x);
+		cloud_state[i][5] = floor(mapr->cam.y);
+
+		// fill cloud_list
 		shape=randBetween(0,5);
 		cloud_list.insert(it, WeatherCloud(size, shape));
 		cloudiness-=(size+2)*3;
 		i+=1;
 		it++;
     }
-}
-
-Point ListWeatherCloud::findValidPos(uint d){
-	bool is_valid_pos = false;
-	int i=0, r0, r1;
-	Point p;
-
-	while(!is_valid_pos){
-		if (i>9){
-			logError("no valid position for this cloud!");
-			return Point(1000,1000); // FIXME
-		}
-		r0 = randBetween(-d,d);
-		r1 = randBetween(-d,d);
-
-		is_valid_pos = mapr->collider.is_valid_position(mapr->cam.x + r0, mapr->cam.y + r1, MOVEMENT_FLYING, false);
-		i+=1;
-
-		// possible TODO: make sure two different clouds do not overlap
-		// but this could be quite performance hungry...
-
-
-	}
-	p.x = mapr->cam.x + r0;
-	p.y = mapr->cam.y + r1;
-	return p;
-}
-
-Point ListWeatherCloud::moveCloud(int num){
-	return Point (cloud_state[num][0],cloud_state[num][1]);
+    clouds_arr_initialized = true;
 }
 
 void ListWeatherCloud::logicDebug(){
@@ -354,11 +320,8 @@ void ListWeatherCloud::renderSnow(){
     int j = 0;
     int r3 = 1; // changes type
     int r4 = 2;// changes offset
-    //int change_after = 12; // in frames
-                                // Note: if there is ever a wind force implemented, it could be
-                                // considered to depend this value upon it: more wind -> faster changes
-    const int RADIUS = 22;
-    int density = 3; // best values: 2, 3
+    int density = 3;
+
     Rect screen_size = render_device->getContextSize();
     Point p;
     FPoint fp; // needed to check if is_valid_position
@@ -366,22 +329,19 @@ void ListWeatherCloud::renderSnow(){
 
     if (is_strong_rainfall){
         density = 2;
-        //change_after = 8;
     }
 
     // initialize the flake_state Array, if it isn't yet
-    if (!state_is_initialized){
+    if (!flakes_arr_initialized){
 
-        state_is_initialized = true;
-        while (nr < 48){
+        flakes_arr_initialized = true;
+        while (nr < 20){
             r3 = randBetween(0,6);
             r4 = randBetween(-4,4);
             flake_state[nr][0] = r3; // type
-            flake_state[nr][1] = mapr->cam.x; // x
-            flake_state[nr][2] = mapr->cam.y; // y
-            flake_state[nr][3] = r4;
-            flake_state[nr][4] = 0;
-            flake_state[nr][5] = 0;
+            flake_state[nr][1] = r4;
+            flake_state[nr][2] = 0;
+            flake_state[nr][3] = 0;
             nr+=1;
         }
 
@@ -391,31 +351,30 @@ void ListWeatherCloud::renderSnow(){
     j = -RADIUS;
 
     while(j < RADIUS){
-        if (nr>47) nr=0;
+        if (nr>19) nr=0;
         // update of position info should be rather slow...
-          // the snowflakes appear to move with the character if true
+          // otherwise the snowflakes appear to move with the hero
         if ((cycle_i % (RENDER_CHANGE_AFTER * 10) == 0) || mapr->map_change) {
-            flake_state[nr][1] = mapr->cam.x;
-            flake_state[nr][2] = mapr->cam.y;
+            p_flakes = floor(mapr->cam);
         }
         spr_flake->setClipW(8);
         spr_flake->setClipH(10);
         spr_flake->setClipX(flake_state[nr][0]*9);
 
         // TODO: take into account wind direction (variable 'direction')
-        p = map_to_screen(flake_state[nr][1] + i, flake_state[nr][2] + j, mapr->cam.x, mapr->cam.y);
+        p = map_to_screen(p_flakes.x + i, p_flakes.y + j, mapr->cam.x, mapr->cam.y);
         if (cycle_i % RENDER_CHANGE_AFTER == 0) {
-            flake_state[nr][4] = flake_state[nr][4] + randBetween(-1,1);
-            flake_state[nr][5] = flake_state[nr][5] + randBetween(-1,2);
+            flake_state[nr][2] = flake_state[nr][2] + randBetween(-1,1);
+            flake_state[nr][3] = flake_state[nr][3] + randBetween(-1,2);
         }
 
-        spr_flake->setOffset(flake_state[nr][3],0);
-        spr_flake->setDestX(p.x + flake_state[nr][4]);
-        spr_flake->setDestY(p.y + (flake_state[nr][5] % (screen_size.h/4)) - screen_size.h/4);
+        spr_flake->setOffset(flake_state[nr][1],0);
+        spr_flake->setDestX(p.x + flake_state[nr][2]);
+        spr_flake->setDestY(p.y + (flake_state[nr][3] % (screen_size.h/4)) - screen_size.h/4);
 
-        if (mapr->collider.is_valid_position(flake_state[nr][1] + i, flake_state[nr][2] + j, MOVEMENT_FLYING, false)){
+        if (mapr->collider.is_valid_position(p_flakes.x + i, p_flakes.y + j, MOVEMENT_FLYING, false)){
 			// fade off effect for snowflakes near the ground
-			if (flake_state[nr][5] % (screen_size.h/4) > screen_size.h/6){
+			if (flake_state[nr][3] % (screen_size.h/4) > screen_size.h/6){
 				spr_flake->setClipY(10);
 			}
 			else spr_flake->setClipY(0);
@@ -425,7 +384,7 @@ void ListWeatherCloud::renderSnow(){
         }
         i+=density;
         if (i>RADIUS){
-            i= -2*RADIUS;
+            i= -RADIUS;
             j+=density;
         }
         nr+=1;
@@ -456,9 +415,9 @@ void WeatherManager::init(){
     HumidityType humidity_type = HumidityType(klima->getHumidity());
 
     int cloudiness = 0;
-    int fogginess = 20;
-    int wind_direction = 2;
-    float wind_speed = 1.0;
+    //int fogginess = 20;
+    //int wind_direction = 2;
+    //float wind_speed = 1.0;
     bool is_snow = false;
     long cycle_max = 40000; // TODO: should be influenced by WeatherClimate settings
 
@@ -481,7 +440,7 @@ void WeatherManager::init(){
     }
     else if (season_type==WeatherClimate::AUTUNM){
         cloudiness+=10;
-        fogginess = 50; // TODO, fog
+        //fogginess = 50; // TODO, fog
     }
     // ListWeatherCloud mustn't use WeatherClimate!
     list_weather_cloud = ListWeatherCloud::getInstance();
