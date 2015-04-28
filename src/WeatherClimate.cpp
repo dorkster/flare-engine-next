@@ -18,23 +18,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WeatherClimate.h"
 #include "SharedGameResources.h"
 
-WeatherClimate WeatherClimate::instance;
-
 //==============================================================================
-WeatherClimate::WeatherClimate() {
-    init();
-}
-
-bool WeatherClimate::init() {
-    enabled=true;
-    season=0;
-    humidity=2;
-    return true;
-}
-
-//------------------------------------------------------------------------------
-void WeatherClimate::cleanup() {
-
+WeatherClimate::WeatherClimate()
+	: enabled(true)
+	, season(WEATHER_SEASON_WINTER)
+	, humidity(WEATHER_HUMIDITY_WET)
+{
 }
 
 // TODO: make use of a settings from files
@@ -55,6 +44,4 @@ int WeatherClimate::getEnabled(){
 void WeatherClimate::changeEnabledBool(){
     WeatherClimate::enabled = !WeatherClimate::enabled;
 }
-
-WeatherClimate* WeatherClimate::getInstance() { return &WeatherClimate::instance; }
 

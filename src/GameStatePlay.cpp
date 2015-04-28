@@ -1081,6 +1081,9 @@ GameStatePlay::~GameStatePlay() {
 
 	delete enemyg;
 
+	delete weathers;
+	weathers = NULL;
+
 	// NULL-ify shared game resources
 	menu_powers = NULL;
 	loot = NULL;

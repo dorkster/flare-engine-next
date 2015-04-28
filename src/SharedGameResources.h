@@ -41,6 +41,5 @@ extern ItemManager *items;
 extern LootManager *loot;
 extern MapRenderer *mapr;
 extern PowerManager *powers;
-extern WeatherManager *weathers;
 
 #endif // SHAREDGAMEOBJECTS_H

@@ -63,11 +63,8 @@ class ListWeatherCloud{
         void setWindForce(float speed);
         float getWindForce();
 
-        static ListWeatherCloud* getInstance();
-
     private:
-        static ListWeatherCloud instance;
-        std::list<WeatherCloud> cloud_list;
+        std::list<WeatherCloud*> cloud_list;
         bool is_snow;
         // bool is_fog; TODO
         int direction;
@@ -93,8 +90,6 @@ class ListWeatherCloud{
         Point p_flakes;
 
 
-        Image *img_cloud;
-        Image *img_rainfall;
         Sprite *spr_flake;
 
         void createClouds(int cloudiness);
@@ -112,6 +107,7 @@ class WeatherManager {
         bool enabled;
         bool initialized;
         ListWeatherCloud *list_weather_cloud;
+		WeatherClimate *weather_climate;
         void init();
 
     public:

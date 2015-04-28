@@ -27,4 +27,3 @@ MapRenderer *mapr = NULL;
 MenuActionBar *menu_act= NULL;
 MenuPowers *menu_powers = NULL;
 PowerManager *powers = NULL;
-WeatherManager *weathers = NULL;
