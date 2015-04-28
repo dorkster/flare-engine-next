@@ -24,9 +24,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "WeatherClimate.h"
 
-const int MAX_NUMBER_OF_CLOUDS=6;
-const int RENDER_CHANGE_AFTER=8;
-const int RADIUS = 20; // area of weather around hero
+const int MAX_NUMBER_OF_CLOUDS = 6;
+const int RENDER_CHANGE_AFTER  = 8;
+const int RADIUS               = 20; // area of weather around hero
 
 class WeatherCloud{
 	private:
@@ -107,7 +107,7 @@ class ListWeatherCloud{
 };
 
 
-class WeatherManager : public WeatherClimate {
+class WeatherManager {
 	private:
         bool enabled;
         bool initialized;

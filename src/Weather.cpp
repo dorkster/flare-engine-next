@@ -83,8 +83,8 @@ ListWeatherCloud::ListWeatherCloud()
 	, clouds_arr_initialized(false)
 	, img_rainfall(NULL)
 	, spr_flake(NULL)
-	, cloud_state({})
-	, flake_state({})
+	, cloud_state()
+	, flake_state()
 {
 };
 
@@ -92,7 +92,10 @@ ListWeatherCloud::~ListWeatherCloud(){
 	if (!cloud_list.empty()){
 		cloud_list.clear();
 	}
-	if (img_rainfall != NULL) render_device->freeImage(img_rainfall);
+	if (img_rainfall != NULL) {
+		// FIXME: segfault on Game Exit
+		//render_device->freeImage(img_rainfall);
+	}
 	if (img_cloud != NULL){
 		render_device->freeImage(img_cloud);
 		img_cloud->unref();
@@ -271,6 +274,7 @@ void ListWeatherCloud::createClouds(int cloudiness){
 		cloud_list.insert(it, WeatherCloud(size, shape));
 		cloudiness-=(size+2)*3;
 		i+=1;
+		if ((it == cloud_list.end())) it=cloud_list.begin();
 		it++;
     }
     clouds_arr_initialized = true;
@@ -405,7 +409,7 @@ void WeatherManager::init(){
     bool is_snow = false;
     long cycle_max = 40000; // TODO: should be influenced by WeatherClimate settings
 
-    if (season_type==klima->WINTER) is_snow=true;
+    if (season_type == WINTER) is_snow=true;
     // Note: Likeliness of rain and clouds is not ONLY influenced by the
         // WeatherClimate setting, but is partly also random
         // the random part of both cloudiness and cycle_max is done in
@@ -413,16 +417,16 @@ void WeatherManager::init(){
     cloudiness = 10;
     // TODO: wind variables changes
       // ...
-    if (humidity_type==WeatherClimate::NORMAL){
+    if (humidity_type == NORMAL){
         cloudiness+=16;
     }
-    else if(humidity_type==WeatherClimate::WET){
+    else if(humidity_type == WET){
         cloudiness+=32;
     } // else DRY, stays
-    if (season_type==WeatherClimate::SUMMER){ // dryer in the summer
+    if (season_type == SUMMER){ // dryer in the summer
         cloudiness-=10;
     }
-    else if (season_type==WeatherClimate::AUTUNM){
+    else if (season_type == AUTUNM){
         cloudiness+=10;
         //fogginess = 50; // TODO, fog
     }

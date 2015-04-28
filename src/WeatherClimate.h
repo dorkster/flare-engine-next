@@ -18,6 +18,19 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef WEATHERCLIMATE_H
 #define WEATHERCLIMATE_H
 
+enum SeasonType {
+    WINTER = 0, // -> Rainfall is snow
+    SPRING = 1,
+    SUMMER = 2, // -> mostly dry weather
+    AUTUNM = 3  // -> more fog likelyness
+};
+
+enum HumidityType {
+        DRY = 0,
+        NORMAL = 1,
+        WET = 2
+};
+
 class WeatherClimate{
 
 	private:
@@ -29,21 +42,6 @@ class WeatherClimate{
         // Initialize WeatherClimate
 		bool init();
 		void cleanup();
-
-    protected:
-        enum SeasonType {
-            WINTER = 0, // -> Rainfall is snow
-            SPRING = 1,
-            SUMMER = 2, // -> mostly dry weather
-            AUTUNM = 3  // -> more fog likelyness
-        };
-
-        enum HumidityType {
-                DRY = 0,
-                NORMAL = 1,
-                WET = 2
-        };
-
 
     public:
         WeatherClimate();
