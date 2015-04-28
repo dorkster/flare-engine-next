@@ -34,19 +34,19 @@ WeatherCloud::WeatherCloud(WeatherCloud::SizeType c_size, int s)
 				"Couldn't load cloud image!", false);
 	if (!img_cloud) return;
 	img_cloud->ref();
-	//if (c_size == SizeType(0)){
+	if (c_size == SizeType(0)){
 		spr_cloud = img_cloud->createSprite();
 		spr_cloud->setClipW(600);
 		spr_cloud->setClipX(s*600);
-	//}
-	/*if (c_size == SizeType(1)){
-	// FIXME: SDL hardware renderer scaled images with graphic glitches
-		Image *resized = img_cloud->resize(img_cloud->getWidth()*1.5, img_cloud->getHeight()*1.5);
-		spr_cloud = resized->createSprite();
+	}
+	else{ // mid and big
+		img_cloud = render_device->loadImage("images/weather/clouds_mid.png",
+				"Couldn't load cloud image!", false);
+		spr_cloud = img_cloud->createSprite();
 		spr_cloud->setClipW(900);
 		spr_cloud->setClipX(s*900);
 	}
-	else {//(cloud->getSize() == 2){
+	/*else {//(cloud->getSize() == 2){
 	// FIXME: SDL hardware renderer scaled images with graphic glitches
 		Image *resized = img_cloud->resize(img_cloud->getWidth()*2, img_cloud->getHeight()*2);
 		spr_cloud = resized->createSprite();
@@ -184,8 +184,9 @@ void ListWeatherCloud::renderClouds(){
 		WeatherCloud *cloud;
 		Sprite *spr_cloud;
 		Point p;
-		int i, j, nr=0;
+		FPoint fp;
 		Point dest_p;
+		int i, j, nr=0;
 
 		Rect screen_size = render_device->getContextSize();
 		Rect spr_size;
@@ -207,25 +208,28 @@ void ListWeatherCloud::renderClouds(){
 
 			if (spr_cloud==NULL) break;
 
-			// distance of cloud_state[nr][4] - mapr->cam.x is getting huge, then:
-			if (abs(floor(mapr->cam.x) - cloud_state[nr][4]) > 2*RADIUS){
-				cloud_state[nr][4] = floor(mapr->cam.x);
-			}
-			if (abs(floor(mapr->cam.y) - cloud_state[nr][5]) > 2*RADIUS){
-				cloud_state[nr][5] = floor(mapr->cam.y);
+			fp.x = cloud_state[nr][4] + i;
+			fp.y = cloud_state[nr][5] + j;
+			if (!isWithin(mapr->cam,RADIUS + 4,fp)){
+				// move cloud to the opposite direction
+				direction = calcDirection(mapr->cam.x, mapr->cam.y, fp.x, fp.y);
+				if (direction < 4) direction +=4;
+				else direction -=4;
+				FPoint fpn = calcVector(fp, direction, RADIUS+24);
+				cloud_state[nr][4] = floor(fpn.x) - i;
+				cloud_state[nr][5] = floor(fpn.y) - j;
 			}
 
 			p = map_to_screen(cloud_state[nr][4] + i, cloud_state[nr][5] + j, mapr->cam.x, mapr->cam.y);
-			if (cycle_i % RENDER_CHANGE_AFTER == 0) {
+			if (cycle_i % RENDER_CHANGE_AFTER/2 == 0) {
 				// TODO: should depend on wind direction and perhaps speed;
-				  // RENDER_CHANGE_AFTER could be a class variable which depends on the variable speed
 				cloud_state[nr][2] = cloud_state[nr][2] + randBetween(1,2);
 				cloud_state[nr][3] = cloud_state[nr][3] + randBetween(1,2);
 				direction = calcDirection(0.0,0.0, cloud_state[nr][2], cloud_state[nr][3]);
-			} // FIXME: overflow possible (if playing many hours)
+			} // overflow of cloud_state[nr][2] possible, but with little consequences
 
-			dest_p.x = p.x + (cloud_state[nr][2] % screen_size.w) - screen_size.w/2;
-			dest_p.y = p.y + (cloud_state[nr][3] % screen_size.h/2) - screen_size.h/4;
+			dest_p.x = p.x + (cloud_state[nr][2] % 800) - 400;
+			dest_p.y = p.y + (cloud_state[nr][3] % 600) - 300;
 
 			spr_cloud->setOffset(cloud_state[nr][1],cloud_state[nr][1]);
 			spr_cloud->setDest(dest_p);
