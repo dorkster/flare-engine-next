@@ -59,6 +59,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "FileParser.h"
 #include "UtilsParsing.h"
 #include "MenuPowers.h"
+#include "Weather.h"
 
 const int MENU_ENEMY_TIMEOUT = MAX_FRAMES_PER_SEC * 10;
 
@@ -100,6 +101,7 @@ GameStatePlay::GameStatePlay()
 	menu = new MenuManager(&pc->stats);
 	npcs = new NPCManager(&pc->stats);
 	quests = new QuestLog(menu->log);
+	weathers = new WeatherManager();
 
 	// LootManager needs hero StatBlock
 	loot->hero = &pc->stats;
@@ -972,6 +974,10 @@ void GameStatePlay::logic() {
 
 		updateActionBar();
 	}
+
+	if (weathers->getEnabledFlag()){
+		weathers->logic();
+	}
 }
 
 
@@ -998,6 +1004,10 @@ void GameStatePlay::render() {
 
 	// render the static map layers plus the renderables
 	mapr->render(rens, rens_dead);
+
+	if (weathers->getEnabledFlag()){
+		weathers->render();
+	}
 
 	// mouseover tooltips
 	loot->renderTooltips(mapr->cam);
