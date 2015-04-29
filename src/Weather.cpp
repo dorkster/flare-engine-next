@@ -68,10 +68,6 @@ Sprite* WeatherCloud::getSprite(){
 	return WeatherCloud::spr_cloud;
 }
 
-/*void WeatherCloud::setToBeRendered(bool flag){
-	to_be_rendered = flag;
-}*/
-
 ListWeatherCloud::ListWeatherCloud()
 	: is_snow(false)
 	, direction(2)
@@ -112,7 +108,6 @@ void ListWeatherCloud::setFog(bool is_fog_a){
 }
 */
 
-
 void ListWeatherCloud::setWindDirection(FPoint p1, FPoint p2){
     ListWeatherCloud::direction = calcDirection(p1, p2);
 }
@@ -121,7 +116,7 @@ int ListWeatherCloud::getWindDirection(){
     return ListWeatherCloud::direction;
 }
 
-void ListWeatherCloud::setWindForce(float speed_a){ // speed in approximate tiles per second
+void ListWeatherCloud::setWindForce(float speed_a){
     speed=speed_a;
 }
 
@@ -187,8 +182,6 @@ void ListWeatherCloud::renderClouds(){
 		FPoint fp;
 		Point dest_p;
 		int i, j, nr=0;
-
-		Rect spr_size;
 
 		i=-RADIUS;
 		j=0; // -> with j=-RADIUS: segmentation faults quite common
@@ -261,8 +254,7 @@ void ListWeatherCloud::createClouds(int cloudiness){
 
 		cloud_state[i][0] = size;
 		cloud_state[i][1] = randBetween(-4,4);
-		//std::cout<<"cloud distance: " << cloud_distance << std::endl;
-		if (cloud_distance < 14) cloud_distance = 14; // => looks bad if too narrow
+		if (cloud_distance < 14) cloud_distance = 14; // => crashes happen if too narrow!
 		cloud_state[i][2] = randBetween(-cloud_distance*6,cloud_distance*6);
 		cloud_state[i][3] = randBetween(-cloud_distance*6,cloud_distance*6);
 		cloud_state[i][4] = floor(mapr->cam.x);
@@ -311,7 +303,6 @@ void ListWeatherCloud::renderSnow(){
 
     Point p;
     FPoint fp; // needed to check if is_valid_position
-    Rect spr_size;
 
     if (is_strong_rainfall){
         density = 2;
@@ -321,13 +312,15 @@ void ListWeatherCloud::renderSnow(){
     if (!flakes_arr_initialized){
 
         flakes_arr_initialized = true;
-        while (nr < 20){
+        while (nr < MAX_NUMBER_OF_FLAKES){
             r3 = randBetween(0,6);
-            r4 = randBetween(-4,4);
-            flake_state[nr][0] = r3; // type
-            flake_state[nr][1] = r4;
-            flake_state[nr][2] = 0;
-            flake_state[nr][3] = 0;
+            r4 = randBetween(-2,2);
+            flake_state[nr][0] = r3; // type, stays the same
+            flake_state[nr][1] = r4; // offset x
+            flake_state[nr][2] = 0; // dx
+            flake_state[nr][3] = 0; // dy
+            flake_state[nr][4] = randBetween(-2,2); // offset y
+            flake_state[nr][5] = randBetween(0,6); // change offset, stays
             nr+=1;
         }
 
@@ -337,7 +330,7 @@ void ListWeatherCloud::renderSnow(){
     j = -RADIUS;
 
     while(j < RADIUS){
-        if (nr>19) nr=0;
+        if (nr>=MAX_NUMBER_OF_FLAKES) nr=0;
         // update of position info should be rather slow...
           // otherwise the snowflakes appear to move with the hero
         if ((cycle_i % (RENDER_CHANGE_AFTER * 10) == 0) || mapr->map_change) {
@@ -349,18 +342,20 @@ void ListWeatherCloud::renderSnow(){
 
         // TODO: take into account wind direction (variable 'direction')
         p = map_to_screen(p_flakes.x + i, p_flakes.y + j, mapr->cam.x, mapr->cam.y);
-        if (cycle_i % RENDER_CHANGE_AFTER == 0) {
-            flake_state[nr][2] = flake_state[nr][2] + randBetween(-1,1);
-            flake_state[nr][3] = flake_state[nr][3] + randBetween(-1,2);
+        if ((cycle_i + flake_state[nr][5]) % RENDER_CHANGE_AFTER == 0) {
+			flake_state[nr][1] = flake_state[nr][1] + randBetween(-2,2); // offset x
+            flake_state[nr][2] = flake_state[nr][2] + randBetween(-1,1); // dx
+            flake_state[nr][3] = flake_state[nr][3] + randBetween(-1,2); // dy
+            flake_state[nr][4] = flake_state[nr][4] + randBetween(-2,2); // Offset y
         }
 
-        spr_flake->setOffset(flake_state[nr][1],0);
+        spr_flake->setOffset(flake_state[nr][1],flake_state[nr][4]);
         spr_flake->setDestX(p.x + flake_state[nr][2]);
-        spr_flake->setDestY(p.y + (flake_state[nr][3] % (VIEW_H/4)) - VIEW_H/4);
+        spr_flake->setDestY(p.y + (flake_state[nr][3] % 160) - 160);
 
         if (mapr->collider.is_valid_position(p_flakes.x + i, p_flakes.y + j, MOVEMENT_FLYING, false)){
 			// fade off effect for snowflakes near the ground
-			if (flake_state[nr][3] % (VIEW_H/4) > VIEW_H/6){
+			if (flake_state[nr][3] % 160 > 60){
 				spr_flake->setClipY(10);
 			}
 			else spr_flake->setClipY(0);

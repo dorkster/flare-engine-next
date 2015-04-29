@@ -24,9 +24,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "WeatherClimate.h"
 
-const int MAX_NUMBER_OF_CLOUDS = 6;
-const int RENDER_CHANGE_AFTER  = 8;
-const int RADIUS               = 20; // area of weather around hero
+// reduce following values for better performance:
+const int MAX_NUMBER_OF_CLOUDS=6;
+const int MAX_NUMBER_OF_FLAKES=24;
+const int RADIUS = 20; // influences area size of the weather effect
+// increase following value for better performance
+const int RENDER_CHANGE_AFTER=10;
 
 class WeatherCloud{
 	private:
@@ -74,9 +77,10 @@ class ListWeatherCloud{
         long time_of_rain;
         bool is_strong_rainfall; // two types of rainfall: light or strong
                                     // TODO: more adjustment possibilities
-        int flake_state[48][4]; // stores info about type and x,y cordinates, offset
-                                // 0: type, 1: offset,
+        int flake_state[MAX_NUMBER_OF_FLAKES][6]; // stores info about type and x,y cordinates, offset
+                                // 0: type, 1: offset x,
                                 // 2: rand val delta x, 3: rand val delta y
+                                // 4: offset y, 5: change offset
 
 		int cloud_state[MAX_NUMBER_OF_CLOUDS][6]; // stores info about location of clouds
 								 // 0: size, 1: offset, 2: rand val dx, 3 rand val dy
@@ -86,9 +90,7 @@ class ListWeatherCloud{
 
         int cloud_distance;
 
-        Point p_orientation;
         Point p_flakes;
-
 
         Sprite *spr_flake;
 
