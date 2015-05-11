@@ -521,7 +521,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
     glDisableVertexAttribArray(attributes.position);
 }
 
-int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent) {
+int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest) {
 	if (!src_image || !dest_image) return -1;
 
 	SDL_Rect _src = src;
@@ -531,10 +531,7 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 
 	SDL_Surface* dst_surface = copyTextureToSurface(static_cast<OpenGLImage *>(dest_image)->texture);
 
-	if (dest_is_transparent)
-		SDL_gfxBlitRGBA(src_surface, &_src, dst_surface, &_dest);
-	else
-		SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
+	SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
 
 	SDL_FreeSurface(src_surface);
 

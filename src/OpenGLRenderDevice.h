@@ -69,7 +69,7 @@ public:
 
 	virtual int render(Renderable& r, Rect dest);
 	virtual int render(Sprite* r);
-	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest, bool dest_is_transparent = false);
+	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest);
 
 	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
 	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
