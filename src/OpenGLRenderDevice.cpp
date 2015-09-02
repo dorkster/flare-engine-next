@@ -100,13 +100,13 @@ Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 Image* OpenGLImage::resize(int width, int height) {
 	if((int)texture == -1 || width <= 0 || height <= 0)
 		return NULL;
-	// UNIMPLEMENTED
-	return NULL;
+	logInfo("resize() UNIMPLEMENTED");
+	return this;
 }
 
 Uint32 OpenGLImage::readPixel(int x, int y) {
 	if ((int)texture == -1) return 0;
-	// UNIMPLEMENTED
+	logInfo("readPixel() UNIMPLEMENTED");
 	return 0;
 }
 
@@ -582,7 +582,7 @@ int OpenGLRenderDevice::renderText(
 	Color color,
 	Rect& dest
 ) {
-	// UNIMPLEMENTED
+	logInfo("renderText() UNIMPLEMENTED");
 	int ret = 0;
 
 	return ret;
@@ -629,7 +629,7 @@ void OpenGLRenderDevice::drawPixel(
 	int y,
 	Uint32 color
 ) {
-	// UNIMPLEMENTED
+	logInfo("drawPixel() UNIMPLEMENTED");
 }
 
 void OpenGLRenderDevice::drawLine(
@@ -639,7 +639,7 @@ void OpenGLRenderDevice::drawLine(
 	int y1,
 	Uint32 color
 ) {
-	// UNIMPLEMENTED
+	logInfo("drawLine() UNIMPLEMENTED");
 }
 
 void OpenGLRenderDevice::drawRectangle(

@@ -11,10 +11,10 @@ void main()
 	if (lightEnabled)
 	{
 		// need to setup these
-		vec4 v_color = vec4(1.0);
+		vec4 v_color = vec4(2.0);
 
 		vec3 light = vec3(0.5);
-		vec3 ambientColor = vec3(0.8);
+		vec3 ambientColor = vec3(0.9);
 		float ambientIntensity = 0.1;
 		vec2 resolution = vec2(640, 480);
 		vec3 lightColor = vec3(0.7);
