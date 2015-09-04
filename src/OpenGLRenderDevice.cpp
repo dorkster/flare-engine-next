@@ -288,7 +288,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 
 	m_texelOffset[2] = (float)height / src.h;
 	m_texelOffset[3] = (float)src.y / height;
- 
+
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
 
@@ -853,6 +853,8 @@ void OpenGLRenderDevice::windowResize() {
 
 	// FIXME: fix vertical scaling
 	glViewport(0, 0, SCREEN_W, VIEW_H);
+
+	updateScreenVars();
 }
 
 void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {
