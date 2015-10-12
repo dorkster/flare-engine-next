@@ -847,13 +847,15 @@ void OpenGLRenderDevice::windowResize() {
 	// letterbox if too tall
 	if (VIEW_W < MIN_SCREEN_W) {
 		VIEW_W = MIN_SCREEN_W;
+		scale = (float)VIEW_W / (float)SCREEN_W;
 	}
 
 	VIEW_W_HALF = VIEW_W/2;
 
 	// FIXME: make sure mouse coordinates are scaled correctly
-	// FIXME: make sure vertical resizing doesn't corrupt aspect ratio
-	glViewport((SCREEN_W - VIEW_W) / 2, 0, SCREEN_W, SCREEN_H);
+	int offsetX = (SCREEN_W - VIEW_W / scale) / 2;
+	int offsetY = (SCREEN_H - VIEW_H / scale) / 2;
+	glViewport(offsetX, offsetY, VIEW_W / scale, VIEW_H / scale);
 
 	updateScreenVars();
 }
