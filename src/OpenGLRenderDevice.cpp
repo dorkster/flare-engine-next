@@ -67,7 +67,7 @@ void OpenGLImage::fillWithColor(Uint32 color) {
 
 	for(int i = 0; i < bytes; i++)
 	{
-		buffer[i] = color;
+		buffer[i] = static_cast<unsigned char>(color);
 	}
 
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -283,11 +283,11 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	int height = static_cast<OpenGLImage *>(r.image)->getHeight();
 	int width = static_cast<OpenGLImage *>(r.image)->getWidth();
 
-	m_texelOffset[0] = static_cast<float>(width) / src.w;
-	m_texelOffset[1] = static_cast<float>(src.x) / width;
+	m_texelOffset[0] = static_cast<float>(width) / static_cast<float>(src.w);
+	m_texelOffset[1] = static_cast<float>(src.x) / static_cast<float>(width);
 
-	m_texelOffset[2] = static_cast<float>(height) / src.h;
-	m_texelOffset[3] = static_cast<float>(src.y) / height;
+	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(src.h);
+	m_texelOffset[3] = static_cast<float>(src.y) / static_cast<float>(height);
 
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
@@ -321,11 +321,11 @@ void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
     }
 
     fseek(f, 0, SEEK_END);
-    *length = ftell(f);
+    *length = static_cast<GLint>(ftell(f));
     fseek(f, 0, SEEK_SET);
 
     buffer = malloc(*length+1);
-    *length = fread(buffer, 1, *length, f);
+    *length = static_cast<GLint>(fread(buffer, 1, *length, f));
     fclose(f);
     ((char*)buffer)[*length] = '\0';
 
@@ -455,11 +455,11 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	int height = r->getGraphics()->getHeight();
 	int width = r->getGraphics()->getWidth();
 
-	m_texelOffset[0] = static_cast<float>(width) / src.w;
-	m_texelOffset[1] = static_cast<float>(src.x) / width;
+	m_texelOffset[0] = static_cast<float>(width) / static_cast<float>(src.w);
+	m_texelOffset[1] = static_cast<float>(src.x) / static_cast<float>(width);
 
-	m_texelOffset[2] = static_cast<float>(height) / src.h;
-	m_texelOffset[3] = static_cast<float>(src.y) / height;
+	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(src.h);
+	m_texelOffset[3] = static_cast<float>(src.y) / static_cast<float>(height);
 
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
     GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
@@ -838,24 +838,24 @@ void OpenGLRenderDevice::freeImage(Image *image) {
 void OpenGLRenderDevice::windowResize() {
 	int w,h;
 	SDL_GetWindowSize(window, &w, &h);
-	SCREEN_W = w;
-	SCREEN_H = h;
+	SCREEN_W = static_cast<short unsigned int>(w);
+	SCREEN_H = static_cast<short unsigned int>(h);
 
-	float scale = (float)VIEW_H / (float)SCREEN_H;
-	VIEW_W = (int)((float)SCREEN_W * scale);
+	float scale = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
+	VIEW_W = static_cast<short unsigned int>(static_cast<float>(SCREEN_W) * scale);
 
 	// letterbox if too tall
 	if (VIEW_W < MIN_SCREEN_W) {
 		VIEW_W = MIN_SCREEN_W;
-		scale = (float)VIEW_W / (float)SCREEN_W;
+		scale = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
 	}
 
 	VIEW_W_HALF = VIEW_W/2;
 
 	// FIXME: make sure mouse coordinates are scaled correctly
-	int offsetX = (SCREEN_W - VIEW_W / scale) / 2;
-	int offsetY = (SCREEN_H - VIEW_H / scale) / 2;
-	glViewport(offsetX, offsetY, VIEW_W / scale, VIEW_H / scale);
+	int offsetX = static_cast<int>(SCREEN_W - VIEW_W / scale) / 2;
+	int offsetY = static_cast<int>(SCREEN_H - VIEW_H / scale) / 2;
+	glViewport(offsetX, offsetY, static_cast<GLint>(VIEW_W / scale), static_cast<GLint>(VIEW_H / scale));
 
 	updateScreenVars();
 }
