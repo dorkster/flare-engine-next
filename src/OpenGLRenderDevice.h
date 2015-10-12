@@ -123,8 +123,8 @@ private:
 
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
-	GLfloat m_offset[4];
-	GLfloat m_texelOffset[4];
+	GLfloat m_offset[4]; //x, y, width, height
+	GLfloat m_texelOffset[4]; // 1/width, x, 1/height, y
 };
 
 #endif // OPENGL_RENDERDEVICE_H

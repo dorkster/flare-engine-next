@@ -274,20 +274,20 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 
-	m_offset[0] = 2.0f * (float)_dest.x/VIEW_W;
-	m_offset[1] = 2.0f * (float)_dest.y/VIEW_H;
+	m_offset[0] = 2.0f * static_cast<float>(_dest.x)/VIEW_W;
+	m_offset[1] = 2.0f * static_cast<float>(_dest.y)/VIEW_H;
 
-	m_offset[2] = (float)src.w/VIEW_W;
-	m_offset[3] = (float)src.h/VIEW_H;
+	m_offset[2] = static_cast<float>(src.w)/VIEW_W;
+	m_offset[3] = static_cast<float>(src.h)/VIEW_H;
 
 	int height = static_cast<OpenGLImage *>(r.image)->getHeight();
 	int width = static_cast<OpenGLImage *>(r.image)->getWidth();
 
-	m_texelOffset[0] = (float)width / src.w;
-	m_texelOffset[1] = (float)src.x / width;
+	m_texelOffset[0] = static_cast<float>(width) / src.w;
+	m_texelOffset[1] = static_cast<float>(src.x) / width;
 
-	m_texelOffset[2] = (float)height / src.h;
-	m_texelOffset[3] = (float)src.y / height;
+	m_texelOffset[2] = static_cast<float>(height) / src.h;
+	m_texelOffset[3] = static_cast<float>(src.y) / height;
 
     GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
@@ -446,20 +446,20 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
-	m_offset[0] = 2.0f * (float)dest.x/VIEW_W;
-	m_offset[1] = 2.0f * (float)dest.y/VIEW_H;
+	m_offset[0] = 2.0f * static_cast<float>(dest.x)/VIEW_W;
+	m_offset[1] = 2.0f * static_cast<float>(dest.y)/VIEW_H;
 
-	m_offset[2] = (float)src.w/VIEW_W;
-	m_offset[3] = (float)src.h/VIEW_H;
+	m_offset[2] = static_cast<float>(src.w)/VIEW_W;
+	m_offset[3] = static_cast<float>(src.h)/VIEW_H;
 
 	int height = r->getGraphics()->getHeight();
 	int width = r->getGraphics()->getWidth();
 
-	m_texelOffset[0] = (float)width / src.w;
-	m_texelOffset[1] = (float)src.x / width;
+	m_texelOffset[0] = static_cast<float>(width) / src.w;
+	m_texelOffset[1] = static_cast<float>(src.x) / width;
 
-	m_texelOffset[2] = (float)height / src.h;
-	m_texelOffset[3] = (float)src.y / height;
+	m_texelOffset[2] = static_cast<float>(height) / src.h;
+	m_texelOffset[3] = static_cast<float>(src.y) / height;
 
     GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
     GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
@@ -851,8 +851,9 @@ void OpenGLRenderDevice::windowResize() {
 
 	VIEW_W_HALF = VIEW_W/2;
 
-	// FIXME: fix vertical scaling
-	glViewport(0, 0, SCREEN_W, VIEW_H);
+	// FIXME: make sure mouse coordinates are scaled correctly
+	// FIXME: make sure vertical resizing doesn't corrupt aspect ratio
+	glViewport((SCREEN_W - VIEW_W) / 2, 0, SCREEN_W, SCREEN_H);
 
 	updateScreenVars();
 }
