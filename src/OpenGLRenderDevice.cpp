@@ -532,20 +532,23 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 
 	SDL_Surface* dst_surface = copyTextureToSurface(static_cast<OpenGLImage *>(dest_image)->texture);
 
-	SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
+	if (src_surface && dst_surface) {
+		SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
+		SDL_FreeSurface(src_surface);
+	}
 
-	SDL_FreeSurface(src_surface);
-
-	glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLImage *>(dest_image)->texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dst_surface->w, dst_surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dst_surface->pixels);
-	SDL_FreeSurface(dst_surface);
+	if (dst_surface) {
+		glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLImage *>(dest_image)->texture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dst_surface->w, dst_surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dst_surface->pixels);
+		SDL_FreeSurface(dst_surface);
+	}
 
 	return 0;
 }
 
 SDL_Surface* OpenGLRenderDevice::copyTextureToSurface(GLuint texture)
 {
-	// FIXME: there is a heap corruption somewhere here when viewing Credits screen
+	// FIXME: this function eats a lot of memory, needs optimization
 	Uint32 rmask, gmask, bmask, amask;
 	setSDL_RGBA(&rmask, &gmask, &bmask, &amask);
 
@@ -565,12 +568,13 @@ SDL_Surface* OpenGLRenderDevice::copyTextureToSurface(GLuint texture)
 	unsigned char *pixels = new unsigned char[bytes];
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-	SDL_Surface* cleanup;
+	SDL_Surface* cleanup = SDL_CreateRGBSurfaceFrom(pixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
 
-	cleanup = SDL_CreateRGBSurfaceFrom(pixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
-	SDL_Surface* surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
-	SDL_FreeSurface(cleanup);
-
+	SDL_Surface* surface = NULL;
+	if (cleanup) {
+		surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
+		SDL_FreeSurface(cleanup);
+	}
 	delete [] pixels;
 
 	return surface;
@@ -594,7 +598,7 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 
 	SDL_Color _color = color;
 
-	SDL_Surface* surface;
+	SDL_Surface* surface = NULL;
 	if (blended)
 		surface = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), _color);
 	else
@@ -768,8 +772,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	if (img != NULL) return img;
 
 	// load image
-	OpenGLImage *image;
-	image = NULL;
+	OpenGLImage *image = NULL;
 	SDL_Surface *cleanup = IMG_Load(mods->locate(filename).c_str());
 	if(!cleanup) {
 		if (!errormessage.empty())

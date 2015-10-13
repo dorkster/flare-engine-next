@@ -21,10 +21,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define OPENGL_EXT_H
 
 #ifdef _WIN32
-#define NO_SDL_GLEXT
 #include <SDL_opengl.h>
-// file downloaded from https://www.opengl.org/registry/api/GL/glext.h
-#include "glext.h"
 #define glGetProcAddressARB(x) wglGetProcAddress(x)
 #else
 #include <GL/gl.h>
@@ -34,6 +31,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 
 #ifdef _WIN32
+// GLAPI void GLAPIENTRY glActiveTexture( GLenum texture ); declaration
+// should be removed from SDL_opengl.h to allow build under Windows with SDL2.0.4
 extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 #endif
 extern PFNGLGENVERTEXARRAYSPROC          glGenVertexArrays;
