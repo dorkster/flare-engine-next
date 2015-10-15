@@ -263,14 +263,6 @@ int OpenGLRenderDevice::createContext() {
 	return (is_initialized ? 0 : -1);
 }
 
-Rect OpenGLRenderDevice::getContextSize() {
-	Rect size;
-	size.x = size.y = 0;
-	SDL_GetWindowSize(window, &size.w, &size.h);
-
-	return size;
-}
-
 int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
