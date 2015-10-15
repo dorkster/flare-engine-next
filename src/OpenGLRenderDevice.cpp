@@ -117,6 +117,7 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	, title(NULL)
 {
 	logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
+	MOUSE_SCALED = false;
 
 	fullscreen = FULLSCREEN;
 	hwsurface = HWSURFACE;
@@ -844,21 +845,19 @@ void OpenGLRenderDevice::windowResize() {
 	SCREEN_W = static_cast<short unsigned int>(w);
 	SCREEN_H = static_cast<short unsigned int>(h);
 
-	float scale = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
-	VIEW_W = static_cast<short unsigned int>(static_cast<float>(SCREEN_W) * scale);
+	VIEW_SCALING = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
+	VIEW_W = static_cast<short unsigned int>(static_cast<float>(SCREEN_W) * VIEW_SCALING);
 
 	// letterbox if too tall
 	if (VIEW_W < MIN_SCREEN_W) {
 		VIEW_W = MIN_SCREEN_W;
-		scale = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
+		VIEW_SCALING = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
 	}
 
 	VIEW_W_HALF = VIEW_W/2;
 
-	// FIXME: make sure mouse coordinates are scaled correctly
-	int offsetX = static_cast<int>(SCREEN_W - VIEW_W / scale) / 2;
-	int offsetY = static_cast<int>(SCREEN_H - VIEW_H / scale) / 2;
-	glViewport(offsetX, offsetY, static_cast<GLint>(VIEW_W / scale), static_cast<GLint>(VIEW_H / scale));
+	int offsetY = static_cast<int>(SCREEN_H - VIEW_H / VIEW_SCALING) / 2;
+	glViewport(0, offsetY, static_cast<GLint>(VIEW_W / VIEW_SCALING), static_cast<GLint>(VIEW_H / VIEW_SCALING));
 
 	updateScreenVars();
 }
