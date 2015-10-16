@@ -22,6 +22,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifdef _WIN32
 PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
 #endif
+
+PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture       = NULL;
+PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers          = NULL;
+PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer          = NULL;
+
 PFNGLGENVERTEXARRAYSPROC          glGenVertexArrays          = NULL;
 PFNGLBINDVERTEXARRAYPROC          glBindVertexArray          = NULL;
 PFNGLGENBUFFERSPROC               glGenBuffers               = NULL;
@@ -59,6 +64,11 @@ void init(void **context)
         #ifdef _WIN32
 		glActiveTexture	           = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
         #endif
+
+		glFramebufferTexture       = (PFNGLFRAMEBUFFERTEXTUREARBPROC)    glGetProcAddressARB("glFramebufferTextureARB");
+		glGenFramebuffers          = (PFNGLGENFRAMEBUFFERSPROC)          glGetProcAddressARB("glGenFramebuffers");
+		glBindFramebuffer          = (PFNGLBINDFRAMEBUFFERPROC)          glGetProcAddressARB("glBindFramebuffer");
+
 		glGenVertexArrays          = (PFNGLGENVERTEXARRAYSPROC)          glGetProcAddressARB("glGenVertexArrays");
 		glBindVertexArray          = (PFNGLBINDVERTEXARRAYPROC)          glGetProcAddressARB("glBindVertexArray");
 		glGenBuffers               = (PFNGLGENBUFFERSPROC)               glGetProcAddressARB("glGenBuffers");

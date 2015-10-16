@@ -57,7 +57,7 @@ int OpenGLImage::getHeight() const {
 	return height;
 }
 
-void OpenGLImage::fillWithColor(Uint32 color) {
+void OpenGLImage::fillWithColor(const Color& color) {
 	if ((int)texture == -1) return;
 
 	int channels = 4;
@@ -67,7 +67,18 @@ void OpenGLImage::fillWithColor(Uint32 color) {
 
 	for(int i = 0; i < bytes; i++)
 	{
-		buffer[i] = static_cast<unsigned char>(color);
+		if ((i + 1) % 1 == 0) {
+			buffer[i] = static_cast<unsigned char>(color.r);
+		}
+		else if ((i + 1) % 2 == 0) {
+			buffer[i] = static_cast<unsigned char>(color.g);
+		}
+		else if ((i + 1) % 3 == 0) {
+			buffer[i] = static_cast<unsigned char>(color.b);
+		}
+		else if ((i + 1) % 4 == 0) {
+			buffer[i] = static_cast<unsigned char>(color.a);
+		}
 	}
 
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -79,18 +90,8 @@ void OpenGLImage::fillWithColor(Uint32 color) {
 /*
  * Set the pixel at (x, y) to the given value
  */
-void OpenGLImage::drawPixel(int x, int y, Uint32 pixel) {
+void OpenGLImage::drawPixel(int x, int y, const Color& color) {
 	if ((int)texture == -1) return;
-}
-
-Uint32 OpenGLImage::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
-	if ((int)texture == -1) return 0;
-	return 0;
-}
-
-Uint32 OpenGLImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	if ((int)texture == -1) return 0;
-	return 0;
 }
 
 /**
@@ -104,10 +105,10 @@ Image* OpenGLImage::resize(int width, int height) {
 	return this;
 }
 
-Uint32 OpenGLImage::readPixel(int x, int y) {
-	if ((int)texture == -1) return 0;
+Color OpenGLImage::readPixel(int x, int y) {
+	if ((int)texture == -1) return Color();
 	logInfo("readPixel() UNIMPLEMENTED");
-	return 0;
+	return Color();
 }
 
 OpenGLRenderDevice::OpenGLRenderDevice()
@@ -515,62 +516,70 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
     glDisableVertexAttribArray(attributes.position);
 }
 
+void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h)
+{
+	GLuint frameBuffer = 0;
+	glGenFramebuffers(1, &frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, frameTexture);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, frameTexture, 0);
+
+	glViewport(0, 0, frame_w, frame_h);
+}
+
+void OpenGLRenderDevice::disableFrameBuffer(GLint *view_rect)
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(view_rect[0], view_rect[1], view_rect[2], view_rect[3]);
+}
+
 int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest) {
 	if (!src_image || !dest_image) return -1;
 
 	SDL_Rect _src = src;
 	SDL_Rect _dest = dest;
 
-	SDL_Surface* src_surface = copyTextureToSurface(static_cast<OpenGLImage *>(src_image)->texture);
+	GLuint src_texture = static_cast<OpenGLImage *>(src_image)->texture;
+	GLuint dst_texture = static_cast<OpenGLImage *>(dest_image)->texture;
 
-	SDL_Surface* dst_surface = copyTextureToSurface(static_cast<OpenGLImage *>(dest_image)->texture);
+	if (dst_texture == 0)
+		return 1;
 
-	if (src_surface && dst_surface) {
-		SDL_BlitSurface(src_surface, &_src, dst_surface, &_dest);
-		SDL_FreeSurface(src_surface);
-	}
+	int frameW = static_cast<OpenGLImage *>(dest_image)->getWidth();
+	int frameH = static_cast<OpenGLImage *>(dest_image)->getHeight();
 
-	if (dst_surface) {
-		glBindTexture(GL_TEXTURE_2D, static_cast<OpenGLImage *>(dest_image)->texture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dst_surface->w, dst_surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, dst_surface->pixels);
-		SDL_FreeSurface(dst_surface);
-	}
+	GLint view[4];
+	glGetIntegerv(GL_VIEWPORT, view);
+	configureFrameBuffer(dst_texture, frameW, frameH);
+
+	m_offset[0] = 2.0f * static_cast<float>(_dest.x)/frameW;
+	m_offset[1] = 2.0f * static_cast<float>(_dest.y)/frameH;
+	m_offset[2] = static_cast<float>(_src.w)/frameW;
+	m_offset[3] = static_cast<float>(_src.h)/frameH;
+
+	int height = static_cast<OpenGLImage *>(src_image)->getHeight();
+	int width = static_cast<OpenGLImage *>(src_image)->getWidth();
+
+	m_texelOffset[0] = static_cast<float>(width) / static_cast<float>(_src.w);
+	m_texelOffset[1] = static_cast<float>(_src.x) / static_cast<float>(width);
+	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(_src.h);
+	m_texelOffset[3] = static_cast<float>(_src.y) / static_cast<float>(height);
+
+	if (src_texture == 0)
+		return 1;
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, src_texture);
+
+	// FIXME: flip text, maybe do it in configureFrameBuffer() by redefining elementBufferData or/and positionData
+	// revert changes in disableFrameBuffer()
+	composeFrame(m_offset, m_texelOffset, false);
+
+	disableFrameBuffer(view);
 
 	return 0;
-}
-
-SDL_Surface* OpenGLRenderDevice::copyTextureToSurface(GLuint texture)
-{
-	// FIXME: this function eats a lot of memory, needs optimization
-	Uint32 rmask, gmask, bmask, amask;
-	setSDL_RGBA(&rmask, &gmask, &bmask, &amask);
-
-	GLint width, height, format;
-	GLint bytes = 0;
-	int pitch = 0;
-
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPONENTS, &format);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
-
-	bytes = width * height * format;
-	pitch = width * BITS_PER_PIXEL / 8;
-
-	unsigned char *pixels = new unsigned char[bytes];
-	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-	SDL_Surface* cleanup = SDL_CreateRGBSurfaceFrom(pixels, width, height, BITS_PER_PIXEL, pitch, rmask, gmask, bmask, amask);
-
-	SDL_Surface* surface = NULL;
-	if (cleanup) {
-		surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
-		SDL_FreeSurface(cleanup);
-	}
-	delete [] pixels;
-
-	return surface;
 }
 
 int OpenGLRenderDevice::renderText(
@@ -599,9 +608,6 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 
 	if (surface)
 	{
-		Uint32 rmask, gmask, bmask, amask;
-		setSDL_RGBA(&rmask, &gmask, &bmask, &amask);
-
 		glGenTextures(1, &(image->texture));
 
 		glBindTexture(GL_TEXTURE_2D, image->texture);
@@ -624,7 +630,7 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 void OpenGLRenderDevice::drawPixel(
 	int x,
 	int y,
-	Uint32 color
+	const Color& color
 ) {
 	logInfo("drawPixel() UNIMPLEMENTED");
 }
@@ -634,7 +640,7 @@ void OpenGLRenderDevice::drawLine(
 	int y0,
 	int x1,
 	int y1,
-	Uint32 color
+	const Color& color
 ) {
 	logInfo("drawLine() UNIMPLEMENTED");
 }
@@ -642,7 +648,7 @@ void OpenGLRenderDevice::drawLine(
 void OpenGLRenderDevice::drawRectangle(
 	const Point& p0,
 	const Point& p1,
-	Uint32 color
+	const Color& color
 ) {
 	drawLine(p0.x, p0.y, p1.x, p0.y, color);
 	drawLine(p1.x, p0.y, p1.x, p1.y, color);
@@ -680,34 +686,6 @@ void OpenGLRenderDevice::destroyContext() {
 	}
 
 	return;
-}
-
-Uint32 OpenGLRenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
-	Uint32 u_format = SDL_GetWindowPixelFormat(window);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (format) {
-		Uint32 ret = SDL_MapRGB(format, r, g, b);
-		SDL_FreeFormat(format);
-		return ret;
-	}
-	else {
-		return 0;
-	}
-}
-
-Uint32 OpenGLRenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	Uint32 u_format = SDL_GetWindowPixelFormat(window);
-	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
-
-	if (format) {
-		Uint32 ret = SDL_MapRGBA(format, r, g, b, a);
-		SDL_FreeFormat(format);
-		return ret;
-	}
-	else {
-		return 0;
-	}
 }
 
 /**
@@ -852,18 +830,4 @@ void OpenGLRenderDevice::windowResize() {
 	glViewport(0, offsetY, static_cast<GLint>(VIEW_W / VIEW_SCALING), static_cast<GLint>(VIEW_H / VIEW_SCALING));
 
 	updateScreenVars();
-}
-
-void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	*rmask = 0xff000000;
-	*gmask = 0x00ff0000;
-	*bmask = 0x0000ff00;
-	*amask = 0x000000ff;
-#else
-	*rmask = 0x000000ff;
-	*gmask = 0x0000ff00;
-	*bmask = 0x00ff0000;
-	*amask = 0xff000000;
-#endif
 }

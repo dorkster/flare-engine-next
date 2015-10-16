@@ -35,6 +35,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 // should be removed from SDL_opengl.h to allow build under Windows with SDL2.0.4
 extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 #endif
+
+extern PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture;
+extern PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers;
+extern PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer;
+
 extern PFNGLGENVERTEXARRAYSPROC          glGenVertexArrays;
 extern PFNGLBINDVERTEXARRAYPROC          glBindVertexArray;
 extern PFNGLGENBUFFERSPROC               glGenBuffers;

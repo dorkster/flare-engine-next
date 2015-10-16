@@ -46,17 +46,15 @@ public:
 	int getWidth() const;
 	int getHeight() const;
 
-	void fillWithColor(Uint32 color);
-	void drawPixel(int x, int y, Uint32 color);
-	Uint32 MapRGB(Uint8 r, Uint8 g, Uint8 b);
-	Uint32 MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+	void fillWithColor(const Color& color);
+	void drawPixel(int x, int y, const Color& color);
 	Image* resize(int width, int height);
 
 	GLuint texture;
 	GLuint normalTexture;
 
 private:
-	Uint32 readPixel(int x, int y);
+	Color readPixel(int x, int y);
 };
 
 class OpenGLRenderDevice : public RenderDevice {
@@ -70,15 +68,13 @@ public:
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest);
 
-	int renderText(TTF_Font *ttf_font, const std::string& text, Color color, Rect& dest);
-	Image *renderTextToImage(TTF_Font* ttf_font, const std::string& text, Color color, bool blended = true);
-	void drawPixel(int x, int y, Uint32 color);
-	void drawRectangle(const Point& p0, const Point& p1, Uint32 color);
+	int renderText(FontStyle *font_style, const std::string& text, Color color, Rect& dest);
+	Image *renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended = true);
+	void drawPixel(int x, int y, const Color& color);
+	void drawRectangle(const Point& p0, const Point& p1, const Color& color);
 	void blankScreen();
 	void commitFrame();
 	void destroyContext();
-	Uint32 MapRGB(Uint8 r, Uint8 g, Uint8 b);
-	Uint32 MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
 	void windowResize();
 	Image *createImage(int width, int height);
 	void setGamma(float g);
@@ -89,8 +85,7 @@ public:
 								std::string errormessage = "Couldn't load image",
 								bool IfNotFoundExit = false);
 private:
-	void drawLine(int x0, int y0, int x1, int y1, Uint32 color);
-	void setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask);
+	void drawLine(int x0, int y0, int x1, int y1, const Color& color);
 
 	int buildResources();
 	void* openShaderFile(const char *filename, GLint *length);
@@ -98,7 +93,8 @@ private:
 	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 	void composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight = false);
-	SDL_Surface* copyTextureToSurface(GLuint texture);
+	void configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h);
+	void disableFrameBuffer(GLint *view_rect);
 
 	SDL_Window *window;
 	SDL_GLContext renderer;
