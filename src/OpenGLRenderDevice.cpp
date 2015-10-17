@@ -275,14 +275,14 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(src.h);
 	m_texelOffset[3] = static_cast<float>(src.y) / static_cast<float>(height);
 
-    GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
+	GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
 
-    if (texture == 0)
-        return 1;
+	if (texture == 0)
+		return 1;
 
 	glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	bool normals = ((int)normalTexture != -1);
 	if (normals)
@@ -298,110 +298,110 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 
 void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
 {
-    FILE *f = fopen(filename, "r");
-    void *buffer;
+	FILE *f = fopen(filename, "r");
+	void *buffer;
 
-    if (!f) {
-        logError("Unable to open shader file %s for reading", filename);
-        return NULL;
-    }
+	if (!f) {
+		logError("Unable to open shader file %s for reading", filename);
+		return NULL;
+	}
 
-    fseek(f, 0, SEEK_END);
-    *length = static_cast<GLint>(ftell(f));
-    fseek(f, 0, SEEK_SET);
+	fseek(f, 0, SEEK_END);
+	*length = static_cast<GLint>(ftell(f));
+	fseek(f, 0, SEEK_SET);
 
-    buffer = malloc(*length+1);
-    *length = static_cast<GLint>(fread(buffer, 1, *length, f));
-    fclose(f);
-    ((char*)buffer)[*length] = '\0';
+	buffer = malloc(*length+1);
+	*length = static_cast<GLint>(fread(buffer, 1, *length, f));
+	fclose(f);
+	((char*)buffer)[*length] = '\0';
 
-    return buffer;
+	return buffer;
 }
 
 GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
 {
-    GLint length;
-    GLchar *source = (char*)openShaderFile(filename, &length);
-    GLuint shader;
-    GLint shader_ok;
+	GLint length;
+	GLchar *source = (char*)openShaderFile(filename, &length);
+	GLuint shader;
+	GLint shader_ok;
 
-    if (!source)
-        return 1;
+	if (!source)
+		return 1;
 
-    shader = glCreateShader(type);
-    glShaderSource(shader, 1, (const GLchar**)&source, &length);
-    free(source);
-    glCompileShader(shader);
+	shader = glCreateShader(type);
+	glShaderSource(shader, 1, (const GLchar**)&source, &length);
+	free(source);
+	glCompileShader(shader);
 
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
-    if (!shader_ok)
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
+	if (!shader_ok)
 	{
-        logError("Failed to compile %s:", filename);
-        glDeleteShader(shader);
-        return 1;
-    }
-    return shader;
+		logError("Failed to compile %s:", filename);
+		glDeleteShader(shader);
+		return 1;
+	}
+	return shader;
 }
 
 GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_shader)
 {
-    GLint program_ok;
+	GLint program_ok;
 
-    GLuint program = glCreateProgram();
+	GLuint program = glCreateProgram();
 
-    glAttachShader(program, vertex_shader);
+	glAttachShader(program, vertex_shader);
 	glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
+	glLinkProgram(program);
 
-    glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
-    if (!program_ok)
+	glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
+	if (!program_ok)
 	{
-        logError("Failed to link shader program:");
-        glDeleteProgram(program);
-        return 1;
-    }
-    return program;
+		logError("Failed to link shader program:");
+		glDeleteProgram(program);
+		return 1;
+	}
+	return program;
 }
 
 GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size)
 {
-    GLuint buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(target, buffer);
-    glBufferData(target, buffer_size, buffer_data, GL_STATIC_DRAW);
-    return buffer;
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+	glBindBuffer(target, buffer);
+	glBufferData(target, buffer_size, buffer_data, GL_STATIC_DRAW);
+	return buffer;
 }
 
 int OpenGLRenderDevice::buildResources()
 {
 	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
-    element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
+	element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
-    m_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
-    if (m_vertex_shader == 0)
-        return 1;
+	m_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
+	if (m_vertex_shader == 0)
+		return 1;
 
-    m_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
-    if (m_fragment_shader == 0)
-        return 1;
+	m_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
+	if (m_fragment_shader == 0)
+		return 1;
 
 	m_program = createProgram(m_vertex_shader, m_fragment_shader);
-    if (m_program == 0)
-        return 1;
+	if (m_program == 0)
+		return 1;
 
-    attributes.position = glGetAttribLocation(m_program, "position");
+	attributes.position = glGetAttribLocation(m_program, "position");
 
-    uniforms.texture = glGetUniformLocation(m_program, "texture");
+	uniforms.texture = glGetUniformLocation(m_program, "texture");
 	uniforms.offset = glGetUniformLocation(m_program, "offset");
 	uniforms.texelOffset = glGetUniformLocation(m_program, "texelOffset");
 
-    uniforms.normals = glGetUniformLocation(m_program, "normals");
-    uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
+	uniforms.normals = glGetUniformLocation(m_program, "normals");
+	uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
-    return 0;
+	return 0;
 }
 
 int OpenGLRenderDevice::render(Sprite *r) {
@@ -447,14 +447,14 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(src.h);
 	m_texelOffset[3] = static_cast<float>(src.y) / static_cast<float>(height);
 
-    GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
-    GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
+	GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
+	GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
 
-    if (texture == 0)
-        return 1;
+	if (texture == 0)
+		return 1;
 
 	glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	bool normals = ((int)normalTexture != -1);
 	if (normals)
@@ -472,7 +472,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 {
 	glUseProgram(m_program);
 
-    glUniform1i(uniforms.texture, 0);
+	glUniform1i(uniforms.texture, 0);
 
 	if (withLight)
 	{
@@ -488,24 +488,24 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glVertexAttribPointer(
-        attributes.position,
-        2, GL_FLOAT, GL_FALSE,
-        sizeof(GLfloat)*2, (void*)0
-    );
+	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glVertexAttribPointer(
+		attributes.position,
+		2, GL_FLOAT, GL_FALSE,
+		sizeof(GLfloat)*2, (void*)0
+	);
 
-    glEnableVertexAttribArray(attributes.position);
+	glEnableVertexAttribArray(attributes.position);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
-    glDrawElements(
-        GL_TRIANGLE_STRIP,  /* mode */
-        4,                  /* count */
-        GL_UNSIGNED_SHORT,  /* type */
-        (void*)0            /* element array buffer offset */
-    );
+	glDrawElements(
+		GL_TRIANGLE_STRIP,  /* mode */
+		4,                  /* count */
+		GL_UNSIGNED_SHORT,  /* type */
+		(void*)0            /* element array buffer offset */
+	);
 
-    glDisableVertexAttribArray(attributes.position);
+	glDisableVertexAttribArray(attributes.position);
 }
 
 void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h)
@@ -596,7 +596,7 @@ int OpenGLRenderDevice::renderText(
 	m_texelOffset[0] = 1.0f; m_texelOffset[1] = 0.0f;
 	m_texelOffset[2] = 1.0f; m_texelOffset[3] = 0.0f;
 
-    GLuint texture;
+	GLuint texture;
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 

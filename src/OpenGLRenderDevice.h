@@ -101,20 +101,20 @@ private:
 	SDL_Surface* titlebar_icon;
 	char* title;
 
-    GLuint vertex_buffer, element_buffer;
-    GLuint m_vertex_shader, m_fragment_shader, m_program;
+	GLuint vertex_buffer, element_buffer;
+	GLuint m_vertex_shader, m_fragment_shader, m_program;
 
-    struct {
-        GLint texture;
-        GLint normals;
+	struct {
+		GLint texture;
+		GLint normals;
 		GLint light;
 		GLint offset;
 		GLint texelOffset;
-    } uniforms;
+	} uniforms;
 
-    struct {
-        GLint position;
-    } attributes;
+	struct {
+		GLint position;
+	} attributes;
 
 	GLushort elementBufferData[4];
 	GLfloat positionData[8];
