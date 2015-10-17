@@ -23,7 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
 #endif
 
-PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture       = NULL;
+PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D     = NULL;
 PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers          = NULL;
 PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers       = NULL;
 PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer          = NULL;
@@ -66,7 +66,7 @@ void init(void **context)
 		glActiveTexture	           = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
         #endif
 
-		glFramebufferTexture       = (PFNGLFRAMEBUFFERTEXTUREARBPROC)    glGetProcAddressARB("glFramebufferTextureARB");
+		glFramebufferTexture2D     = (PFNGLFRAMEBUFFERTEXTURE2DPROC)     glGetProcAddressARB("glFramebufferTexture2D");
 		glGenFramebuffers          = (PFNGLGENFRAMEBUFFERSPROC)          glGetProcAddressARB("glGenFramebuffers");
 		glDeleteFramebuffers       = (PFNGLDELETEFRAMEBUFFERSPROC)       glGetProcAddressARB("glDeleteFramebuffers");
 		glBindFramebuffer          = (PFNGLBINDFRAMEBUFFERPROC)          glGetProcAddressARB("glBindFramebuffer");

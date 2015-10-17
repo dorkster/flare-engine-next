@@ -36,7 +36,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 #endif
 
-extern PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture;
+extern PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D;
 extern PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers;
 extern PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers;
 extern PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer;

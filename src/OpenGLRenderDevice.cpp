@@ -513,7 +513,7 @@ void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, 
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, frameTexture);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, frameTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameTexture, 0);
 
 	glViewport(0, 0, frame_w, frame_h);
 }
