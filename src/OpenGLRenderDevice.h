@@ -52,9 +52,6 @@ public:
 
 	GLuint texture;
 	GLuint normalTexture;
-
-private:
-	Color readPixel(int x, int y);
 };
 
 class OpenGLRenderDevice : public RenderDevice {
