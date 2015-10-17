@@ -65,20 +65,12 @@ void OpenGLImage::fillWithColor(const Color& color) {
 
 	unsigned char* buffer = (unsigned char*)malloc(bytes);
 
-	for(int i = 0; i < bytes; i++)
+	for(int i = 0; i < bytes; i+=4)
 	{
-		if ((i + 1) % 1 == 0) {
-			buffer[i] = static_cast<unsigned char>(color.r);
-		}
-		else if ((i + 1) % 2 == 0) {
-			buffer[i] = static_cast<unsigned char>(color.g);
-		}
-		else if ((i + 1) % 3 == 0) {
-			buffer[i] = static_cast<unsigned char>(color.b);
-		}
-		else if ((i + 1) % 4 == 0) {
-			buffer[i] = static_cast<unsigned char>(color.a);
-		}
+		buffer[i] = static_cast<unsigned char>(color.r);
+		buffer[i + 1] = static_cast<unsigned char>(color.g);
+		buffer[i + 2] = static_cast<unsigned char>(color.b);
+		buffer[i + 3] = static_cast<unsigned char>(color.a);
 	}
 
 	glBindTexture(GL_TEXTURE_2D, texture);
