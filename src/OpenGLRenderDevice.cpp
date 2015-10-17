@@ -508,9 +508,8 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 
 void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h)
 {
-	GLuint frameBuffer = 0;
-	glGenFramebuffers(1, &frameBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+	glGenFramebuffers(1, &m_frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, frameTexture);
@@ -522,6 +521,7 @@ void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, 
 void OpenGLRenderDevice::disableFrameBuffer(GLint *view_rect)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glDeleteFramebuffers(1, &m_frameBuffer);
 	glViewport(view_rect[0], view_rect[1], view_rect[2], view_rect[3]);
 }
 
@@ -702,6 +702,13 @@ void OpenGLRenderDevice::commitFrame() {
 }
 
 void OpenGLRenderDevice::destroyContext() {
+	glDeleteBuffers(1, &vertex_buffer);
+	glDeleteBuffers(1, &element_buffer);
+	
+	glDeleteProgram(m_program);
+	glDeleteShader(m_vertex_shader);
+	glDeleteShader(m_fragment_shader);
+	
 	SDL_FreeSurface(titlebar_icon);
 	titlebar_icon = NULL;
 

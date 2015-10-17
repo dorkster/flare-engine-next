@@ -99,7 +99,7 @@ private:
 	char* title;
 
 	GLuint vertex_buffer, element_buffer;
-	GLuint m_vertex_shader, m_fragment_shader, m_program;
+	GLuint m_vertex_shader, m_fragment_shader, m_program, m_frameBuffer;
 
 	struct {
 		GLint texture;

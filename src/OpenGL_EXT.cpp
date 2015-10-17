@@ -25,6 +25,7 @@ PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
 
 PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture       = NULL;
 PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers          = NULL;
+PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers       = NULL;
 PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer          = NULL;
 
 PFNGLGENVERTEXARRAYSPROC          glGenVertexArrays          = NULL;
@@ -67,6 +68,7 @@ void init(void **context)
 
 		glFramebufferTexture       = (PFNGLFRAMEBUFFERTEXTUREARBPROC)    glGetProcAddressARB("glFramebufferTextureARB");
 		glGenFramebuffers          = (PFNGLGENFRAMEBUFFERSPROC)          glGetProcAddressARB("glGenFramebuffers");
+		glDeleteFramebuffers       = (PFNGLDELETEFRAMEBUFFERSPROC)       glGetProcAddressARB("glDeleteFramebuffers");
 		glBindFramebuffer          = (PFNGLBINDFRAMEBUFFERPROC)          glGetProcAddressARB("glBindFramebuffer");
 
 		glGenVertexArrays          = (PFNGLGENVERTEXARRAYSPROC)          glGetProcAddressARB("glGenVertexArrays");

@@ -38,6 +38,7 @@ extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 
 extern PFNGLFRAMEBUFFERTEXTUREARBPROC    glFramebufferTexture;
 extern PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers;
+extern PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers;
 extern PFNGLBINDFRAMEBUFFERPROC          glBindFramebuffer;
 
 extern PFNGLGENVERTEXARRAYSPROC          glGenVertexArrays;
