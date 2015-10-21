@@ -35,10 +35,18 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  *
  */
 
+/** 
+ * Shared functions for drawing on screen and image
+ */
+void* openShaderFile(const char *filename, GLint *length);
+void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w, int frame_h);
+void disableFrameBuffer(GLuint* frameBuffer, GLint *view_rect);
+GLuint getShader(GLenum type, const char *filename);
+GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
+GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
+int preparePrimitiveProgram();
 
-/** SDL Image */
-
-/** SDL Image */
+/** OpenGL Image */
 class OpenGLImage : public Image {
 public:
 	OpenGLImage(RenderDevice *device);
@@ -87,20 +95,14 @@ private:
 	void drawLine(int x0, int y0, int x1, int y1, const Color& color);
 
 	int buildResources();
-	void* openShaderFile(const char *filename, GLint *length);
-	GLuint getShader(GLenum type, const char *filename);
-	GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
-	GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 	void composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight = false);
-	void configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h);
-	void disableFrameBuffer(GLint *view_rect);
 
 	SDL_Window *window;
 	SDL_GLContext renderer;
 	SDL_Surface* titlebar_icon;
 	char* title;
 
-	GLuint vertex_buffer, element_buffer;
+	GLuint m_vertex_buffer, m_element_buffer;
 	GLuint m_vertex_shader, m_fragment_shader, m_program, m_frameBuffer;
 
 	struct {

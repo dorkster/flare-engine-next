@@ -28,7 +28,34 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "OpenGLRenderDevice.h"
 
-using namespace std;
+/**
+ * These will be used for both drawing on screen and image
+ */
+GLuint g_vertex_buffer, g_element_buffer;
+GLuint g_vertex_shader, g_fragment_shader, g_program, g_frameBuffer;
+GLushort g_elementBufferData[2];
+GLfloat g_positionData[4];
+GLint g_position, g_color;
+
+int preparePrimitiveProgram()
+{
+	g_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
+	if (g_vertex_shader == 0)
+		return 1;
+
+	g_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
+	if (g_fragment_shader == 0)
+		return 1;
+
+	g_program = createProgram(g_vertex_shader, g_fragment_shader);
+	if (g_program == 0)
+		return 1;
+
+	g_position = glGetAttribLocation(g_program, "position");
+	g_color = glGetUniformLocation(g_program, "color");
+
+	return 0;
+}
 
 OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
@@ -288,7 +315,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	return 0;
 }
 
-void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
+void* openShaderFile(const char *filename, GLint *length)
 {
 	FILE *f = fopen(filename, "r");
 	void *buffer;
@@ -310,7 +337,7 @@ void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
 	return buffer;
 }
 
-GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
+GLuint getShader(GLenum type, const char *filename)
 {
 	GLint length;
 	GLchar *source = (char*)openShaderFile(filename, &length);
@@ -335,7 +362,7 @@ GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
 	return shader;
 }
 
-GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_shader)
+GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader)
 {
 	GLint program_ok;
 
@@ -355,7 +382,7 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
 	return program;
 }
 
-GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size)
+GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size)
 {
 	GLuint buffer;
 	glGenBuffers(1, &buffer);
@@ -366,8 +393,8 @@ GLuint OpenGLRenderDevice::createBuffer(GLenum target, const void *buffer_data, 
 
 int OpenGLRenderDevice::buildResources()
 {
-	vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
-	element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
+	m_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
+	m_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
 
 	m_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
 	if (m_vertex_shader == 0)
@@ -392,6 +419,8 @@ int OpenGLRenderDevice::buildResources()
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
+
+	preparePrimitiveProgram();
 
 	return 0;
 }
@@ -480,7 +509,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
 	glVertexAttribPointer(
 		attributes.position,
 		2, GL_FLOAT, GL_FALSE,
@@ -489,7 +518,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 
 	glEnableVertexAttribArray(attributes.position);
 
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_element_buffer);
 	glDrawElements(
 		GL_TRIANGLE_STRIP,  /* mode */
 		4,                  /* count */
@@ -500,10 +529,10 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	glDisableVertexAttribArray(attributes.position);
 }
 
-void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, int frame_h)
+void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w, int frame_h)
 {
-	glGenFramebuffers(1, &m_frameBuffer);
-	glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);
+	glGenFramebuffers(1, frameBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, *frameBuffer);
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, frameTexture);
@@ -514,10 +543,10 @@ void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, 
 	glViewport(0, 0, frame_w, frame_h);
 }
 
-void OpenGLRenderDevice::disableFrameBuffer(GLint *view_rect)
+void disableFrameBuffer(GLuint* frameBuffer, GLint *view_rect)
 {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glDeleteFramebuffers(1, &m_frameBuffer);
+	glDeleteFramebuffers(1, frameBuffer);
 	glViewport(view_rect[0], view_rect[1], view_rect[2], view_rect[3]);
 }
 
@@ -538,7 +567,7 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 
 	GLint view[4];
 	glGetIntegerv(GL_VIEWPORT, view);
-	configureFrameBuffer(dst_texture, frameW, frameH);
+	configureFrameBuffer(&m_frameBuffer, dst_texture, frameW, frameH);
 
 	m_offset[0] = 2.0f * static_cast<float>(_dest.x)/static_cast<float>(frameW);
 	m_offset[1] = 2.0f * static_cast<float>(_dest.y)/static_cast<float>(frameH);
@@ -566,7 +595,7 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 
 	composeFrame(m_offset, m_texelOffset, false);
 
-	disableFrameBuffer(view);
+	disableFrameBuffer(&m_frameBuffer, view);
 
 	return 0;
 }
@@ -703,13 +732,17 @@ void OpenGLRenderDevice::commitFrame() {
 }
 
 void OpenGLRenderDevice::destroyContext() {
-	glDeleteBuffers(1, &vertex_buffer);
-	glDeleteBuffers(1, &element_buffer);
+	glDeleteBuffers(1, &m_vertex_buffer);
+	glDeleteBuffers(1, &m_element_buffer);
 	
 	glDeleteProgram(m_program);
 	glDeleteShader(m_vertex_shader);
 	glDeleteShader(m_fragment_shader);
 	
+	glDeleteProgram(g_program);
+	glDeleteShader(g_vertex_shader);
+	glDeleteShader(g_fragment_shader);
+
 	SDL_FreeSurface(titlebar_icon);
 	titlebar_icon = NULL;
 
