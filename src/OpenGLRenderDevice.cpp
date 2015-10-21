@@ -33,8 +33,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 GLuint g_vertex_buffer, g_element_buffer;
 GLuint g_vertex_shader, g_fragment_shader, g_program, g_frameBuffer;
-GLushort g_elementBufferData[2];
-GLfloat g_positionData[4];
+GLushort g_elementBufferData[4];
+GLfloat g_positionData[8];
 GLint g_position, g_color;
 
 int preparePrimitiveProgram()
@@ -59,26 +59,44 @@ int preparePrimitiveProgram()
 
 void drawPrimitive(int x, int y, const Color& color, DRAW_TYPE type, int x1, int y1)
 {
-	logInfo("drawPrimitive() HALF-IMPLEMENTED");
-	g_positionData[0] = 2.0f * static_cast<float>(x)/VIEW_W - 1.0f;
-	g_positionData[1] = 2.0f * static_cast<float>(y)/VIEW_H - 1.0f;
+	GLsizei points_count = 1;
+	GLenum mode;
+	g_positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
+	g_positionData[1] = 2.0f * static_cast<float>(y)/static_cast<float>(VIEW_H) - 1.0f;
 
 	if (type == DRAW_TYPE::TYPE_PIXEL)
 	{
-		g_positionData[2] = g_positionData[0] + 0.01f;
-		g_positionData[3] = g_positionData[1] + 0.01f;
+		points_count = 1;
+		mode = GL_POINTS;
+		g_positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
+		g_positionData[3] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
+	}
+	else if (type == DRAW_TYPE::TYPE_LINE)
+	{
+		logInfo("drawPrimitive(TYPE_LINE) UNIMPLEMENTED");
+		points_count = 2;
+		mode = GL_LINE_STRIP;
+		return;
 	}
 	else if (type == DRAW_TYPE::TYPE_RECT)
 	{
-		g_positionData[2] = 2.0f * static_cast<float>(x1)/VIEW_W - 1.0f;
-		g_positionData[3] = 2.0f * static_cast<float>(y1)/VIEW_H - 1.0f;
+		points_count = 4;
+		mode = GL_LINE_LOOP;
+		g_positionData[2] = 2.0f *  static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
+		g_positionData[3] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
+		g_positionData[4] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
+		g_positionData[5] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
+		g_positionData[6] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
+		g_positionData[7] = 2.0f *  static_cast<float>(y)/static_cast<float>(VIEW_H) - 1.0f;
 	}
 
 	g_elementBufferData[0] = 0;
 	g_elementBufferData[1] = 1;
+	g_elementBufferData[2] = 2;
+	g_elementBufferData[3] = 3;
 
-	g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, g_positionData, sizeof(g_positionData));
-	g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(g_elementBufferData));
+	g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, g_positionData, sizeof(GLfloat)*points_count*2);
+	g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(GLushort)*points_count);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -104,8 +122,8 @@ void drawPrimitive(int x, int y, const Color& color, DRAW_TYPE type, int x1, int
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_element_buffer);
 	glDrawElements(
-		GL_LINE_LOOP,       /* mode */
-		2,                  /* count */
+		mode,               /* mode */
+		points_count,       /* count */
 		GL_UNSIGNED_SHORT,  /* type */
 		(void*)0            /* element array buffer offset */
 	);
@@ -755,13 +773,7 @@ void OpenGLRenderDevice::drawLine(
 	int y1,
 	const Color& color
 ) {
-	(void)x0;
-	(void)y0;
-	(void)x1;
-	(void)y1;
-	(void)color;
-
-	logInfo("drawLine() UNIMPLEMENTED");
+	drawPrimitive(x0, y0, color, DRAW_TYPE::TYPE_LINE, x1, y1);
 }
 
 void OpenGLRenderDevice::drawRectangle(
