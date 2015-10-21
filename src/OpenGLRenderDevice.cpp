@@ -39,11 +39,11 @@ GLint g_position, g_color;
 
 int preparePrimitiveProgram()
 {
-	g_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
+	g_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex_p.glsl");
 	if (g_vertex_shader == 0)
 		return 1;
 
-	g_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment.glsl");
+	g_fragment_shader = getShader(GL_FRAGMENT_SHADER, "shaders/fragment_p.glsl");
 	if (g_fragment_shader == 0)
 		return 1;
 
@@ -55,6 +55,65 @@ int preparePrimitiveProgram()
 	g_color = glGetUniformLocation(g_program, "color");
 
 	return 0;
+}
+
+void drawPrimitive(int x, int y, const Color& color, DRAW_TYPE type, int x1, int y1)
+{
+	logInfo("drawPrimitive() HALF-IMPLEMENTED");
+	g_positionData[0] = 2.0f * static_cast<float>(x)/VIEW_W - 1.0f;
+	g_positionData[1] = 2.0f * static_cast<float>(y)/VIEW_H - 1.0f;
+
+	if (type == DRAW_TYPE::TYPE_PIXEL)
+	{
+		g_positionData[2] = g_positionData[0] + 0.01f;
+		g_positionData[3] = g_positionData[1] + 0.01f;
+	}
+	else if (type == DRAW_TYPE::TYPE_RECT)
+	{
+		g_positionData[2] = 2.0f * static_cast<float>(x1)/VIEW_W - 1.0f;
+		g_positionData[3] = 2.0f * static_cast<float>(y1)/VIEW_H - 1.0f;
+	}
+
+	g_elementBufferData[0] = 0;
+	g_elementBufferData[1] = 1;
+
+	g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, g_positionData, sizeof(g_positionData));
+	g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(g_elementBufferData));
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+
+	glUseProgram(g_program);
+
+	GLfloat _color[4];
+	_color[0] = static_cast<float>(color.r) / 255.0f;
+	_color[1] = static_cast<float>(color.g) / 255.0f;
+	_color[2] = static_cast<float>(color.b) / 255.0f;
+	_color[3] = static_cast<float>(color.a) / 255.0f;
+
+	glUniform4fv(g_color, 1, _color);
+
+	glBindBuffer(GL_ARRAY_BUFFER, g_vertex_buffer);
+	glVertexAttribPointer(
+		g_position,
+		2, GL_FLOAT, GL_FALSE,
+		sizeof(GLfloat)*2, (void*)0
+	);
+
+	glEnableVertexAttribArray(g_position);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_element_buffer);
+	glDrawElements(
+		GL_LINE_LOOP,       /* mode */
+		2,                  /* count */
+		GL_UNSIGNED_SHORT,  /* type */
+		(void*)0            /* element array buffer offset */
+	);
+
+	glDisableVertexAttribArray(g_position);
+
+	glDeleteBuffers(1, &g_vertex_buffer);
+	glDeleteBuffers(1, &g_element_buffer);
 }
 
 OpenGLImage::OpenGLImage(RenderDevice *_device)
@@ -104,11 +163,14 @@ void OpenGLImage::fillWithColor(const Color& color) {
  * Set the pixel at (x, y) to the given value
  */
 void OpenGLImage::drawPixel(int x, int y, const Color& color) {
-	(void)x;
-	(void)y;
-	(void)color;
-	if ((int)texture == -1) return;
-	logInfo("drawPixel() UNIMPLEMENTED");
+	GLuint frameBuffer;
+	GLint view[4];
+	glGetIntegerv(GL_VIEWPORT, view);
+	configureFrameBuffer(&frameBuffer, this->texture, width, height);
+
+	drawPrimitive(x, y, color, DRAW_TYPE::TYPE_PIXEL);
+
+	disableFrameBuffer(&frameBuffer, view);
 }
 
 /**
@@ -683,11 +745,7 @@ void OpenGLRenderDevice::drawPixel(
 	int y,
 	const Color& color
 ) {
-	(void)x;
-	(void)y;
-	(void)color;
-
-	logInfo("drawPixel() UNIMPLEMENTED");
+	drawPrimitive(x, y, color, DRAW_TYPE::TYPE_PIXEL);
 }
 
 void OpenGLRenderDevice::drawLine(
@@ -711,10 +769,7 @@ void OpenGLRenderDevice::drawRectangle(
 	const Point& p1,
 	const Color& color
 ) {
-	drawLine(p0.x, p0.y, p1.x, p0.y, color);
-	drawLine(p1.x, p0.y, p1.x, p1.y, color);
-	drawLine(p0.x, p0.y, p0.x, p1.y, color);
-	drawLine(p0.x, p1.y, p1.x, p1.y, color);
+	drawPrimitive(p0.x, p0.y, color, DRAW_TYPE::TYPE_RECT, p1.x, p1.y);
 }
 
 void OpenGLRenderDevice::blankScreen() {
