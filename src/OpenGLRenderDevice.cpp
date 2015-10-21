@@ -33,27 +33,21 @@ using namespace std;
 OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
 	, texture(-1)
-	, normalTexture(-1) {
+	, normalTexture(-1)
+	, width(0)
+	, height(0) {
 }
 
 OpenGLImage::~OpenGLImage() {
 }
 
 int OpenGLImage::getWidth() const {
-	int width = 0;
-	if ((int)texture == -1) return width;
-
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
 	return width;
 }
 
 int OpenGLImage::getHeight() const {
-	int height = 0;
-	if ((int)texture == -1) return height;
-
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
 	return height;
 }
 
@@ -513,6 +507,8 @@ void OpenGLRenderDevice::configureFrameBuffer(GLuint frameTexture, int frame_w, 
 	
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, frameTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameTexture, 0);
 
 	glViewport(0, 0, frame_w, frame_h);
@@ -557,14 +553,17 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 	m_texelOffset[2] = static_cast<float>(height) / static_cast<float>(_src.h);
 	m_texelOffset[3] = static_cast<float>(_src.y) / static_cast<float>(height);
 
+	// NOTE: when drawing texture to texture you don't need to flip y coordinate in shader, so flip y coordinate back
+	// NOTE: review this formula
+	m_offset[1] = 2.0f - m_offset[1];
+	m_offset[3] *= (-1.0f);
+
 	if (src_texture == 0)
 		return 1;
 
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, src_texture);
 
-	// FIXME: flip text, maybe do it in configureFrameBuffer() by redefining elementBufferData or/and positionData
-	// revert changes in disableFrameBuffer()
 	composeFrame(m_offset, m_texelOffset, false);
 
 	disableFrameBuffer(view);
@@ -629,6 +628,8 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 
 	if (surface)
 	{
+		image->width = surface->w;
+		image->height = surface->h;
 		glGenTextures(1, &(image->texture));
 
 		glBindTexture(GL_TEXTURE_2D, image->texture);
@@ -736,6 +737,8 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 	if (!image)
 		return NULL;
 
+	image->width = width;
+	image->height = height;
 	int channels = 4;
 	char* buffer = (char*)calloc(width * height * channels, sizeof(char));
 
@@ -794,14 +797,16 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	else {
 		image = new OpenGLImage(this);
 		SDL_Surface *surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
+		image->width = surface->w;
+		image->height = surface->h;
 
 		glGenTextures(1, &(image->texture));
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, image->texture);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, 4, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
@@ -813,7 +818,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
 
 	SDL_Surface *cleanupN = IMG_Load(mods->locate(normalFileName).c_str());
-	if(cleanupN) {
+	if(cleanupN && cleanupN->w == image->width && cleanupN->h == image->height) {
 		SDL_Surface *surfaceN = SDL_ConvertSurfaceFormat(cleanupN, SDL_PIXELFORMAT_ABGR8888, 0);
 
 		glGenTextures(1, &(image->normalTexture));
@@ -821,13 +826,17 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, image->normalTexture);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, 4, surfaceN->w, surfaceN->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceN->pixels);
 
 		SDL_FreeSurface(surfaceN);
+		SDL_FreeSurface(cleanupN);
+	}
+	else if (cleanupN) {
+		logInfo("Skip loading image %s, it has wrong size", normalFileName);
 		SDL_FreeSurface(cleanupN);
 	}
 	// store image to cache

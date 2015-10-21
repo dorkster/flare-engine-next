@@ -52,6 +52,8 @@ public:
 
 	GLuint texture;
 	GLuint normalTexture;
+	int width;
+	int height;
 };
 
 class OpenGLRenderDevice : public RenderDevice {
