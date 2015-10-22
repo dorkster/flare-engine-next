@@ -47,7 +47,7 @@ GLuint getShader(GLenum type, const char *filename);
 GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 int preparePrimitiveProgram();
-void drawPrimitive(int x, int y, const Color& color, DRAW_TYPE type, int x1 = 0, int y1 = 0);
+void drawPrimitive(GLfloat* vertexData, const Color& color, DRAW_TYPE type);
 
 /** OpenGL Image */
 class OpenGLImage : public Image {
@@ -120,8 +120,8 @@ private:
 		GLint position;
 	} attributes;
 
-	GLushort elementBufferData[4];
-	GLfloat positionData[8];
+	GLushort m_elementBufferData[4];
+	GLfloat m_positionData[8];
 	GLfloat m_offset[4]; //x, y, width, height
 	GLfloat m_texelOffset[4]; // 1/width, x, 1/height, y
 };

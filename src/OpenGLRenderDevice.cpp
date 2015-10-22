@@ -31,10 +31,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 /**
  * These will be used for both drawing on screen and image
  */
-GLuint g_vertex_buffer, g_element_buffer;
-GLuint g_vertex_shader, g_fragment_shader, g_program, g_frameBuffer;
+GLuint g_vertex_shader, g_fragment_shader, g_program;
 GLushort g_elementBufferData[4];
-GLfloat g_positionData[8];
 GLint g_position, g_color;
 
 int preparePrimitiveProgram()
@@ -54,49 +52,39 @@ int preparePrimitiveProgram()
 	g_position = glGetAttribLocation(g_program, "position");
 	g_color = glGetUniformLocation(g_program, "color");
 
+	g_elementBufferData[0] = 0;
+	g_elementBufferData[1] = 1;
+	g_elementBufferData[2] = 2;
+	g_elementBufferData[3] = 3;
+
 	return 0;
 }
 
-void drawPrimitive(int x, int y, const Color& color, DRAW_TYPE type, int x1, int y1)
+void drawPrimitive(GLfloat* vertexData, const Color& color, DRAW_TYPE type)
 {
 	GLsizei points_count = 1;
 	GLenum mode;
-	g_positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
-	g_positionData[1] = 2.0f * static_cast<float>(y)/static_cast<float>(VIEW_H) - 1.0f;
 
-	if (type == DRAW_TYPE::TYPE_PIXEL)
+	if (type == TYPE_PIXEL)
 	{
 		points_count = 1;
 		mode = GL_POINTS;
-		g_positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
-		g_positionData[3] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
 	}
-	else if (type == DRAW_TYPE::TYPE_LINE)
+	else if (type == TYPE_LINE)
 	{
 		logInfo("drawPrimitive(TYPE_LINE) UNIMPLEMENTED");
 		points_count = 2;
 		mode = GL_LINE_STRIP;
 		return;
 	}
-	else if (type == DRAW_TYPE::TYPE_RECT)
+	else if (type == TYPE_RECT)
 	{
 		points_count = 4;
 		mode = GL_LINE_LOOP;
-		g_positionData[2] = 2.0f *  static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
-		g_positionData[3] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
-		g_positionData[4] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
-		g_positionData[5] = 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H) - 1.0f;
-		g_positionData[6] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
-		g_positionData[7] = 2.0f *  static_cast<float>(y)/static_cast<float>(VIEW_H) - 1.0f;
 	}
 
-	g_elementBufferData[0] = 0;
-	g_elementBufferData[1] = 1;
-	g_elementBufferData[2] = 2;
-	g_elementBufferData[3] = 3;
-
-	g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, g_positionData, sizeof(GLfloat)*points_count*2);
-	g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(GLushort)*points_count);
+	GLuint g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, vertexData, sizeof(GLfloat)*points_count*2);
+	GLuint g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(GLushort)*points_count);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -186,7 +174,11 @@ void OpenGLImage::drawPixel(int x, int y, const Color& color) {
 	glGetIntegerv(GL_VIEWPORT, view);
 	configureFrameBuffer(&frameBuffer, this->texture, width, height);
 
-	drawPrimitive(x, y, color, DRAW_TYPE::TYPE_PIXEL);
+	GLfloat positionData[2];
+	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(width) - 1.0f;
+	positionData[1] = 2.0f * static_cast<float>(y)/static_cast<float>(height) - 1.0f;
+
+	drawPrimitive(positionData, color, TYPE_PIXEL);
 
 	disableFrameBuffer(&frameBuffer, view);
 }
@@ -198,7 +190,7 @@ void OpenGLImage::drawPixel(int x, int y, const Color& color) {
 Image* OpenGLImage::resize(int width, int height) {
 	if((int)texture == -1 || width <= 0 || height <= 0)
 		return NULL;
-	logInfo("resize() UNIMPLEMENTED");
+	// Resize is not needed for this renderer, it's done during rendering
 	return this;
 }
 
@@ -219,15 +211,15 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	min_screen.x = MIN_SCREEN_W;
 	min_screen.y = MIN_SCREEN_H;
 
-	positionData[0] = -1.0f; positionData[1] = -1.0f;
-	positionData[2] =  1.0f; positionData[3] = -1.0f;
-	positionData[4] = -1.0f; positionData[5] =  1.0f;
-	positionData[6] =  1.0f; positionData[7] =  1.0f;
+	m_positionData[0] = -1.0f; m_positionData[1] = -1.0f;
+	m_positionData[2] =  1.0f; m_positionData[3] = -1.0f;
+	m_positionData[4] = -1.0f; m_positionData[5] =  1.0f;
+	m_positionData[6] =  1.0f; m_positionData[7] =  1.0f;
 
-	elementBufferData[0] = 0;
-	elementBufferData[1] = 1;
-	elementBufferData[2] = 2;
-	elementBufferData[3] = 3;
+	m_elementBufferData[0] = 0;
+	m_elementBufferData[1] = 1;
+	m_elementBufferData[2] = 2;
+	m_elementBufferData[3] = 3;
 }
 
 int OpenGLRenderDevice::createContext() {
@@ -473,8 +465,8 @@ GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size)
 
 int OpenGLRenderDevice::buildResources()
 {
-	m_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, positionData, sizeof(positionData));
-	m_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBufferData, sizeof(elementBufferData));
+	m_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, m_positionData, sizeof(m_positionData));
+	m_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, m_elementBufferData, sizeof(m_elementBufferData));
 
 	m_vertex_shader = getShader(GL_VERTEX_SHADER, "shaders/vertex.glsl");
 	if (m_vertex_shader == 0)
@@ -763,7 +755,11 @@ void OpenGLRenderDevice::drawPixel(
 	int y,
 	const Color& color
 ) {
-	drawPrimitive(x, y, color, DRAW_TYPE::TYPE_PIXEL);
+	GLfloat positionData[2];
+	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(y)/static_cast<float>(VIEW_H);
+
+	drawPrimitive(positionData, color, TYPE_PIXEL);
 }
 
 void OpenGLRenderDevice::drawLine(
@@ -773,7 +769,13 @@ void OpenGLRenderDevice::drawLine(
 	int y1,
 	const Color& color
 ) {
-	drawPrimitive(x0, y0, color, DRAW_TYPE::TYPE_LINE, x1, y1);
+	GLfloat positionData[4];
+	positionData[0] = 2.0f * static_cast<float>(x0)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(y0)/static_cast<float>(VIEW_H);
+	positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[3] = 1.0f - 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H);
+
+	drawPrimitive(positionData, color, TYPE_LINE);
 }
 
 void OpenGLRenderDevice::drawRectangle(
@@ -781,7 +783,17 @@ void OpenGLRenderDevice::drawRectangle(
 	const Point& p1,
 	const Color& color
 ) {
-	drawPrimitive(p0.x, p0.y, color, DRAW_TYPE::TYPE_RECT, p1.x, p1.y);
+	GLfloat positionData[8];
+	positionData[0] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(VIEW_H);
+	positionData[2] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[3] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(VIEW_H);
+	positionData[4] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[5] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(VIEW_H);
+	positionData[6] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(VIEW_W) - 1.0f;
+	positionData[7] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(VIEW_H);
+
+	drawPrimitive(positionData, color, TYPE_RECT);
 }
 
 void OpenGLRenderDevice::blankScreen() {
@@ -936,7 +948,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		SDL_FreeSurface(cleanupN);
 	}
 	else if (cleanupN) {
-		logInfo("Skip loading image %s, it has wrong size", normalFileName);
+		logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
 		SDL_FreeSurface(cleanupN);
 	}
 	// store image to cache
