@@ -83,8 +83,8 @@ void drawPrimitive(GLfloat* vertexData, const Color& color, DRAW_TYPE type)
 		mode = GL_LINE_LOOP;
 	}
 
-	GLuint g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, vertexData, sizeof(GLfloat)*points_count*2);
-	GLuint g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, sizeof(GLushort)*points_count);
+	GLuint g_vertex_buffer = createBuffer(GL_ARRAY_BUFFER, vertexData, static_cast<GLsizei>(sizeof(GLfloat)*points_count*2));
+	GLuint g_element_buffer = createBuffer(GL_ELEMENT_ARRAY_BUFFER, g_elementBufferData, static_cast<GLsizei>(sizeof(GLushort)*points_count));
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
@@ -126,8 +126,8 @@ OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
 	, texture(-1)
 	, normalTexture(-1)
-	, width(0)
-	, height(0) {
+	, w(0)
+	, h(0) {
 }
 
 OpenGLImage::~OpenGLImage() {
@@ -135,12 +135,12 @@ OpenGLImage::~OpenGLImage() {
 
 int OpenGLImage::getWidth() const {
 	glBindTexture(GL_TEXTURE_2D, texture);
-	return width;
+	return w;
 }
 
 int OpenGLImage::getHeight() const {
 	glBindTexture(GL_TEXTURE_2D, texture);
-	return height;
+	return h;
 }
 
 void OpenGLImage::fillWithColor(const Color& color) {
@@ -172,11 +172,11 @@ void OpenGLImage::drawPixel(int x, int y, const Color& color) {
 	GLuint frameBuffer;
 	GLint view[4];
 	glGetIntegerv(GL_VIEWPORT, view);
-	configureFrameBuffer(&frameBuffer, this->texture, width, height);
+	configureFrameBuffer(&frameBuffer, this->texture, w, h);
 
 	GLfloat positionData[2];
-	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(width) - 1.0f;
-	positionData[1] = 2.0f * static_cast<float>(y)/static_cast<float>(height) - 1.0f;
+	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(w) - 1.0f;
+	positionData[1] = 2.0f * static_cast<float>(y)/static_cast<float>(h) - 1.0f;
 
 	drawPrimitive(positionData, color, TYPE_PIXEL);
 
@@ -731,8 +731,8 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 
 	if (surface)
 	{
-		image->width = surface->w;
-		image->height = surface->h;
+		image->w = surface->w;
+		image->h = surface->h;
 		glGenTextures(1, &(image->texture));
 
 		glBindTexture(GL_TEXTURE_2D, image->texture);
@@ -851,8 +851,8 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 	if (!image)
 		return NULL;
 
-	image->width = width;
-	image->height = height;
+	image->w = width;
+	image->h = height;
 	int channels = 4;
 	char* buffer = (char*)calloc(width * height * channels, sizeof(char));
 
@@ -911,8 +911,8 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	else {
 		image = new OpenGLImage(this);
 		SDL_Surface *surface = SDL_ConvertSurfaceFormat(cleanup, SDL_PIXELFORMAT_ABGR8888, 0);
-		image->width = surface->w;
-		image->height = surface->h;
+		image->w = surface->w;
+		image->h = surface->h;
 
 		glGenTextures(1, &(image->texture));
 
@@ -932,7 +932,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
 
 	SDL_Surface *cleanupN = IMG_Load(mods->locate(normalFileName).c_str());
-	if(cleanupN && cleanupN->w == image->width && cleanupN->h == image->height) {
+	if(cleanupN && cleanupN->w == image->w && cleanupN->h == image->h) {
 		SDL_Surface *surfaceN = SDL_ConvertSurfaceFormat(cleanupN, SDL_PIXELFORMAT_ABGR8888, 0);
 
 		glGenTextures(1, &(image->normalTexture));
