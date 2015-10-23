@@ -387,13 +387,15 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 	return 0;
 }
 
-void* openShaderFile(const char *filename, GLint *length)
+void* openShaderFile(const std::string& filename, GLint *length)
 {
-	FILE *f = fopen(filename, "r");
+	const char* full_filename = mods->locate(filename).c_str();
+
+	FILE *f = fopen(full_filename, "r");
 	void *buffer;
 
 	if (!f) {
-		logError("Unable to open shader file %s for reading", filename);
+		logError("Unable to open shader file %s for reading", filename.c_str());
 		return NULL;
 	}
 
@@ -409,7 +411,7 @@ void* openShaderFile(const char *filename, GLint *length)
 	return buffer;
 }
 
-GLuint getShader(GLenum type, const char *filename)
+GLuint getShader(GLenum type, const std::string& filename)
 {
 	GLint length;
 	GLchar *source = (char*)openShaderFile(filename, &length);
@@ -427,7 +429,7 @@ GLuint getShader(GLenum type, const char *filename)
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if (!shader_ok)
 	{
-		logError("Failed to compile %s:", filename);
+		logError("Failed to compile %s:", filename.c_str());
 		glDeleteShader(shader);
 		return 1;
 	}
@@ -605,7 +607,7 @@ void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w,
 {
 	glGenFramebuffers(1, frameBuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, *frameBuffer);
-	
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, frameTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -813,11 +815,11 @@ void OpenGLRenderDevice::commitFrame() {
 void OpenGLRenderDevice::destroyContext() {
 	glDeleteBuffers(1, &m_vertex_buffer);
 	glDeleteBuffers(1, &m_element_buffer);
-	
+
 	glDeleteProgram(m_program);
 	glDeleteShader(m_vertex_shader);
 	glDeleteShader(m_fragment_shader);
-	
+
 	glDeleteProgram(g_program);
 	glDeleteShader(g_vertex_shader);
 	glDeleteShader(g_fragment_shader);

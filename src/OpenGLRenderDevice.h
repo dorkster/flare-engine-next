@@ -35,15 +35,15 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  *
  */
 
-/** 
+/**
  * Shared functions for drawing on screen and image
  */
 enum DRAW_TYPE {TYPE_LINE, TYPE_PIXEL, TYPE_RECT};
 
-void* openShaderFile(const char *filename, GLint *length);
+void* openShaderFile(const std::string& filename, GLint *length);
 void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w, int frame_h);
 void disableFrameBuffer(GLuint* frameBuffer, GLint *view_rect);
-GLuint getShader(GLenum type, const char *filename);
+GLuint getShader(GLenum type, const std::string& filename);
 GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader);
 GLuint createBuffer(GLenum target, const void *buffer_data, GLsizei buffer_size);
 int preparePrimitiveProgram();
