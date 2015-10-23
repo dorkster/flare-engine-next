@@ -25,7 +25,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "SDLSoftwareRenderDevice.h"
 #include "SDLHardwareRenderDevice.h"
-
+#ifdef SUPPORT_OPENGL_RENDERER
+#include "OpenGLRenderDevice.h"
+#endif
 #include "SDLFontEngine.h"
 #include "SDLSoundManager.h"
 #include "SDLInputState.h"
@@ -35,7 +37,9 @@ RenderDevice* getRenderDevice(const std::string& name) {
 	if (name != "") {
 		if (name == "sdl") return new SDLSoftwareRenderDevice();
 		else if (name == "sdl_hardware") return new SDLHardwareRenderDevice();
+#ifdef SUPPORT_OPENGL_RENDERER
 		else if (name == "opengl") return new OpenGLRenderDevice();
+#endif
 		else {
 			logError("DeviceList: Render device '%s' not found. Falling back to the default.", name.c_str());
 			return new SDLHardwareRenderDevice();

@@ -321,6 +321,7 @@ If (USE_OPENGL)
 		Message (ERROR " Couldn't find OpenGL development files. OpenGL Renderer will be disabled")
 		Set (USE_OPENGL Off)
 	Else (NOT OPENGL_FOUND)
+		add_definitions(-DSUPPORT_OPENGL_RENDERER)
 		INCLUDE_DIRECTORIES(${OPENGL_INCLUDE_DIR})
 		SET(FLARE_SOURCES
 		${FLARE_SOURCES}
