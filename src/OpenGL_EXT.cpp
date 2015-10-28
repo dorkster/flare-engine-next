@@ -23,6 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
 #endif
 
+#ifndef __ANDROID__
 PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D     = NULL;
 PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers          = NULL;
 PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers       = NULL;
@@ -58,6 +59,8 @@ PFNGLGETATTRIBLOCATIONPROC        glGetAttribLocation        = NULL;
 PFNGLGETUNIFORMLOCATIONPROC       glGetUniformLocation       = NULL;
 PFNGLUNIFORM1IPROC                glUniform1i                = NULL;
 PFNGLUNIFORM4FVPROC               glUniform4fv               = NULL;
+#endif
+
 void init(void **context)
 {
 	if (context != NULL)
@@ -66,6 +69,7 @@ void init(void **context)
 		glActiveTexture	           = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
         #endif
 
+		#ifndef __ANDROID__
 		glFramebufferTexture2D     = (PFNGLFRAMEBUFFERTEXTURE2DPROC)     glGetProcAddressARB("glFramebufferTexture2D");
 		glGenFramebuffers          = (PFNGLGENFRAMEBUFFERSPROC)          glGetProcAddressARB("glGenFramebuffers");
 		glDeleteFramebuffers       = (PFNGLDELETEFRAMEBUFFERSPROC)       glGetProcAddressARB("glDeleteFramebuffers");
@@ -101,5 +105,6 @@ void init(void **context)
 		glGetUniformLocation       = (PFNGLGETUNIFORMLOCATIONPROC)       glGetProcAddressARB("glGetUniformLocation");
 		glUniform1i                = (PFNGLUNIFORM1IPROC)                glGetProcAddressARB("glUniform1i");
 		glUniform4fv               = (PFNGLUNIFORM4FVPROC)               glGetProcAddressARB("glUniform4fv");
+		#endif
 	}
 }

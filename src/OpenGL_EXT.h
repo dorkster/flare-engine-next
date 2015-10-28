@@ -23,6 +23,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifdef _WIN32
 #include <SDL_opengl.h>
 #define glGetProcAddressARB(x) wglGetProcAddress(x)
+#elif __ANDROID__
+#include <SDL_opengles2.h>
+#define GL_BGRA GL_RGBA
 #else
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -36,6 +39,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 #endif
 
+#ifndef __ANDROID__
 extern PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D;
 extern PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers;
 extern PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers;
@@ -71,7 +75,7 @@ extern PFNGLGETATTRIBLOCATIONPROC        glGetAttribLocation;
 extern PFNGLGETUNIFORMLOCATIONPROC       glGetUniformLocation;
 extern PFNGLUNIFORM1IPROC                glUniform1i;
 extern PFNGLUNIFORM4FVPROC               glUniform4fv;
+#endif
 extern void init(void **context);
-
 
 #endif //OPENGL_EXT_H
