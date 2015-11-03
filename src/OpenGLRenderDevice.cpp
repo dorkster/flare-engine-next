@@ -200,6 +200,15 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	, titlebar_icon(NULL)
 	, title(NULL)
 {
+#ifdef __ANDROID__
+	//SDL_LogSetAllPriority(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
+#endif
+
 	logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
 	MOUSE_SCALED = false;
 
@@ -389,13 +398,13 @@ int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
 
 void* openShaderFile(const std::string& filename, GLint *length)
 {
-	const char* full_filename = mods->locate(filename).c_str();
+	std::string full_filename = mods->locate(filename);
 
-	FILE *f = fopen(full_filename, "r");
+	FILE *f = fopen(full_filename.c_str(), "r");
 	void *buffer;
 
 	if (!f) {
-		logError("Unable to open shader file %s for reading", filename.c_str());
+		logError("Unable to open shader file %s for reading", full_filename.c_str());
 		return NULL;
 	}
 

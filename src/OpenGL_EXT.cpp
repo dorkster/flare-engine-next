@@ -65,9 +65,9 @@ void init(void **context)
 {
 	if (context != NULL)
 	{
-        #ifdef _WIN32
+		#ifdef _WIN32
 		glActiveTexture	           = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
-        #endif
+		#endif
 
 		#ifndef __ANDROID__
 		glFramebufferTexture2D     = (PFNGLFRAMEBUFFERTEXTURE2DPROC)     glGetProcAddressARB("glFramebufferTexture2D");
