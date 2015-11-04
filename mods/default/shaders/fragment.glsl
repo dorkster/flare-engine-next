@@ -1,4 +1,9 @@
-#version 110
+#version 100
+
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
 
 uniform sampler2D texture;
 uniform sampler2D normals;
@@ -31,12 +36,12 @@ void main()
 
 		float d = distance(gl_FragCoord.xy, light.xy * resolution);
 		d *= light.z;
-       
+
 		float att = useShadow ? 1.0 / ( attenuation.x + (attenuation.y*d) + (attenuation.z*d*d) ) : 1.0;
-       
+
 		vec3 result = (ambientColor * ambientIntensity) + (lightColor.rgb * lambert) * att;
 		result *= color.rgb;
-       
+
 		gl_FragColor = v_color * vec4(result, color.a);
 	}
 	else

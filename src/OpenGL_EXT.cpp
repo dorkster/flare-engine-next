@@ -24,6 +24,7 @@ PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
 #endif
 
 #ifndef __ANDROID__
+PFNGLCHECKFRAMEBUFFERSTATUSPROC   glCheckFramebufferStatus   = NULL;
 PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D     = NULL;
 PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers          = NULL;
 PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers       = NULL;
@@ -70,6 +71,7 @@ void init(void **context)
 		#endif
 
 		#ifndef __ANDROID__
+		glCheckFramebufferStatus   = (PFNGLCHECKFRAMEBUFFERSTATUSPROC)   glGetProcAddressARB("glCheckFramebufferStatus");
 		glFramebufferTexture2D     = (PFNGLFRAMEBUFFERTEXTURE2DPROC)     glGetProcAddressARB("glFramebufferTexture2D");
 		glGenFramebuffers          = (PFNGLGENFRAMEBUFFERSPROC)          glGetProcAddressARB("glGenFramebuffers");
 		glDeleteFramebuffers       = (PFNGLDELETEFRAMEBUFFERSPROC)       glGetProcAddressARB("glDeleteFramebuffers");

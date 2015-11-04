@@ -40,6 +40,7 @@ extern PFNGLACTIVETEXTUREARBPROC         glActiveTexture;
 #endif
 
 #ifndef __ANDROID__
+extern PFNGLCHECKFRAMEBUFFERSTATUSPROC   glCheckFramebufferStatus;
 extern PFNGLFRAMEBUFFERTEXTURE2DPROC     glFramebufferTexture2D;
 extern PFNGLGENFRAMEBUFFERSPROC          glGenFramebuffers;
 extern PFNGLDELETEFRAMEBUFFERSPROC       glDeleteFramebuffers;

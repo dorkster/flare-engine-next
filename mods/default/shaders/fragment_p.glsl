@@ -1,4 +1,9 @@
-#version 110
+#version 100
+
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
 
 varying vec4 point_color;
 

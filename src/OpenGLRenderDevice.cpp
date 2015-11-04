@@ -160,7 +160,10 @@ void OpenGLImage::fillWithColor(const Color& color) {
 	}
 
 	glBindTexture(GL_TEXTURE_2D, texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, channels, getWidth(), getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getWidth(), getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	int error = glGetError();
+	if (error != GL_NO_ERROR)
+		logInfo("Error while calling glTexImage2D(): %d", error);
 
 	free(buffer);
 }
@@ -205,8 +208,6 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-	SDL_GL_SetAttribute(SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, 1);
 #endif
 
 	logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
@@ -439,6 +440,11 @@ GLuint getShader(GLenum type, const std::string& filename)
 	if (!shader_ok)
 	{
 		logError("Failed to compile %s:", filename.c_str());
+		
+		GLchar glsl_log[BUFSIZ];
+		glGetShaderInfoLog(shader, BUFSIZ, NULL, glsl_log);
+		logError("%s", glsl_log);
+
 		glDeleteShader(shader);
 		return 1;
 	}
@@ -608,6 +614,9 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 		GL_UNSIGNED_SHORT,  /* type */
 		(void*)0            /* element array buffer offset */
 	);
+	GLenum error = glGetError();
+	if (error)
+		logInfo("Error while calling glDrawElements(): %d", error);
 
 	glDisableVertexAttribArray(attributes.position);
 }
@@ -622,6 +631,10 @@ void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w,
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, frameTexture, 0);
+
+	GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (error != GL_FRAMEBUFFER_COMPLETE)
+		logInfo("Failed to initialize framebuffer: %d", error);
 
 	glViewport(0, 0, frame_w, frame_h);
 }
@@ -713,7 +726,10 @@ int OpenGLRenderDevice::renderText(
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, 4, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
+	int error = glGetError();
+	if (error != GL_NO_ERROR)
+		logInfo("Error while calling glTexImage2D(): %d", error);
 	SDL_FreeSurface(surface);
 	if (texture == 0)
 		return 1;
@@ -751,6 +767,9 @@ Image * OpenGLRenderDevice::renderTextToImage(TTF_Font* ttf_font, const std::str
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
+		int error = glGetError();
+		if (error != GL_NO_ERROR)
+			logInfo("Error while calling glTexImage2D(): %d", error);
 		SDL_FreeSurface(surface);
 	}
 
@@ -872,7 +891,10 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, channels, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	int error = glGetError();
+	if (error != GL_NO_ERROR)
+		logInfo("Error while calling glTexImage2D(): %d", error);
 
 	free(buffer);
 
@@ -932,15 +954,19 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, 4, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
+		int error = glGetError();
+		if (error != GL_NO_ERROR)
+			logInfo("Error while calling glTexImage2D(): %d", error);
 
 		SDL_FreeSurface(surface);
 		SDL_FreeSurface(cleanup);
 	}
 
 	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
-
-	SDL_Surface *cleanupN = IMG_Load(mods->locate(normalFileName).c_str());
+	normalFileName = mods->locate(normalFileName);
+#ifndef __ANDROID__
+	SDL_Surface *cleanupN = IMG_Load(normalFileName.c_str());
 	if(cleanupN && cleanupN->w == image->w && cleanupN->h == image->h) {
 		SDL_Surface *surfaceN = SDL_ConvertSurfaceFormat(cleanupN, SDL_PIXELFORMAT_ABGR8888, 0);
 
@@ -953,7 +979,10 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-		glTexImage2D(GL_TEXTURE_2D, 0, 4, surfaceN->w, surfaceN->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceN->pixels);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surfaceN->w, surfaceN->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceN->pixels);
+		int error = glGetError();
+		if (error != GL_NO_ERROR)
+			logInfo("Error while calling glTexImage2D(): %d", error);
 
 		SDL_FreeSurface(surfaceN);
 		SDL_FreeSurface(cleanupN);
@@ -962,6 +991,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
 		SDL_FreeSurface(cleanupN);
 	}
+#endif
 	// store image to cache
 	cacheStore(filename, image);
 	return image;

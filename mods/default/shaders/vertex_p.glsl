@@ -1,4 +1,4 @@
-#version 110
+#version 100
 
 attribute vec2 position;
 
