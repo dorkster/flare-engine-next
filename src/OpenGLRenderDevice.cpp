@@ -440,7 +440,7 @@ GLuint getShader(GLenum type, const std::string& filename)
 	if (!shader_ok)
 	{
 		logError("Failed to compile %s:", filename.c_str());
-		
+
 		GLchar glsl_log[BUFSIZ];
 		glGetShaderInfoLog(shader, BUFSIZ, NULL, glsl_log);
 		logError("%s", glsl_log);
@@ -965,7 +965,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 
 	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
 	normalFileName = mods->locate(normalFileName);
-#ifndef __ANDROID__
+
 	SDL_Surface *cleanupN = IMG_Load(normalFileName.c_str());
 	if(cleanupN && cleanupN->w == image->w && cleanupN->h == image->h) {
 		SDL_Surface *surfaceN = SDL_ConvertSurfaceFormat(cleanupN, SDL_PIXELFORMAT_ABGR8888, 0);
@@ -991,7 +991,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 		logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
 		SDL_FreeSurface(cleanupN);
 	}
-#endif
+
 	// store image to cache
 	cacheStore(filename, image);
 	return image;
