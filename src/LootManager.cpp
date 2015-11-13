@@ -219,10 +219,10 @@ void LootManager::checkEnemiesForLoot() {
 		if (!e->stats.loot_table.empty()) {
 			unsigned drops;
 			if (e->stats.loot_count.y != 0) {
-				drops = (rand() % e->stats.loot_count.y) + e->stats.loot_count.x;
+				drops = randBetween(e->stats.loot_count.x, e->stats.loot_count.y);
 			}
 			else {
-				drops = (rand() % drop_max) + 1;
+				drops = randBetween(1, drop_max);
 			}
 
 			for (unsigned j=0; j<drops; ++j) {
@@ -242,10 +242,10 @@ void LootManager::checkMapForLoot() {
 	if (!mapr->loot.empty()) {
 		unsigned drops;
 		if (mapr->loot_count.y != 0) {
-			drops = (rand() % mapr->loot_count.y) + mapr->loot_count.x;
+			drops = randBetween(mapr->loot_count.x, mapr->loot_count.y);
 		}
 		else {
-			drops = (rand() % drop_max) + 1;
+			drops = randBetween(1, drop_max);
 		}
 
 		for (unsigned i=0; i<drops; ++i) {
@@ -262,7 +262,7 @@ void LootManager::addEnemyLoot(Enemy *e) {
 	enemiesDroppingLoot.push_back(e);
 }
 
-void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *pos) {
+void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *pos, std::vector<ItemStack> *itemstack_vec) {
 	if (hero == NULL) {
 		logError("LootManager: checkLoot() failed, no hero.");
 		return;
@@ -311,7 +311,10 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 				new_loot.item = ec->c;
 			}
 
-			addLoot(new_loot, p);
+			if (itemstack_vec)
+				itemstack_vec->push_back(new_loot);
+			else
+				addLoot(new_loot, p);
 
 			loot_table.erase(loot_table.begin()+i-1);
 		}
@@ -381,7 +384,10 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 			new_loot.item = ec->c;
 		}
 
-		addLoot(new_loot, p);
+		if (itemstack_vec)
+			itemstack_vec->push_back(new_loot);
+		else
+			addLoot(new_loot, p);
 	}
 }
 
