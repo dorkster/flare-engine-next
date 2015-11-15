@@ -83,7 +83,11 @@ static void init(const std::string &render_device_name) {
 	setStatNames();
 
 	// Create render Device and Rendering Context.
-	render_device = getRenderDevice(render_device_name);
+	if (render_device_name != "")
+		render_device = getRenderDevice(render_device_name);
+	else
+		render_device = getRenderDevice(RENDER_DEVICE);
+
 	int status = render_device->createContext();
 
 	if (status == -1) {
@@ -122,7 +126,8 @@ static void init(const std::string &render_device_name) {
 
 static void mainLoop () {
 	bool done = false;
-	int delay = int(floor((1000.f/MAX_FRAMES_PER_SEC)+0.5f));
+	float delay_f = 1000.f/MAX_FRAMES_PER_SEC;
+	int delay = int(floorf(delay_f+0.5f));
 	int logic_ticks = SDL_GetTicks();
 
 	while ( !done ) {
@@ -180,12 +185,13 @@ static void mainLoop () {
 		// display the FPS counter
 		// if the frame completed quickly, we estimate the delay here
 		now_ticks = SDL_GetTicks();
-		int delay_ticks = 0;
+		float delay_ticks = 0;
 		if (now_ticks - prev_ticks < delay) {
-			delay_ticks = delay - (now_ticks - prev_ticks);
+			delay_ticks = delay_f - static_cast<float>(now_ticks - prev_ticks);
 		}
-		if (now_ticks+delay_ticks - prev_ticks != 0) {
-			gswitch->showFPS(1000 / (now_ticks+delay_ticks - prev_ticks));
+		float fps_delay = delay_ticks + static_cast<float>(now_ticks-prev_ticks);
+		if (fps_delay != 0) {
+			gswitch->showFPS(static_cast<int>(1000.f / fps_delay));
 		}
 
 		render_device->commitFrame();
