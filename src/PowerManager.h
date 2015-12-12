@@ -43,10 +43,10 @@ const int POWTYPE_REPEATER = 2;
 const int POWTYPE_SPAWN = 3;
 const int POWTYPE_TRANSFORM = 4;
 const int POWTYPE_EFFECT = 5;
+const int POWTYPE_BLOCK = 6;
 
-const int POWSTATE_BLOCK = 1;
-const int POWSTATE_INSTANT = 2;
-const int POWSTATE_ATTACK = 3;
+const int POWSTATE_INSTANT = 1;
+const int POWSTATE_ATTACK = 2;
 
 const int BASE_DAMAGE_NONE = 0;
 const int BASE_DAMAGE_MELEE = 1;
@@ -125,6 +125,7 @@ public:
 	std::string description;
 	int icon; // just the number.  The caller menu will have access to the surface.
 	int new_state; // when using this power the user (avatar/enemy) starts a new state
+	int state_duration; // can be used to extend the length of a state animation by pausing on the last frame
 	std::string attack_anim; // name of the animation to play when using this power, if it is not block
 	bool face; // does the user turn to face the mouse cursor when using this power?
 	int source_type; //hero, neutral, or enemy
@@ -152,6 +153,8 @@ public:
 	// animation info
 	std::string animation_name;
 	int sfx_index;
+	unsigned long sfx_hit;
+	bool sfx_hit_enable;
 	bool directional; // sprite sheet contains options for 8 directions, one per row
 	int visual_random; // sprite sheet contains rows of random options
 	int visual_option; // sprite sheet contains rows of similar effects.  use a specific option
@@ -160,6 +163,7 @@ public:
 	int lifespan; // how long the hazard/animation lasts
 	bool floor; // the hazard is drawn between the background and object layers
 	bool complete_animation;
+	float charge_speed;
 
 	// hazard traits
 	bool use_hazard;
@@ -167,6 +171,7 @@ public:
 	float radius;
 	int base_damage; // enum.  damage is powered by melee, ranged, mental weapon
 	int starting_pos; // enum. (source, target, or melee)
+	bool relative_pos;
 	bool multitarget;
 	float target_range;
 	bool target_party;
@@ -244,6 +249,7 @@ public:
 		, description("")
 		, icon(-1)
 		, new_state(-1)
+		, state_duration(0)
 		, attack_anim("")
 		, face(false)
 		, source_type(-1)
@@ -268,6 +274,7 @@ public:
 
 		, animation_name("")
 		, sfx_index(-1)
+		, sfx_hit(0)
 		, directional(false)
 		, visual_random(0)
 		, visual_option(0)
@@ -276,12 +283,14 @@ public:
 		, lifespan(0)
 		, floor(false)
 		, complete_animation(false)
+		, charge_speed(0.0f)
 
 		, use_hazard(false)
 		, no_attack(false)
 		, radius(0)
 		, base_damage(BASE_DAMAGE_NONE)
 		, starting_pos(STARTING_POS_SOURCE)
+		, relative_pos(false)
 		, multitarget(false)
 		, target_range(0)
 		, target_party(false)

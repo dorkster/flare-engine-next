@@ -229,6 +229,7 @@ public:
 	int absorb_max_add;
 
 	float speed;
+	float charge_speed;
 
 	std::set<std::string> equip_flags;
 	std::vector<int> vulnerable;
@@ -254,6 +255,8 @@ public:
 
 	// state
 	int cur_state;
+	int state_ticks;
+	bool hold_state;
 
 	// waypoint patrolling
 	std::queue<FPoint> waypoints;

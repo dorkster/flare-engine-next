@@ -28,6 +28,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Hazard.h"
 #include "MapCollision.h"
 #include "SharedResources.h"
+#include "StatBlock.h"
 #include "Settings.h"
 #include "UtilsMath.h"
 #include "UtilsParsing.h"
@@ -47,6 +48,7 @@ Hazard::Hazard(MapCollision *_collider)
 	, target_party(false)
 	, pos()
 	, speed()
+	, pos_offset()
 	, base_speed(0)
 	, angle(0)
 	, base_lifespan(1)
@@ -74,7 +76,10 @@ Hazard::Hazard(MapCollision *_collider)
 	, target_movement_normal(true)
 	, target_movement_flying(true)
 	, target_movement_intangible(true)
-	, walls_block_aoe(false) {
+	, walls_block_aoe(false)
+	, sfx_hit(0)
+	, sfx_hit_enable(false)
+	, sfx_hit_played(false) {
 }
 
 Hazard::~Hazard() {
@@ -99,10 +104,19 @@ void Hazard::logic() {
 		activeAnimation->advanceFrame();
 
 	// handle movement
+	bool check_collide = false;
 	if (!(speed.x == 0 && speed.y == 0)) {
 		pos.x += speed.x;
 		pos.y += speed.y;
+		check_collide = true;
+	}
+	else if (!(pos_offset.x == 0 && pos_offset.y == 0)) {
+		pos.x = src_stats->pos.x - pos_offset.x;
+		pos.y = src_stats->pos.y - pos_offset.y;
+		check_collide = true;
+	}
 
+	if (check_collide) {
 		// very simplified collider, could skim around corners
 		// or even pass through thin walls if speed > tilesize
 		if (collider->is_wall(pos.x, pos.y)) {

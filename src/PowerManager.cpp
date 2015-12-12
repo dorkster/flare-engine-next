@@ -144,12 +144,13 @@ void PowerManager::loadPowers() {
 			continue;
 
 		if (infile.key == "type") {
-			// @ATTR type|[fixed:missile:repeater:spawn:transform]|Defines the type of power definiton
+			// @ATTR type|[fixed:missile:repeater:spawn:transform:block]|Defines the type of power definiton
 			if (infile.val == "fixed") powers[input_id].type = POWTYPE_FIXED;
 			else if (infile.val == "missile") powers[input_id].type = POWTYPE_MISSILE;
 			else if (infile.val == "repeater") powers[input_id].type = POWTYPE_REPEATER;
 			else if (infile.val == "spawn") powers[input_id].type = POWTYPE_SPAWN;
 			else if (infile.val == "transform") powers[input_id].type = POWTYPE_TRANSFORM;
+			else if (infile.val == "block") powers[input_id].type = POWTYPE_BLOCK;
 			else infile.error("PowerManager: Unknown type '%s'", infile.val.c_str());
 		}
 		else if (infile.key == "name")
@@ -162,13 +163,16 @@ void PowerManager::loadPowers() {
 			// @ATTR icon|string|The icon to visually represent the power eg. in skill tree or action bar.
 			powers[input_id].icon = toInt(infile.val);
 		else if (infile.key == "new_state") {
-			// @ATTR new_state|string|When power is used, hero or enemy will change to this state. Must be one of the states [block, instant, user defined]
-			if (infile.val == "block") powers[input_id].new_state = POWSTATE_BLOCK;
-			else if (infile.val == "instant") powers[input_id].new_state = POWSTATE_INSTANT;
+			// @ATTR new_state|string|When power is used, hero or enemy will change to this state. Must be one of the states [instant, user defined]
+			if (infile.val == "instant") powers[input_id].new_state = POWSTATE_INSTANT;
 			else {
 				powers[input_id].new_state = POWSTATE_ATTACK;
 				powers[input_id].attack_anim = infile.val;
 			}
+		}
+		else if (infile.key == "state_duration") {
+			// @ATTR state_duration|duration|Sets the length of time the caster is in their state animation. A time longer than the animation length will cause the animation to pause on the last frame. Times shorter than the state animation length will have no effect.
+			powers[input_id].state_duration = parse_duration(infile.val);
 		}
 		else if (infile.key == "face")
 			// @ATTR face|bool|Power will make hero or enemy to face the target location.
@@ -255,8 +259,16 @@ void PowerManager::loadPowers() {
 			// @ATTR animation|string|The filename of the power animation.
 			powers[input_id].animation_name = infile.val;
 		else if (infile.key == "soundfx")
-			// @ATTR soundfx|string|Filename of a sound effect to play when use of power.
+			// @ATTR soundfx|string|Filename of a sound effect to play when the power is used.
 			powers[input_id].sfx_index = loadSFX(infile.val);
+		else if (infile.key == "soundfx_hit") {
+			// @ATTR soundfx_hit|string|Filename of a sound effect to play when the power's hazard hits a valid target.
+			int sfx_id = loadSFX(infile.val);
+			if (sfx_id != -1) {
+				powers[input_id].sfx_hit = sfx[sfx_id];
+				powers[input_id].sfx_hit_enable = true;
+			}
+		}
 		else if (infile.key == "directional")
 			// @ATTR directional|bool|The animation sprite sheet contains 8 directions, one per row.
 			powers[input_id].directional = toBool(infile.val);
@@ -281,6 +293,9 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "complete_animation")
 			// @ATTR complete_animation|bool|For hazards; Play the entire animation, even if the hazard has hit a target.
 			powers[input_id].complete_animation = toBool(infile.val);
+		else if (infile.key == "charge_speed")
+			// @ATTR charge_speed|float|Moves the caster at this speed in the direction they are facing until the state animation is finished.
+			powers[input_id].charge_speed = toFloat(infile.val) / MAX_FRAMES_PER_SEC;
 		// hazard traits
 		else if (infile.key == "use_hazard")
 			// @ATTR use_hazard|bool|Power uses hazard.
@@ -305,6 +320,10 @@ void PowerManager::loadPowers() {
 			else if (infile.val == "target") powers[input_id].starting_pos = STARTING_POS_TARGET;
 			else if (infile.val == "melee")  powers[input_id].starting_pos = STARTING_POS_MELEE;
 			else infile.error("PowerManager: Unknown starting_pos '%s'", infile.val.c_str());
+		}
+		else if (infile.key == "relative_pos") {
+			// @ATTR relative_pos|bool|Hazard will move relative to the caster's position.
+			powers[input_id].relative_pos = toBool(infile.val);
 		}
 		else if (infile.key == "multitarget")
 			// @ATTR multitarget|bool|Allows a hazard power to hit more than one entity.
@@ -730,6 +749,11 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, FPoint targ
 		haz->pos = collider->get_random_neighbor(floor(src_stats->pos), powers[power_index].target_neighbor, true);
 	}
 
+	if (powers[power_index].relative_pos) {
+		haz->pos_offset.x = src_stats->pos.x - haz->pos.x;
+		haz->pos_offset.y = src_stats->pos.y - haz->pos.y;
+	}
+
 	// pre/post power effects
 	haz->post_power = powers[power_index].post_power;
 	haz->wall_power = powers[power_index].wall_power;
@@ -748,6 +772,11 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, FPoint targ
 	haz->target_movement_intangible = powers[power_index].target_movement_intangible;
 
 	haz->walls_block_aoe = powers[power_index].walls_block_aoe;
+
+	if (powers[power_index].sfx_hit_enable) {
+		haz->sfx_hit = powers[power_index].sfx_hit;
+		haz->sfx_hit_enable = powers[power_index].sfx_hit_enable;
+	}
 }
 
 /**
@@ -1182,7 +1211,7 @@ bool PowerManager::activate(int power_index, StatBlock *src_stats, FPoint target
 	if (src_stats->hp > 0 && powers[power_index].sacrifice == false && powers[power_index].requires_hp >= src_stats->hp)
 		return false;
 
-	if (powers[power_index].new_state == POWSTATE_BLOCK)
+	if (powers[power_index].type == POWTYPE_BLOCK)
 		return block(power_index, src_stats);
 
 	// logic for different types of powers are very different.  We allow these

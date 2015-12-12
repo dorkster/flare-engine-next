@@ -76,6 +76,7 @@ public:
 
 	FPoint pos;
 	FPoint speed;
+	FPoint pos_offset;
 	float base_speed;
 	float angle; // in radians
 	int base_lifespan;
@@ -124,6 +125,11 @@ public:
 	bool target_movement_intangible;
 
 	bool walls_block_aoe;
+
+	// soundfx
+	unsigned long sfx_hit;
+	bool sfx_hit_enable;
+	bool sfx_hit_played;
 
 	// loot
 	std::vector<Event_Component> loot;
