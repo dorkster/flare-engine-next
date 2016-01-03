@@ -232,7 +232,7 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	m_elementBufferData[3] = 3;
 }
 
-int OpenGLRenderDevice::createContext() {
+int OpenGLRenderDevice::createContext(bool allow_fallback) {
 	bool settings_changed = (fullscreen != FULLSCREEN || hwsurface != HWSURFACE || vsync != VSYNC || texture_filter != TEXTURE_FILTER);
 
 	Uint32 w_flags = 0;
@@ -309,21 +309,23 @@ int OpenGLRenderDevice::createContext() {
 			exit(1);
 		}
 		else if (!window_created) {
-			// try previous setting first
-			FULLSCREEN = fullscreen;
-			HWSURFACE = hwsurface;
-			VSYNC = vsync;
-			TEXTURE_FILTER = texture_filter;
-			if (createContext() == -1) {
-				// last resort, try turning everything off
-				FULLSCREEN = false;
-				HWSURFACE = false;
-				VSYNC = false;
-				TEXTURE_FILTER = false;
-				return createContext();
-			}
-			else {
-				return 0;
+			if (allow_fallback) {
+				// try previous setting first
+				FULLSCREEN = fullscreen;
+				HWSURFACE = hwsurface;
+				VSYNC = vsync;
+				TEXTURE_FILTER = texture_filter;
+				if (createContext(false) == -1) {
+					// last resort, try turning everything off
+					FULLSCREEN = false;
+					HWSURFACE = false;
+					VSYNC = false;
+					TEXTURE_FILTER = false;
+					return createContext(false);
+				}
+				else {
+					return 0;
+				}
 			}
 		}
 		else {
