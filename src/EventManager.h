@@ -25,15 +25,24 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "FileParser.h"
 #include "Utils.h"
 
+enum EVENT_TYPE {
+	EVENT_ON_TRIGGER = 0,
+	EVENT_ON_MAPEXIT = 1,
+	EVENT_ON_LEAVE = 2,
+	EVENT_ON_LOAD = 3,
+	EVENT_ON_CLEAR = 4
+};
+
 class Event {
 public:
-	std::string type;
+	int type;
 	std::vector<Event_Component> components;
 	Rect location;
 	Rect hotspot;
 	int cooldown; // events that run multiple times pause this long in frames
 	int cooldown_ticks;
 	bool keep_after_trigger; // if this event has been triggered once, should this event be kept? If so, this event can be triggered multiple times.
+	bool click_to_trigger;
 	FPoint center;
 	Rect reachable_from;
 
