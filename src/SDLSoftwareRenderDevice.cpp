@@ -329,7 +329,7 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 	return (is_initialized ? 0 : -1);
 }
 
-int SDLSoftwareRenderDevice::render(Renderable& r, Rect dest) {
+int SDLSoftwareRenderDevice::render(Renderable& r, Rect& dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 	return SDL_BlitSurface(static_cast<SDLSoftwareImage *>(r.image)->surface, &src, screen, &_dest);
@@ -362,7 +362,7 @@ int SDLSoftwareRenderDevice::renderToImage(Image* src_image, Rect& src, Image* d
 int SDLSoftwareRenderDevice::renderText(
 	FontStyle *font_style,
 	const std::string& text,
-	Color color,
+	const Color& color,
 	Rect& dest
 ) {
 	int ret = 0;
@@ -381,7 +381,7 @@ int SDLSoftwareRenderDevice::renderText(
 	return ret;
 }
 
-Image* SDLSoftwareRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended) {
+Image* SDLSoftwareRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended) {
 	SDLSoftwareImage *image = new SDLSoftwareImage(this);
 	if (!image) return NULL;
 
@@ -581,7 +581,7 @@ void SDLSoftwareRenderDevice::updateTitleBar() {
 	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
-Image *SDLSoftwareRenderDevice::loadImage(std::string filename, std::string errormessage, bool IfNotFoundExit) {
+Image *SDLSoftwareRenderDevice::loadImage(const std::string& filename, const std::string& errormessage, bool IfNotFoundExit) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);

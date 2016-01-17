@@ -49,29 +49,29 @@ class FontStyle;
 class Sprite {
 
 public:
-	virtual ~Sprite();
+	~Sprite();
 
 	Rect local_frame;
 
-	virtual Image * getGraphics();
-	virtual void setOffset(const Point& _offset);
-	virtual void setOffset(const int x, const int y);
-	virtual Point getOffset();
-	virtual void setClip(const Rect& clip);
-	virtual void setClip(const int x, const int y, const int w, const int h);
-	virtual void setClipX(const int x);
-	virtual void setClipY(const int y);
-	virtual void setClipW(const int w);
-	virtual void setClipH(const int h);
-	virtual Rect getClip();
-	virtual void setDest(const Rect& _dest);
-	virtual void setDest(const Point& _dest);
-	virtual void setDest(int x, int y);
-	virtual void setDestX(int x);
-	virtual void setDestY(int y);
-	virtual FPoint getDest();
-	virtual int getGraphicsWidth();
-	virtual int getGraphicsHeight();
+	Image * getGraphics();
+	void setOffset(const Point& _offset);
+	void setOffset(const int x, const int y);
+	Point getOffset();
+	void setClip(const Rect& clip);
+	void setClip(const int x, const int y, const int w, const int h);
+	void setClipX(const int x);
+	void setClipY(const int y);
+	void setClipW(const int w);
+	void setClipH(const int h);
+	Rect getClip();
+	void setDest(const Rect& _dest);
+	void setDest(const Point& _dest);
+	void setDest(int x, int y);
+	void setDestX(int x);
+	void setDestY(int y);
+	FPoint getDest();
+	int getGraphicsWidth();
+	int getGraphicsHeight();
 private:
 	Sprite(Image *);
 	friend class Image;
@@ -181,18 +181,18 @@ public:
 	virtual void updateTitleBar() = 0;
 
 	/** factory functions for Image */
-	virtual Image *loadImage(std::string filename,
-							 std::string errormessage = "Couldn't load image",
+	virtual Image *loadImage(const std::string& filename,
+							 const std::string& errormessage = "Couldn't load image",
 							 bool IfNotFoundExit = false) = 0;
 	virtual Image *createImage(int width, int height) = 0;
 	virtual void freeImage(Image *image) = 0;
 
 	/** Screen operations */
 	virtual int render(Sprite* r) = 0;
-	virtual int render(Renderable& r, Rect dest) = 0;
+	virtual int render(Renderable& r, Rect& dest) = 0;
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest) = 0;
-	virtual int renderText(FontStyle *font_style, const std::string& text, Color color, Rect& dest) = 0;
-	virtual Image* renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended = true) = 0;
+	virtual int renderText(FontStyle *font_style, const std::string& text, const Color& color, Rect& dest) = 0;
+	virtual Image* renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended = true) = 0;
 	virtual void blankScreen() = 0;
 	virtual void commitFrame() = 0;
 	virtual void drawPixel(int x, int y, const Color& color) = 0;
@@ -204,8 +204,8 @@ protected:
 	bool localToGlobal(Sprite *r);
 
 	/* Image cache operations */
-	Image *cacheLookup(std::string &filename);
-	void cacheStore(std::string &filename, Image *);
+	Image *cacheLookup(const std::string &filename);
+	void cacheStore(const std::string &filename, Image *);
 	void cacheRemove(Image *image);
 
 	bool fullscreen;

@@ -238,7 +238,7 @@ int SDLHardwareRenderDevice::createContext(bool allow_fallback) {
 	return (is_initialized ? 0 : -1);
 }
 
-int SDLHardwareRenderDevice::render(Renderable& r, Rect dest) {
+int SDLHardwareRenderDevice::render(Renderable& r, Rect& dest) {
 	dest.w = r.src.w;
 	dest.h = r.src.h;
     SDL_Rect src = r.src;
@@ -298,7 +298,7 @@ int SDLHardwareRenderDevice::renderToImage(Image* src_image, Rect& src, Image* d
 int SDLHardwareRenderDevice::renderText(
 	FontStyle *font_style,
 	const std::string& text,
-	Color color,
+	const Color& color,
 	Rect& dest
 ) {
 	int ret = 0;
@@ -333,7 +333,7 @@ int SDLHardwareRenderDevice::renderText(
 	return ret;
 }
 
-Image * SDLHardwareRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended) {
+Image * SDLHardwareRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended) {
 	SDLHardwareImage *image = new SDLHardwareImage(this, renderer);
 
 	SDL_Surface *cleanup;
@@ -459,7 +459,7 @@ void SDLHardwareRenderDevice::updateTitleBar() {
 	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
-Image *SDLHardwareRenderDevice::loadImage(std::string filename, std::string errormessage, bool IfNotFoundExit) {
+Image *SDLHardwareRenderDevice::loadImage(const std::string&filename, const std::string& errormessage, bool IfNotFoundExit) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);
