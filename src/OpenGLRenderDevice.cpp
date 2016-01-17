@@ -360,7 +360,7 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 	return (is_initialized ? 0 : -1);
 }
 
-int OpenGLRenderDevice::render(Renderable& r, Rect dest) {
+int OpenGLRenderDevice::render(Renderable& r, Rect& dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 
@@ -702,7 +702,7 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 int OpenGLRenderDevice::renderText(
 	FontStyle *font_style,
 	const std::string& text,
-	Color color,
+	const Color& color,
 	Rect& dest
 ) {
 	SDL_Color _color = color;
@@ -745,7 +745,7 @@ int OpenGLRenderDevice::renderText(
 	return 0;
 }
 
-Image * OpenGLRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended) {
+Image * OpenGLRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended) {
 	OpenGLImage *image = new OpenGLImage(this);
 	if (!image) return NULL;
 
@@ -925,7 +925,7 @@ void OpenGLRenderDevice::updateTitleBar() {
 	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
-Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormessage, bool IfNotFoundExit) {
+Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::string& errormessage, bool IfNotFoundExit) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);

@@ -74,12 +74,12 @@ public:
 	OpenGLRenderDevice();
 	int createContext(bool allow_fallback = true);
 
-	virtual int render(Renderable& r, Rect dest);
+	virtual int render(Renderable& r, Rect& dest);
 	virtual int render(Sprite* r);
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest);
 
-	int renderText(FontStyle *font_style, const std::string& text, Color color, Rect& dest);
-	Image *renderTextToImage(FontStyle* font_style, const std::string& text, Color color, bool blended = true);
+	int renderText(FontStyle *font_style, const std::string& text, const Color& color, Rect& dest);
+	Image *renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended = true);
 	void drawPixel(int x, int y, const Color& color);
 	void drawRectangle(const Point& p0, const Point& p1, const Color& color);
 	void blankScreen();
@@ -91,8 +91,8 @@ public:
 	void updateTitleBar();
 	void freeImage(Image *image);
 
-	Image* loadImage(std::string filename,
-								std::string errormessage = "Couldn't load image",
+	Image* loadImage(const std::string& filename,
+								const std::string& errormessage = "Couldn't load image",
 								bool IfNotFoundExit = false);
 private:
 	void drawLine(int x0, int y0, int x1, int y1, const Color& color);
