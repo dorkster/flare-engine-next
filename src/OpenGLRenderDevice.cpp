@@ -274,7 +274,11 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 
 	if (settings_changed || !is_initialized) {
 		if (is_initialized) {
+			// FIXME This fails and leaves us with a black screen
 			destroyContext();
+
+			// This partially fixes the issue, but some textures become glitched
+			// is_initialized = false;
 		}
 
 		window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, w_flags);
@@ -844,6 +848,10 @@ void OpenGLRenderDevice::commitFrame() {
 }
 
 void OpenGLRenderDevice::destroyContext() {
+	// we need to free all loaded graphics as they may be tied to the current context
+	RenderDevice::cacheRemoveAll();
+	reload_graphics = true;
+
 	glDeleteBuffers(1, &m_vertex_buffer);
 	glDeleteBuffers(1, &m_element_buffer);
 
