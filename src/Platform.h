@@ -1,5 +1,5 @@
 /*
-Copyright © 2013 Stefan Beller
+Copyright © 2016 Justin Jacobs
 
 This file is part of FLARE.
 
@@ -15,21 +15,27 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
-#pragma once
-#ifndef COMMON_INCLUDES_H
-#define COMMON_INCLUDES_H
+#ifndef PLATFORM_H
+#define PLATFORM_H
 
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <queue>
-#include <set>
-#include <sstream>
 #include <string>
-#include <vector>
 
-#include <SDL.h>
-#include "DeviceList.h"
+#define CONFIG_MENU_TYPE_BASE 0
+#define CONFIG_MENU_TYPE_DESKTOP 1
+
+struct PlatformOptions_t {
+	bool has_exit_button;
+	bool is_mobile_device;
+	unsigned char config_menu_type;
+	std::string default_renderer;
+};
+
+extern struct PlatformOptions_t PlatformOptions;
+
+void PlatformInit(struct PlatformOptions_t *options);
+void PlatformSetPaths();
+void PlatformSetExitEventFilter();
+bool PlatformDirCreate(const std::string& path);
+bool PlatformDirRemove(const std::string& path);
 
 #endif

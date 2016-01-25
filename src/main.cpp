@@ -33,12 +33,30 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 GameSwitcher *gswitch;
 
+#ifdef _WIN32
+#include "PlatformWin32.cpp"
+#elif __ANDROID__
+#include "PlatformAndroid.cpp"
+#elif __IPHONEOS__
+#include "PlatformIPhoneOS.cpp"
+#else
+// Linux stuff should work on Mac OSX/BSD/etc, too
+#include "PlatformLinux.cpp"
+#endif
+
 /**
  * Game initialization.
  */
 static void init(const std::string &render_device_name) {
+	PlatformInit(&PlatformOptions);
 
-	setPaths();
+	/**
+	 * Set system paths
+	 * PATH_CONF is for user-configurable settings files (e.g. keybindings)
+	 * PATH_USER is for user-specific data (e.g. save games)
+	 * PATH_DATA is for common game data (e.g. images, music)
+	 */
+	PlatformSetPaths();
 
 	// SDL Inits
 	if ( SDL_Init (SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0 ) {
@@ -84,7 +102,9 @@ static void init(const std::string &render_device_name) {
 	setStatNames();
 
 	// Create render Device and Rendering Context.
-	if (render_device_name != "")
+	if (PlatformOptions.default_renderer != "")
+		render_device = getRenderDevice(PlatformOptions.default_renderer);
+	else if (render_device_name != "")
 		render_device = getRenderDevice(render_device_name);
 	else
 		render_device = getRenderDevice(RENDER_DEVICE);
@@ -108,22 +128,24 @@ static void init(const std::string &render_device_name) {
 	gswitch = new GameSwitcher();
 }
 
+static float getSecondsElapsed(uint64_t prev_ticks, uint64_t now_ticks) {
+	return (static_cast<float>(now_ticks - prev_ticks) / static_cast<float>(SDL_GetPerformanceFrequency()));
+}
+
 static void mainLoop () {
 	bool done = false;
-	float delay_f = 1000.f/MAX_FRAMES_PER_SEC;
-	unsigned int delay = (unsigned int)(floorf(delay_f+0.5f));
-	unsigned int logic_ticks = SDL_GetTicks();
+
+	float seconds_per_frame = 1.f/static_cast<float>(MAX_FRAMES_PER_SEC);
+
+	uint64_t prev_ticks = SDL_GetPerformanceCounter();
+	uint64_t logic_ticks = SDL_GetPerformanceCounter();
+	uint64_t now_ticks = SDL_GetPerformanceCounter();
+
 	int last_fps = -1;
 
 	while ( !done ) {
 		int loops = 0;
-		unsigned int now_ticks = SDL_GetTicks();
-		unsigned int prev_ticks = now_ticks;
-
-		// reset our tick counters before they overflow
-		if (now_ticks >= UINT_MAX-delay) {
-			now_ticks = prev_ticks = logic_ticks = 0;
-		}
+		now_ticks = SDL_GetPerformanceCounter();
 
 		while (now_ticks >= logic_ticks && loops < MAX_FRAMES_PER_SEC) {
 			// Frames where data loading happens (GameState switching and map loading)
@@ -149,7 +171,7 @@ static void mainLoop () {
 			// Input done means the user closes the window.
 			done = gswitch->done || inpt->done;
 
-			logic_ticks += delay;
+			logic_ticks += static_cast<uint64_t>(seconds_per_frame * static_cast<float>(SDL_GetPerformanceFrequency()));
 			loops++;
 
 			// Android and IOS only
@@ -181,29 +203,30 @@ static void mainLoop () {
 
 		// calculate the FPS
 		// if the frame completed quickly, we estimate the delay here
-		now_ticks = SDL_GetTicks();
 		float fps_delay;
-		if (now_ticks - prev_ticks < delay_f) {
-			fps_delay = delay_f;
+		if (getSecondsElapsed(prev_ticks, SDL_GetPerformanceCounter()) < seconds_per_frame) {
+			fps_delay = seconds_per_frame;
 		} else {
-			fps_delay = static_cast<float>(now_ticks - prev_ticks);
+			fps_delay = getSecondsElapsed(prev_ticks, SDL_GetPerformanceCounter());
 		}
 		if (fps_delay != 0) {
-			last_fps = static_cast<int>(1000.f / fps_delay);
+			last_fps = static_cast<int>((1000.f / fps_delay) / 1000.f);
 		} else {
 			last_fps = -1;
 		}
 
 		// delay quick frames
-		now_ticks = SDL_GetTicks();
-		if (logic_ticks > now_ticks)
-			logic_ticks = now_ticks;
-
-		unsigned int delay_ticks = (delay - 1) - (now_ticks - prev_ticks);
-		if (delay_ticks > 0 && delay_ticks < delay) {
-			SDL_Delay(delay_ticks);
+		// thanks to David Gow: https://davidgow.net/handmadepenguin/ch18.html
+		if (getSecondsElapsed(prev_ticks, SDL_GetPerformanceCounter()) < seconds_per_frame) {
+			int32_t delay_ms = static_cast<int32_t>((seconds_per_frame - getSecondsElapsed(prev_ticks, SDL_GetPerformanceCounter())) * 1000.f) - 1;
+			if (delay_ms > 0) {
+				SDL_Delay(delay_ms);
+			}
+			while (getSecondsElapsed(prev_ticks, SDL_GetPerformanceCounter()) < seconds_per_frame) {
+				// Waiting...
+			}
 		}
-
+		prev_ticks = SDL_GetPerformanceCounter();
 	}
 }
 
