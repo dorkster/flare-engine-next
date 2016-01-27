@@ -58,6 +58,8 @@ WidgetListBox::WidgetListBox(int height, const std::string& _fileName)
 		pos.h = (listboxs->getGraphicsHeight() / 3); // height of one item
 		graphics->unref();
 	}
+
+	scroll_type = VERTICAL;
 }
 
 bool WidgetListBox::checkClick() {
@@ -444,7 +446,10 @@ bool WidgetListBox::getNext() {
 	if (items.size() < 1) return false;
 
 	int sel = getSelected();
-	if (sel != -1) items[sel].selected = false;
+	if (sel != -1)
+		items[sel].selected = false;
+	else
+		sel = cursor-1;
 
 	if(sel == static_cast<int>(items.size())-1) {
 		items[0].selected = true;
@@ -462,8 +467,10 @@ bool WidgetListBox::getPrev() {
 	if (items.size() < 1) return false;
 
 	int sel = getSelected();
-	if (sel == -1) sel = 0;
-	items[sel].selected = false;
+	if (sel != -1)
+		items[sel].selected = false;
+	else
+		sel = cursor;
 
 	if(sel == 0) {
 		items[items.size()-1].selected = true;
@@ -475,6 +482,16 @@ bool WidgetListBox::getPrev() {
 	}
 
 	return true;
+}
+
+void WidgetListBox::defocus() {
+	Widget::defocus();
+
+	int sel = getSelected();
+	if (!can_select && sel != -1) {
+		items[sel].selected = false;
+	}
+
 }
 
 void WidgetListBox::select(int index) {

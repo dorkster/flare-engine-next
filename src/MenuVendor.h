@@ -75,10 +75,16 @@ public:
 	int getRowsCount();
 	void setNPC(NPC* _npc);
 	void removeFromPrevSlot(int quantity);
+	void lockTabControl();
+	void unlockTabControl();
 
 	Rect slots_area;
 
-	TabList tablist;
+	TabList tablist_buy;
+	TabList tablist_sell;
+
+	TabList* getCurrentTabList();
+	void defocusTabLists();
 };
 
 

@@ -176,6 +176,13 @@ public:
 
 	bool newPowerNotification;
 
-	TabList tablist;
+
+	std::vector<TabList> tablist_pow;
+
+	bool isTabListSelected();
+	int getSelectedCellIndex();
+	void setNextTabList(TabList *tl);
+	TabList* getCurrentTabList();
+	void defocusTabLists();
 };
 #endif
