@@ -251,6 +251,9 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "requires_targeting")
 			// @ATTR requires_targeting|bool|Power is only used when targeting using click-to-target.
 			powers[input_id].requires_targeting = toBool(infile.val);
+		else if (infile.key == "requires_spawns")
+			// @ATTR requires_spawns|integer|The caster must have at least this many summoned creatures to use this power.
+			powers[input_id].requires_spawns = toInt(infile.val);
 		else if (infile.key == "cooldown")
 			// @ATTR cooldown|duration|Specify the duration for cooldown of the power in 'ms' or 's'.
 			powers[input_id].cooldown = parse_duration(infile.val);
@@ -809,7 +812,7 @@ void PowerManager::buff(int power_index, StatBlock *src_stats, const FPoint& tar
 	}
 
 	// handle all other effects
-	if (powers[power_index].buff || (powers[power_index].buff_party && src_stats->hero_ally)) {
+	if (powers[power_index].buff || (powers[power_index].buff_party && (src_stats->hero_ally || src_stats->enemy_ally))) {
 		int source_type = src_stats->hero ? SOURCE_TYPE_HERO : (src_stats->hero_ally ? SOURCE_TYPE_ALLY : SOURCE_TYPE_ENEMY);
 		effect(src_stats, src_stats, power_index, source_type);
 	}
@@ -1087,6 +1090,7 @@ bool PowerManager::spawn(int power_index, StatBlock *src_stats, const FPoint& ta
 	espawn.direction = calcDirection(src_stats->pos.x, src_stats->pos.y, target.x, target.y);
 	espawn.summon_power_index = power_index;
 	espawn.hero_ally = src_stats->hero || src_stats->hero_ally;
+	espawn.enemy_ally = !src_stats->hero;
 
 	for (int i=0; i < powers[power_index].count; i++) {
 		enemies.push(espawn);

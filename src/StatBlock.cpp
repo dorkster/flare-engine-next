@@ -43,6 +43,7 @@ StatBlock::StatBlock()
 	, corpse_ticks(0)
 	, hero(false)
 	, hero_ally(false)
+	, enemy_ally(false)
 	, humanoid(false)
 	, permadeath(false)
 	, transformed(false)
@@ -913,6 +914,17 @@ AIPower* StatBlock::getAIPower(AI_POWER ai_type) {
 
 		if (powers->powers[powers_ai[i].id].type == POWTYPE_SPAWN) {
 			if (summonLimitReached(powers_ai[i].id))
+				continue;
+		}
+
+		int live_summon_count = 0;
+		for (size_t j=0; j<summons.size(); ++j) {
+			if (summons[j]->hp > 0) {
+				++live_summon_count;
+			}
+		}
+		if (powers->powers[powers_ai[i].id].requires_spawns > 0) {
+			if (live_summon_count < powers->powers[powers_ai[i].id].requires_spawns)
 				continue;
 		}
 
