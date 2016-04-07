@@ -305,7 +305,13 @@ void BehaviorStandard::checkPower() {
 			int power_id = e->stats.activated_power->id;
 
 			powers->activate(power_id, &e->stats, pursue_pos);
-			e->stats.activated_power->ticks = powers->powers[power_id].cooldown;
+
+			// set cooldown for all ai powers with the same power id
+			for (size_t i = 0; i < e->stats.powers_ai.size(); ++i) {
+				if (e->stats.activated_power->id == e->stats.powers_ai[i].id) {
+					e->stats.powers_ai[i].ticks = powers->powers[power_id].cooldown;
+				}
+			}
 
 			if (e->stats.activated_power->type == AI_POWER_HALF_DEAD) {
 				e->stats.half_dead_power = false;
@@ -453,7 +459,7 @@ void BehaviorStandard::checkMoveStateStance() {
 
 	// try to move to the target if we're either:
 	// 1. too far away and chance_pursue roll succeeds
-	// 2. within range, but lack line-pf-sight (required to attack)
+	// 2. within range, but lack line-of-sight (required to attack)
 	bool should_move_to_target = (target_dist > e->stats.melee_range && percentChance(e->stats.chance_pursue)) || (target_dist <= e->stats.melee_range && !los);
 
 	if (should_move_to_target || fleeing) {

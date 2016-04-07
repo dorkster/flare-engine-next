@@ -49,6 +49,7 @@ Hazard::Hazard(MapCollision *_collider)
 	, pos()
 	, speed()
 	, pos_offset()
+	, relative_pos(false)
 	, base_speed(0)
 	, angle(0)
 	, base_lifespan(1)
@@ -61,6 +62,8 @@ Hazard::Hazard(MapCollision *_collider)
 	, complete_animation(false)
 	, multitarget(false)
 	, active(true)
+	, multihit(false)
+	, expire_with_caster(false)
 	, remove_now(false)
 	, hit_wall(false)
 	, hp_steal(0)
@@ -125,6 +128,9 @@ void Hazard::logic() {
 	// handle tickers
 	if (lifespan > 0) lifespan--;
 
+	if (expire_with_caster && !src_stats->alive)
+		lifespan = 0;
+
 	if (activeAnimation)
 		activeAnimation->advanceFrame();
 
@@ -139,6 +145,10 @@ void Hazard::logic() {
 		pos.x = src_stats->pos.x - pos_offset.x;
 		pos.y = src_stats->pos.y - pos_offset.y;
 		check_collide = true;
+	}
+	else if (relative_pos) {
+		pos.x = src_stats->pos.x;
+		pos.y = src_stats->pos.y;
 	}
 
 	if (check_collide) {
@@ -175,6 +185,10 @@ bool Hazard::isDangerousNow() {
 }
 
 bool Hazard::hasEntity(Entity *ent) {
+	if (multihit) {
+		return false;
+	}
+
 	if (parent) {
 		return parent->hasEntity(ent);
 	}
@@ -199,6 +213,7 @@ void Hazard::addRenderable(std::vector<Renderable> &r, std::vector<Renderable> &
 		Renderable re = activeAnimation->getCurrentFrame(animationKind);
 		re.map_pos.x = pos.x;
 		re.map_pos.y = pos.y;
+		re.prio = (on_floor ? 0 : 2);
 		(on_floor ? r_dead : r).push_back(re);
 	}
 }

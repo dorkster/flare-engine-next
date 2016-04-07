@@ -77,6 +77,7 @@ public:
 	FPoint pos;
 	FPoint speed;
 	FPoint pos_offset;
+	bool relative_pos;
 	float base_speed;
 	float angle; // in radians
 	int base_lifespan;
@@ -100,6 +101,9 @@ public:
 	// only process active hazards for collision
 	bool multitarget;
 	bool active;
+
+	bool multihit;
+	bool expire_with_caster;
 
 	bool remove_now;
 	bool hit_wall;
