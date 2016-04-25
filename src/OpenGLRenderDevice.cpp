@@ -357,7 +357,9 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 		updateTitleBar();
 
 		// load persistent resources
-		SharedResources::loadIcons();
+		delete icons;
+		icons = new IconManager();
+		delete curs;
 		curs = new CursorManager();
 	}
 
@@ -851,6 +853,15 @@ void OpenGLRenderDevice::destroyContext() {
 	// we need to free all loaded graphics as they may be tied to the current context
 	RenderDevice::cacheRemoveAll();
 	reload_graphics = true;
+
+	if (icons) {
+		delete icons;
+		icons = NULL;
+	}
+	if (curs) {
+		delete curs;
+		curs = NULL;
+	}
 
 	glDeleteBuffers(1, &m_vertex_buffer);
 	glDeleteBuffers(1, &m_element_buffer);
