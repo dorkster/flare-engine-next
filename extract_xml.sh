@@ -3,7 +3,7 @@ IFS=$'\n'
 HAVE_CLASS=0
 echo "<?xml version=\"1.0\"?>"
 echo "<classes>"
-for line in `grep '@CLASS\|@ATTR\|@TYPE' src/*.cpp | sed s/^.*@//g | sed 's/CLASS /CLASS|/g' | sed 's/ATTR /ATTR|/g' | sed 's/TYPE /TYPE|/g'`
+for line in `grep '@CLASS\|@ATTR\|@TYPE' src/*.cpp | sed s/^.*@//g | sed 's/CLASS /CLASS|/g' | sed 's/ATTR /ATTR|/g' | sed 's/TYPE /TYPE|/g' | sed 's/"/\&quot;/g'`
 do
     IFS='|'
     fields=($line)
@@ -20,7 +20,9 @@ do
     fi
     # Handle ATTR
     if [ "${fields[0]}" == "ATTR" ]; then
-	echo '		  <attribute name="'${fields[1]}'" type="'${fields[2]}'">'${fields[3]}'</attribute>'
+	IFS=':'
+	TYPE_VAL=(${fields[2]})
+	echo '		  <attribute name="'${fields[1]}'" type="'$(echo "${TYPE_VAL[0]}" | xargs)'" vars="'$(echo "${TYPE_VAL[1]}" | xargs)'">'${fields[3]}'</attribute>'
     fi
     # Handle TYPE
     if [ "${fields[0]}" == "TYPE" ]; then

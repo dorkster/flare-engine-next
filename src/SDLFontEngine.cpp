@@ -44,28 +44,39 @@ SDLFontEngine::SDLFontEngine() : FontEngine(), active_font(NULL) {
 	FileParser infile;
 	if (infile.open("engine/font_settings.txt")) {
 		while (infile.next()) {
-			if (infile.new_section) {
+			if (infile.new_section && infile.section == "font") {
 				SDLFontStyle f;
 				f.name = infile.section;
-				font_styles.push_back(f);
+				font_styles.push_back(SDLFontStyle());
 			}
 
 			if (font_styles.empty()) continue;
 
 			SDLFontStyle *style = &(font_styles.back());
-			if ((infile.key == "default" && style->path == "") || infile.key == LANGUAGE) {
-				// @ATTR $STYLE.default, $STYLE.$LANGUAGE|filename (string), point size (integer), blending (boolean)|Filename, point size, and blend mode of the font to use for this language. $STYLE can be something like "font_normal" or "font_bold". $LANGUAGE can be a 2-letter region code.
-				style->path = popFirstString(infile.val);
-				style->ptsize = popFirstInt(infile.val);
-				style->blend = toBool(popFirstString(infile.val));
-				style->ttfont = TTF_OpenFont(mods->locate("fonts/" + style->path).c_str(), style->ptsize);
-				if(style->ttfont == NULL) {
-					logError("FontEngine: TTF_OpenFont: %s", TTF_GetError());
-				}
-				else {
-					int lineskip = TTF_FontLineSkip(style->ttfont);
-					style->line_height = lineskip;
-					style->font_height = lineskip;
+
+			if (infile.key == "id") {
+				// @ATTR font.id|string|An identifier used to reference this font.
+				style->name = infile.val;
+			}
+			else if (infile.key == "style") {
+				// @ATTR font.style|repeatable(["default", string], filename, int, bool) : Language, Font file, Point size, Blending|Filename, point size, and blend mode of the font to use for this language. Language can be "default" or a 2-letter region code.
+
+				std::string lang = popFirstString(infile.val);
+
+				if ((lang == "default" && style->path == "") || lang == LANGUAGE) {
+					style->path = popFirstString(infile.val);
+					style->ptsize = popFirstInt(infile.val);
+					style->blend = toBool(popFirstString(infile.val));
+
+					style->ttfont = TTF_OpenFont(mods->locate("fonts/" + style->path).c_str(), style->ptsize);
+					if(style->ttfont == NULL) {
+						logError("FontEngine: TTF_OpenFont: %s", TTF_GetError());
+					}
+					else {
+						int lineskip = TTF_FontLineSkip(style->ttfont);
+						style->line_height = lineskip;
+						style->font_height = lineskip;
+					}
 				}
 			}
 		}
@@ -76,10 +87,18 @@ SDLFontEngine::SDLFontEngine() : FontEngine(), active_font(NULL) {
 	Color color;
 	if (infile.open("engine/font_colors.txt")) {
 		while (infile.next()) {
-			// @ATTR menu_normal, menu_bonus, menu_penalty, widget_normal, widget_disabled|r (integer), g (integer), b (integer)|Colors for menus and widgets
-			// @ATTR combat_givedmg, combat_takedmg, combat_crit, combat_buff, combat_miss|r (integer), g (integer), b (integer)|Colors for combat text
-			// @ATTR requirements_not_met, item_bonus, item_penalty, item_flavor|r (integer), g (integer), b (integer)|Colors for tooltips
-			// @ATTR item_$QUALITY|r (integer), g (integer), b (integer)|Colors for item quality. $QUALITY should match qualities used in items/items.txt
+			// @ATTR menu_normal|color|Basic menu text color. Recommended: white.
+			// @ATTR menu_bonus|color|Positive menu text color. Recommended: green.
+			// @ATTR menu_penalty|color|Negative menu text color. Recommended: red.
+			// @ATTR widget_normal|color|Basic widget text color. Recommended: white.
+			// @ATTR widget_disabled|color|Disabled widget text color. Recommended: grey.
+			// @ATTR combat_givedmg|color|Enemy damage text color. Recommended: white.
+			// @ATTR combat_takedmg|color|Player damage text color. Recommended: red.
+			// @ATTR combat_crit|color|Enemy critical damage text color. Recommended: yellow.
+			// @ATTR requirements_no_met|color|Unmet requirements text color. Recommended: red.
+			// @ATTR item_bonus|color|Item bonus text color. Recommended: green.
+			// @ATTR item_penalty|color|Item penalty text color. Recommended: red.
+			// @ATTR item_flavor|color|Item flavor text color. Recommended: grey.
 			color_map[infile.key] = toRGB(infile.val);
 		}
 		infile.close();
