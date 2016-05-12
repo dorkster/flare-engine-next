@@ -369,9 +369,10 @@ void MenuPowers::loadPower(FileParser &infile) {
 
 	// @ATTR power.upgrades|list(power_id)|A list of upgrade power ids that this power slot can upgrade to. Each of these powers should have a matching upgrade section.
 	else if (infile.key == "upgrades") {
-		// TODO since we allocate our upgrade button here, it should NOT be repeatable
+		if (power_cell.back().upgrades.empty()) {
+			upgradeButtons.back() = new WidgetButton("images/menus/buttons/button_plus.png");
+		}
 
-		upgradeButtons.back() = new WidgetButton("images/menus/buttons/button_plus.png");
 		std::string repeat_val = infile.nextValue();
 		while (repeat_val != "") {
 			power_cell.back().upgrades.push_back(toInt(repeat_val));
@@ -963,7 +964,6 @@ void MenuPowers::createTooltip(TooltipData* tip, int slot_num, const std::vector
 		}
 		if (pwr.trait_elemental > -1) {
 			ss.str("");
-			// TODO Print specific element here
 			ss << msg->get("%s Elemental Damage", ELEMENTS[pwr.trait_elemental].name.c_str());
 			tip->addText(ss.str(), color_bonus);
 		}

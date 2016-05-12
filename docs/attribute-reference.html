@@ -119,7 +119,7 @@ body {
 
 <p>Description of engine/hero_layers.txt</p>
 
-<p><strong>layer</strong> | <code>int, list(string) : Direction, Layer name(s)</code> | Defines the hero avatar sprite layer</p>
+<p><strong>layer</strong> | <code>direction, list(string) : Direction, Layer name(s)</code> | Defines the hero avatar sprite layer</p>
 
 <hr />
 
@@ -441,8 +441,6 @@ body {
 
 <p><strong>gameslot</strong> | <code>rectangle</code> | Position and dimensions of the first game slot.</p>
 
-<p><strong>preview</strong> | <code>rectangle</code> | Position and dimensions of the preview area in the first game slot. Only 'height' is used?</p>
-
 <p><strong>name</strong> | <code>label</code> | The label for the hero's name. Position is relative to game slot position.</p>
 
 <p><strong>level</strong> | <code>label</code> | The label for the hero's level. Position is relative to game slot position.</p>
@@ -703,7 +701,7 @@ body {
 
 <p><strong>music</strong> | <code>filename</code> | Filename of background music to use for map</p>
 
-<p><strong>location</strong> | <code>int, int, int : X, Y, Direction</code> | Spawn point location in map</p>
+<p><strong>location</strong> | <code>int, int, direction : X, Y, Direction</code> | Spawn point location in map</p>
 
 <p><strong>tilewidth</strong> | <code>int</code> | Inherited from Tiled map file. Unused by engine.</p>
 
@@ -733,9 +731,9 @@ body {
 
 <p><strong>enemygroup.wander_radius</strong> | <code>int</code> | The radius (in tiles) that an enemy will wander around randomly; negates waypoints</p>
 
-<p><strong>enemygroup.requires_status</strong> | <code>string</code> | Status required for loading enemies</p>
+<p><strong>enemygroup.requires_status</strong> | <code>list(string)</code> | Status required for loading enemies</p>
 
-<p><strong>enemygroup.requires_not_status</strong> | <code>string</code> | Status required to be missing for loading enemies</p>
+<p><strong>enemygroup.requires_not_status</strong> | <code>list(string)</code> | Status required to be missing for loading enemies</p>
 
 <p><strong>npc.type</strong> | <code>string</code> | (IGNORED BY ENGINE) The "type" field, as used by Tiled and other mapping tools.</p>
 
@@ -905,9 +903,7 @@ body {
 
 <p><strong>close</strong> | <code>point</code> | Position of the close button.</p>
 
-<p><strong>equipment_slot</strong> | <code>repeatable(int, int, int, string) : X, Y, Size, Slot Type</code> | Position and item type of an equipment slot.</p>
-
-<p><strong>slot_name</strong> | <code>repeatable(string)</code> | The displayed name of the last defined equipment slot.</p>
+<p><strong>equipment_slot</strong> | <code>repeatable(int, int, string) : X, Y, Slot Type</code> | Position and item type of an equipment slot.</p>
 
 <p><strong>carried_area</strong> | <code>point</code> | Position of the first normal inventory slot.</p>
 
