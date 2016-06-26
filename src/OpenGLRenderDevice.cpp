@@ -1060,7 +1060,7 @@ void OpenGLRenderDevice::showMouseCursor() {
 void OpenGLRenderDevice::hideMouseCursor() {
 	// place the mouse in the bottom-right of the screen by default because
 	// flare-game doesn't place any menus here
-	SDL_WarpMouseInWindow(window, SCREEN_W, SCREEN_H);
+	SDL_WarpMouseInWindow(window, SCREEN_W-1, SCREEN_H-1);
 
 	curs->show_cursor = false;
 	inpt->hideCursor();
