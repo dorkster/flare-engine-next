@@ -1179,11 +1179,17 @@ body {
 
 <p><strong>gfx</strong> | <code>filename</code> | Filename of an animation definition.</p>
 
+<p><strong>direction</strong> | <code>direction</code> | The direction to use for this NPC's stance animation.</p>
+
 <p><strong>talker</strong> | <code>bool</code> | Allows this NPC to be talked to.</p>
 
 <p><strong>portrait</strong> | <code>filename</code> | Filename of a portrait image.</p>
 
 <p><strong>vendor</strong> | <code>bool</code> | Allows this NPC to buy/sell items.</p>
+
+<p><strong>vendor_requires_status</strong> | <code>list(string)</code> | The player must have these statuses in order to use this NPC as a vendor.</p>
+
+<p><strong>vendor_requires_not_status</strong> | <code>list(string)</code> | The player must not have these statuses in order to use this NPC as a vendor.</p>
 
 <p><strong>constant_stock</strong> | <code>repeatable(list(item_id))</code> | A list of items this vendor has for sale.</p>
 

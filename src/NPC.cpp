@@ -137,6 +137,10 @@ void NPC::load(const std::string& npc_id) {
 					// @ATTR gfx|filename|Filename of an animation definition.
 					gfx = infile.val;
 				}
+				else if (infile.key == "direction") {
+					// @ATTR direction|direction|The direction to use for this NPC's stance animation.
+					direction = parse_direction(infile.val);
+				}
 
 				// handle talkers
 				else if (infile.key == "talker") {
@@ -152,6 +156,18 @@ void NPC::load(const std::string& npc_id) {
 				else if (infile.key == "vendor") {
 					// @ATTR vendor|bool|Allows this NPC to buy/sell items.
 					vendor = toBool(infile.val);
+				}
+				else if (infile.key == "vendor_requires_status") {
+					// @ATTR vendor_requires_status|list(string)|The player must have these statuses in order to use this NPC as a vendor.
+					while (infile.val != "") {
+						vendor_requires_status.push_back(infile.nextValue());
+					}
+				}
+				else if (infile.key == "vendor_requires_not_status") {
+					// @ATTR vendor_requires_not_status|list(string)|The player must not have these statuses in order to use this NPC as a vendor.
+					while (infile.val != "") {
+						vendor_requires_not_status.push_back(infile.nextValue());
+					}
 				}
 				else if (infile.key == "constant_stock") {
 					// @ATTR constant_stock|repeatable(list(item_id))|A list of items this vendor has for sale.
@@ -372,6 +388,23 @@ bool NPC::checkMovement(unsigned int dialog_node) {
 	return true;
 }
 
+bool NPC::checkVendor() {
+	if (!vendor)
+		return false;
+
+	for (size_t i = 0; i < vendor_requires_status.size(); ++i) {
+		if (!camp->checkStatus(vendor_requires_status[i]))
+			return false;
+	}
+
+	for (size_t i = 0; i < vendor_requires_not_status.size(); ++i) {
+		if (camp->checkStatus(vendor_requires_not_status[i]))
+			return false;
+	}
+
+	return true;
+}
+
 /**
  * Process the current dialog
  *
@@ -434,14 +467,16 @@ bool NPC::processDialog(unsigned int dialog_node, unsigned int &event_cursor) {
 }
 
 void NPC::processEvent(unsigned int dialog_node, unsigned int cursor) {
+	if (dialog_node >= dialog.size())
+		return;
 
 	Event ev;
 
-	if (dialog_node < dialog.size() && cursor < dialog[dialog_node].size() && isDialogType(dialog[dialog_node][cursor].type)) {
+	if (cursor < dialog[dialog_node].size() && isDialogType(dialog[dialog_node][cursor].type)) {
 		cursor++;
 	}
 
-	while (dialog_node < dialog.size() && cursor < dialog[dialog_node].size() && !isDialogType(dialog[dialog_node][cursor].type)) {
+	while (cursor < dialog[dialog_node].size() && !isDialogType(dialog[dialog_node][cursor].type)) {
 		ev.components.push_back(dialog[dialog_node][cursor]);
 		cursor++;
 	}
@@ -458,7 +493,7 @@ Renderable NPC::getRender() {
 }
 
 bool NPC::isDialogType(const EVENT_COMPONENT_TYPE &type) {
-	return type == EC_NPC_DIALOG_THEM || type == EC_NPC_DIALOG_YOU || type == EC_NPC_VOICE;
+	return type == EC_NPC_DIALOG_THEM || type == EC_NPC_DIALOG_YOU;
 }
 
 NPC::~NPC() {
