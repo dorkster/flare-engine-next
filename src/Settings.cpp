@@ -196,6 +196,7 @@ int TOOLTIP_OFFSET;
 int TOOLTIP_WIDTH;
 int TOOLTIP_MARGIN;
 int TOOLTIP_MARGIN_NPC;
+int TOOLTIP_BACKGROUND_BORDER;
 
 // Other Settings
 bool MENUS_PAUSE;
@@ -343,6 +344,7 @@ void loadMiscSettings() {
 	TOOLTIP_WIDTH = 1;
 	TOOLTIP_MARGIN = 0;
 	TOOLTIP_MARGIN_NPC = 0;
+	TOOLTIP_BACKGROUND_BORDER = 0;
 
 	FileParser infile;
 	// @CLASS Settings: Misc|Description of engine/misc.txt
@@ -672,6 +674,9 @@ void loadMiscSettings() {
 			// @ATTR npc_tooltip_margin|int|Vertical offset for NPC labels.
 			else if (infile.key == "npc_tooltip_margin")
 				TOOLTIP_MARGIN_NPC = toInt(infile.val);
+			// @ATTR tooltip_background_border|int|The pixel size of the border in "images/menus/tooltips.png".
+			else if (infile.key == "tooltip_background_border")
+				TOOLTIP_BACKGROUND_BORDER = toInt(infile.val);
 		}
 		infile.close();
 	}
