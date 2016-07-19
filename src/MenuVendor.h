@@ -51,7 +51,7 @@ private:
 	Color color_normal;
 
 public:
-	MenuVendor(StatBlock *stats);
+	explicit MenuVendor(StatBlock *stats);
 	~MenuVendor();
 	void align();
 
@@ -73,7 +73,6 @@ public:
 	void setInventory();
 	void saveInventory();
 	void sort(int type);
-	int getRowsCount();
 	void setNPC(NPC* _npc);
 	void removeFromPrevSlot(int quantity);
 	void lockTabControl();

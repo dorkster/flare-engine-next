@@ -69,8 +69,10 @@ private:
 	std::vector<Point> equipped_pos;
 	Point carried_pos;
 
+	int tap_to_activate_ticks;
+
 public:
-	MenuInventory(StatBlock *stats);
+	explicit MenuInventory(StatBlock *stats);
 	~MenuInventory();
 	void align();
 
@@ -104,7 +106,6 @@ public:
 	void applyBonus(const BonusData* bdata);
 
 	int getEquippedCount();
-	int getCarriedRows();
 
 	void clearHighlight();
 

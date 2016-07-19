@@ -35,24 +35,23 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsParsing.h"
 #include "WidgetButton.h"
 
-MenuInventory::MenuInventory(StatBlock *_stats) {
-	stats = _stats;
-	MAX_EQUIPPED = 4;
-	MAX_CARRIED = 64;
+MenuInventory::MenuInventory(StatBlock *_stats)
+	: stats(_stats)
+	, MAX_EQUIPPED(4)
+	, MAX_CARRIED(64)
+	, carried_cols(4)
+	, carried_rows(4)
+	, tap_to_activate_ticks(0)
+	, currency(0)
+	, drag_prev_src(-1)
+	, changed_equipment(true)
+	, inv_ctrl(INV_CTRL_NONE)
+	, log_msg("")
+	, show_book("")
+{
 	visible = false;
 
 	setBackground("images/menus/inventory.png");
-
-	currency = 0;
-
-	carried_cols = 4; // default to 4 if menus/inventory.txt::carried_cols not set
-	carried_rows = 4; // default to 4 if menus/inventory.txt::carried_rows not set
-
-	drag_prev_src = -1;
-	changed_equipment = true;
-	inv_ctrl = INV_CTRL_NONE;
-	log_msg = "";
-	show_book = "";
 
 	closeButton = new WidgetButton("images/menus/buttons/button_x.png");
 
@@ -216,6 +215,10 @@ void MenuInventory::logic() {
 			clearHighlight();
 		}
 	}
+
+	if (tap_to_activate_ticks > 0) {
+		--tap_to_activate_ticks;
+	}
 }
 
 void MenuInventory::render() {
@@ -311,6 +314,7 @@ ItemStack MenuInventory::click(const Point& position) {
 
 		if (TOUCHSCREEN) {
 			tablist.setCurrent(inventory[drag_prev_src].current_slot);
+			tap_to_activate_ticks = MAX_FRAMES_PER_SEC / 3;
 		}
 
 		if (item.empty()) {
@@ -442,6 +446,15 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 			}
 			else {
 				itemReturn( stack); // cancel
+
+				// allow reading books on touchscreen devices
+				// since touch screens don't have right-click, we use a "tap" (drop on same slot quickly) to activate
+				// NOTE: the quantity must be 1, since the number picker appears when tapping on a stack of more than 1 item
+				// NOTE: we only support activating books since equipment activation doesn't work for some reason
+				// NOTE: Consumables are usually in stacks > 1, so we ignore those as well for consistency
+				if (TOUCHSCREEN && tap_to_activate_ticks > 0 && !items->items[stack.item].book.empty() && stack.quantity == 1) {
+					activate(position);
+				}
 			}
 		}
 		else {
@@ -1022,10 +1035,6 @@ void MenuInventory::applyBonus(const BonusData* bdata) {
 
 int MenuInventory::getEquippedCount() {
 	return static_cast<int>(equipped_area.size());
-}
-
-int MenuInventory::getCarriedRows() {
-	return carried_rows;
 }
 
 void MenuInventory::clearHighlight() {

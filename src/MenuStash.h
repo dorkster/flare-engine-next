@@ -46,7 +46,7 @@ private:
 	Color color_normal;
 
 public:
-	MenuStash(StatBlock *stats);
+	explicit MenuStash(StatBlock *stats);
 	~MenuStash();
 	void align();
 
@@ -57,8 +57,6 @@ public:
 	bool add(ItemStack stack, int slot, bool play_sound);
 	TooltipData checkTooltip(const Point& position);
 	bool drop(const Point& position, ItemStack stack);
-
-	int getRowsCount();
 
 	void removeFromPrevSlot(int quantity);
 
