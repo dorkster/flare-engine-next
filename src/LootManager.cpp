@@ -183,7 +183,7 @@ void LootManager::renderTooltips(const FPoint& cam) {
 			hover.w = TILE_W;
 			hover.h = TILE_H;
 
-			if (LOOT_TOOLTIPS || inpt->pressing[ALT] || isWithin(hover, inpt->mouse)) {
+			if (LOOT_TOOLTIPS || inpt->pressing[ALT] || isWithinRect(hover, inpt->mouse)) {
 				it->tip_visible = true;
 
 				// create tooltip data if needed
@@ -290,7 +290,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 		if (ec->z == 0) {
 			Point src;
 			if (pos) {
-				src = floor(*pos);
+				src = FPointToPoint(*pos);
 			}
 			else {
 				src.x = ec->x;
@@ -306,7 +306,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 					p = hero->pos;
 
 				mapr->collider.block(p.x, p.y, false);
-				tiles_to_unblock.push_back(floor(p));
+				tiles_to_unblock.push_back(FPointToPoint(p));
 			}
 
 			new_loot.quantity = randBetween(ec->a,ec->b);
@@ -363,7 +363,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 
 		Point src;
 		if (pos) {
-			src = floor(*pos);
+			src = FPointToPoint(*pos);
 		}
 		else {
 			src.x = ec->x;
@@ -379,7 +379,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 				p = hero->pos;
 
 			mapr->collider.block(p.x, p.y, false);
-			tiles_to_unblock.push_back(floor(p));
+			tiles_to_unblock.push_back(FPointToPoint(p));
 		}
 
 		new_loot.quantity = randBetween(ec->a,ec->b);
@@ -462,7 +462,7 @@ ItemStack LootManager::checkPickup(const Point& mouse, const FPoint& cam, const 
 				r.h = TILE_H;
 
 				// clicked in pickup hotspot?
-				if ((it->tip_visible && isWithin(it->tip_bounds, mouse)) || isWithin(r, mouse)) {
+				if ((it->tip_visible && isWithinRect(it->tip_bounds, mouse)) || isWithinRect(r, mouse)) {
 					curs->setCursor(CURSOR_INTERACT);
 					if (inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) {
 						inpt->lock[MAIN1] = true;

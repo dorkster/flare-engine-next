@@ -740,7 +740,7 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 	}
 
 	if (powers[power_index].target_neighbor > 0) {
-		haz->pos = collider->get_random_neighbor(floor(src_stats->pos), powers[power_index].target_neighbor, true);
+		haz->pos = collider->get_random_neighbor(FPointToPoint(src_stats->pos), powers[power_index].target_neighbor, true);
 	}
 
 	if (powers[power_index].relative_pos) {
@@ -784,7 +784,7 @@ void PowerManager::buff(int power_index, StatBlock *src_stats, const FPoint& tar
 	if (powers[power_index].buff_teleport) {
 		FPoint limit_target = clampDistance(powers[power_index].target_range,src_stats->pos,target);
 		if (powers[power_index].target_neighbor > 0) {
-			FPoint new_target = collider->get_random_neighbor(floor(limit_target), powers[power_index].target_neighbor);
+			FPoint new_target = collider->get_random_neighbor(FPointToPoint(limit_target), powers[power_index].target_neighbor);
 			if (floor(new_target.x) == floor(limit_target.x) && floor(new_target.y) == floor(limit_target.y)) {
 				src_stats->teleportation = false;
 			}
@@ -858,7 +858,7 @@ bool PowerManager::effect(StatBlock *src_stats, StatBlock *caster_stats, int pow
 				else
 					magnitude = caster_stats->get(STAT_DMG_MENT_MAX);
 
-				comb->addMessage(msg->get("+%d Shield",magnitude), src_stats->pos, COMBAT_MESSAGE_BUFF);
+				comb->addString(msg->get("+%d Shield",magnitude), src_stats->pos, COMBAT_MESSAGE_BUFF);
 			}
 			else if (effect_data.type == "heal") {
 				// heal for ment weapon damage * damage multiplier
@@ -871,7 +871,7 @@ bool PowerManager::effect(StatBlock *src_stats, StatBlock *caster_stats, int pow
 				else if(powers[power_index].mod_damage_mode == STAT_MODIFIER_MODE_ABSOLUTE)
 					magnitude = randBetween(powers[power_index].mod_damage_value_min, powers[power_index].mod_damage_value_max);
 
-				comb->addMessage(msg->get("+%d HP",magnitude), src_stats->pos, COMBAT_MESSAGE_BUFF);
+				comb->addString(msg->get("+%d HP",magnitude), src_stats->pos, COMBAT_MESSAGE_BUFF);
 				src_stats->hp += magnitude;
 				if (src_stats->hp > src_stats->get(STAT_HP_MAX)) src_stats->hp = src_stats->get(STAT_HP_MAX);
 			}
@@ -1076,7 +1076,7 @@ bool PowerManager::spawn(int power_index, StatBlock *src_stats, const FPoint& ta
 	}
 
 	if (target_neighbor > 0) {
-		espawn.pos = floor(collider->get_random_neighbor(floor(src_stats->pos), target_neighbor));
+		espawn.pos = FPointToPoint(collider->get_random_neighbor(FPointToPoint(src_stats->pos), target_neighbor));
 	}
 
 	// can't spawn on a blocked tile
@@ -1100,23 +1100,6 @@ bool PowerManager::spawn(int power_index, StatBlock *src_stats, const FPoint& ta
 	// If there's a sound effect, play it here
 	playSound(power_index);
 
-	return true;
-}
-
-/**
- * A simpler spawn routine for map events
- */
-bool PowerManager::spawn(const std::string& enemy_type, const Point& target) {
-
-	Map_Enemy espawn;
-
-	espawn.type = enemy_type;
-	espawn.pos = target;
-
-	// quick spawns start facing a random direction
-	espawn.direction = rand() % 8;
-
-	enemies.push(espawn);
 	return true;
 }
 

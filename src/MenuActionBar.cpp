@@ -244,27 +244,6 @@ void MenuActionBar::loadGraphics() {
 	}
 }
 
-// Renders the "needs attention" icon over the appropriate log menu
-void MenuActionBar::renderAttention(int menu_id) {
-	Rect dest;
-
-	// x-value is 12 hotkeys and 4 empty slots over
-	dest.x = window_area.x + (menu_id * ICON_SIZE) + ICON_SIZE*15;
-	dest.y = window_area.y+3;
-	dest.w = dest.h = ICON_SIZE;
-	if (sprite_attention) {
-		sprite_attention->setDest(dest);
-		render_device->render(sprite_attention);
-	}
-
-	// put an asterisk on this icon if in colorblind mode
-	if (COLORBLIND) {
-		WidgetLabel label;
-		label.set(dest.x + 2, dest.y + 2, JUSTIFY_LEFT, VALIGN_TOP, "*", font->getColor("menu_normal"));
-		label.render();
-	}
-}
-
 void MenuActionBar::logic() {
 	tablist.logic();
 
@@ -283,7 +262,7 @@ void MenuActionBar::logic() {
 
 			if (equipped_item_id > 0) {
 				// if a non-consumable item power is unequipped, disable that slot
-				if (!menu->inv->isItemEquipped(equipped_item_id)) {
+				if (!menu->inv->inventory[EQUIPMENT].contain(equipped_item_id)) {
 					setItemCount(i, 0, true);
 				}
 				else {
@@ -291,7 +270,7 @@ void MenuActionBar::logic() {
 				}
 			}
 			else if (item_id > 0) {
-				setItemCount(i, menu->inv->getItemCountCarried(item_id));
+				setItemCount(i, menu->inv->inventory[CARRIED].count(item_id));
 			}
 			else {
 				setItemCount(i, -1);
@@ -335,55 +314,51 @@ void MenuActionBar::render() {
 			slots[i]->render();
 		}
 		else {
-			Rect dest;
-			dest.x = slots[i]->pos.x;
-			dest.y = slots[i]->pos.y;
-			dest.h = dest.w = ICON_SIZE;
 			if (sprite_emptyslot) {
-				sprite_emptyslot->setDest(dest);
+				sprite_emptyslot->setDest(slots[i]->pos);
 				render_device->render(sprite_emptyslot);
 			}
-			slots[i]->renderSelection();
 		}
-	}
 
-	for (int i=0; i<4; i++)
-		menus[i]->render();
-
-	renderCooldowns();
-
-	// render log attention notifications
-	for (int i=0; i<4; i++) {
-		if (requires_attention[i] && !menus[i]->in_focus) {
-			renderAttention(i);
-		}
-	}
-}
-
-/**
- * Display a notification for any power on cooldown
- * Also displays disabled powers
- */
-void MenuActionBar::renderCooldowns() {
-	Rect item_src;
-
-	for (unsigned i = 0; i < slots_count; i++) {
-		if (slots[i] && !slot_enabled[i]) {
-			item_src.x = item_src.y = 0;
-			item_src.w = item_src.h = ICON_SIZE;
+		// render cooldown/disabled overlay
+		if (!slot_enabled[i]) {
+			Rect clip;
+			clip.x = clip.y = 0;
+			clip.w = clip.h = ICON_SIZE;
 
 			// Wipe from bottom to top
 			if (twostep_slot == -1 || static_cast<unsigned>(twostep_slot) == i) {
-				item_src.h = slot_cooldown_size[i];
+				clip.h = slot_cooldown_size[i];
 			}
 
-			if (sprite_disabled && item_src.h > 0) {
-				sprite_disabled->setClip(item_src);
+			if (sprite_disabled && clip.h > 0) {
+				sprite_disabled->setClip(clip);
 				sprite_disabled->setDest(slots[i]->pos);
 				render_device->render(sprite_disabled);
 			}
+		}
 
-			slots[i]->renderSelection();
+		slots[i]->renderSelection();
+	}
+
+	// render primary menu buttons
+	for (int i=0; i<4; i++) {
+		menus[i]->render();
+
+		if (requires_attention[i] && !menus[i]->in_focus) {
+			Rect dest;
+
+			if (sprite_attention) {
+				sprite_attention->setDest(menus[i]->pos);
+				render_device->render(sprite_attention);
+			}
+
+			// put an asterisk on this icon if in colorblind mode
+			if (COLORBLIND) {
+				WidgetLabel label;
+				label.set(menus[i]->pos.x + 2, menus[i]->pos.y + 2, JUSTIFY_LEFT, VALIGN_TOP, "*", font->getColor("menu_normal"));
+				label.render();
+			}
 		}
 	}
 }
@@ -394,7 +369,7 @@ void MenuActionBar::renderCooldowns() {
 TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
 	TooltipData tip;
 
-	if (isWithin(menus[MENU_CHARACTER]->pos, mouse)) {
+	if (isWithinRect(menus[MENU_CHARACTER]->pos, mouse)) {
 		if (COLORBLIND && requires_attention[MENU_CHARACTER])
 			tip.addText(msg->get("Character") + " (*)");
 		else
@@ -403,7 +378,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
 		tip.addText(menu_labels[MENU_CHARACTER]);
 		return tip;
 	}
-	if (isWithin(menus[MENU_INVENTORY]->pos, mouse)) {
+	if (isWithinRect(menus[MENU_INVENTORY]->pos, mouse)) {
 		if (COLORBLIND && requires_attention[MENU_INVENTORY])
 			tip.addText(msg->get("Inventory") + " (*)");
 		else
@@ -412,7 +387,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
 		tip.addText(menu_labels[MENU_INVENTORY]);
 		return tip;
 	}
-	if (isWithin(menus[MENU_POWERS]->pos, mouse)) {
+	if (isWithinRect(menus[MENU_POWERS]->pos, mouse)) {
 		if (COLORBLIND && requires_attention[MENU_POWERS])
 			tip.addText(msg->get("Powers") + " (*)");
 		else
@@ -421,7 +396,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
 		tip.addText(menu_labels[MENU_POWERS]);
 		return tip;
 	}
-	if (isWithin(menus[MENU_LOG]->pos, mouse)) {
+	if (isWithinRect(menus[MENU_LOG]->pos, mouse)) {
 		if (COLORBLIND && requires_attention[MENU_LOG])
 			tip.addText(msg->get("Log") + " (*)");
 		else
@@ -431,7 +406,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
 		return tip;
 	}
 	for (unsigned i = 0; i < slots_count; i++) {
-		if (slots[i] && isWithin(slots[i]->pos, mouse)) {
+		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
 			if (hotkeys_mod[i] != 0) {
 				tip.addText(powers->powers[hotkeys_mod[i]].name);
 			}
@@ -447,7 +422,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
  */
 void MenuActionBar::drop(const Point& mouse, int power_index, bool rearranging) {
 	for (unsigned i = 0; i < slots_count; i++) {
-		if (slots[i] && isWithin(slots[i]->pos, mouse)) {
+		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
 			if (rearranging) {
 				if ((locked[i] && !locked[drag_prev_slot]) || (!locked[i] && locked[drag_prev_slot])) {
 					locked[i] = !locked[i];
@@ -475,7 +450,7 @@ void MenuActionBar::actionReturn(int power_index) {
  */
 void MenuActionBar::remove(const Point& mouse) {
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithin(slots[i]->pos, mouse)) {
+		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
 			if (locked[i]) return;
 			hotkeys[i] = 0;
 			updated = true;
@@ -546,12 +521,12 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 				action.power = hotkeys_mod[i];
 				twostep_slot = -1;
 			}
-			else if (i==10 && inpt->pressing[MAIN1] && !inpt->lock[MAIN1] && !isWithin(window_area, inpt->mouse)) {
+			else if (i==10 && inpt->pressing[MAIN1] && !inpt->lock[MAIN1] && !isWithinRect(window_area, inpt->mouse)) {
 				have_aim = true;
 				action.power = hotkeys_mod[10];
 				twostep_slot = -1;
 			}
-			else if (i==11 && inpt->pressing[MAIN2] && !inpt->lock[MAIN2] && !isWithin(window_area, inpt->mouse)) {
+			else if (i==11 && inpt->pressing[MAIN2] && !inpt->lock[MAIN2] && !isWithinRect(window_area, inpt->mouse)) {
 				have_aim = true;
 				action.power = hotkeys_mod[11];
 				twostep_slot = -1;
@@ -604,7 +579,7 @@ int MenuActionBar::checkDrag(const Point& mouse) {
 	int power_index;
 
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithin(slots[i]->pos, mouse)) {
+		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
 			drag_prev_slot = i;
 			power_index = hotkeys[i];
 			hotkeys[i] = 0;
@@ -717,7 +692,7 @@ void MenuActionBar::setItemCount(unsigned index, int count, bool is_equipped) {
 
 bool MenuActionBar::isWithinSlots(const Point& mouse) {
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithin(slots[i]->pos, mouse))
+		if (slots[i] && isWithinRect(slots[i]->pos, mouse))
 			return true;
 	}
 	return false;
@@ -725,7 +700,7 @@ bool MenuActionBar::isWithinSlots(const Point& mouse) {
 
 bool MenuActionBar::isWithinMenus(const Point& mouse) {
 	for (unsigned i=0; i<4; i++) {
-		if (isWithin(menus[i]->pos, mouse))
+		if (isWithinRect(menus[i]->pos, mouse))
 			return true;
 	}
 	return false;

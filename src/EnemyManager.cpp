@@ -166,7 +166,7 @@ void EnemyManager::handleNewMap () {
 		mapr->collider.block(me.pos.x, me.pos.y, false);
 	}
 
-	FPoint spawn_pos = mapr->collider.get_random_neighbor(floor(pc->stats.pos), 1, false);
+	FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
 	while (!allies.empty()) {
 
 		Enemy *e = allies.front();
@@ -425,7 +425,7 @@ Enemy* EnemyManager::enemyFocus(const Point& mouse, const FPoint& cam, bool aliv
 		r.x = p.x - enemies[i]->getRender().offset.x;
 		r.y = p.y - enemies[i]->getRender().offset.y;
 
-		if (isWithin(r, mouse)) {
+		if (isWithinRect(r, mouse)) {
 			Enemy *enemy = enemies[i];
 			return enemy;
 		}
@@ -480,6 +480,18 @@ bool EnemyManager::isCleared() {
 	}
 
 	return true;
+}
+
+void EnemyManager::spawn(const std::string& enemy_type, const Point& target) {
+	Map_Enemy espawn;
+
+	espawn.type = enemy_type;
+	espawn.pos = target;
+
+	// quick spawns start facing a random direction
+	espawn.direction = rand() % 8;
+
+	powers->enemies.push(espawn);
 }
 
 /**

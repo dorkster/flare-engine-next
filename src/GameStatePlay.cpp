@@ -126,7 +126,7 @@ void GameStatePlay::refreshWidgets() {
 void GameStatePlay::resetGame() {
 	mapr->load("maps/spawn.txt");
 	setLoadingFrame();
-	camp->clearAll();
+	camp->status.clear();
 	pc->init();
 	pc->stats.currency = 0;
 	menu->act->clear();
@@ -275,7 +275,7 @@ void GameStatePlay::checkTeleport() {
 		// if we're not changing map, move allies to a the player's new position
 		// when changing maps, enemies->handleNewMap() does something similar to this
 		if (mapr->teleport_mapname == "") {
-			FPoint spawn_pos = mapr->collider.get_random_neighbor(floor(pc->stats.pos), 1, false);
+			FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
 			for (unsigned int i=0; i < enemies->enemies.size(); i++) {
 				if(enemies->enemies[i]->stats.hero_ally && enemies->enemies[i]->stats.alive) {
 					mapr->collider.unblock(enemies->enemies[i]->stats.pos.x, enemies->enemies[i]->stats.pos.y);
@@ -621,7 +621,8 @@ void GameStatePlay::checkUsedItems() {
 		menu->inv->remove(powers->used_items[i]);
 	}
 	for (unsigned i=0; i<powers->used_equipped_items.size(); i++) {
-		menu->inv->removeEquipped(powers->used_equipped_items[i]);
+		menu->inv->inventory[EQUIPMENT].remove(powers->used_equipped_items[i]);
+		menu->inv->applyEquipment();
 	}
 	powers->used_items.clear();
 	powers->used_equipped_items.clear();
@@ -791,7 +792,7 @@ void GameStatePlay::checkCutscene() {
 
 	}
 	else {
-		mapr->respawn_point = floor(pc->stats.pos);
+		mapr->respawn_point = FPointToPoint(pc->stats.pos);
 	}
 
 	if (SAVE_ONLOAD)
@@ -803,7 +804,7 @@ void GameStatePlay::checkCutscene() {
 
 void GameStatePlay::checkSaveEvent() {
 	if (mapr->save_game) {
-		mapr->respawn_point = floor(pc->stats.pos);
+		mapr->respawn_point = FPointToPoint(pc->stats.pos);
 		save_load->saveGame();
 		mapr->save_game = false;
 	}
@@ -939,7 +940,7 @@ void GameStatePlay::logic() {
 
 		// reapply equipment if the transformation allows it
 		if (pc->stats.transform_with_equipment)
-			menu->inv->applyEquipment(menu->inv->inventory[EQUIPMENT].storage);
+			menu->inv->applyEquipment();
 	}
 	// revert hero powers
 	if (pc->revertPowers) {
@@ -954,7 +955,7 @@ void GameStatePlay::logic() {
 		menu->act->updated = true;
 
 		// also reapply equipment here, to account items that give bonuses to base stats
-		menu->inv->applyEquipment(menu->inv->inventory[EQUIPMENT].storage);
+		menu->inv->applyEquipment();
 	}
 
 	// when the hero (re)spawns, reapply equipment & passive effects
@@ -962,7 +963,7 @@ void GameStatePlay::logic() {
 		pc->stats.alive = true;
 		pc->stats.corpse = false;
 		pc->stats.cur_state = AVATAR_STANCE;
-		menu->inv->applyEquipment(menu->inv->inventory[EQUIPMENT].storage);
+		menu->inv->applyEquipment();
 		menu->inv->changed_equipment = true;
 		checkEquipmentChange();
 		powers->activatePassives(&pc->stats);
@@ -1027,7 +1028,7 @@ void GameStatePlay::render() {
 		menu->mini->prerender(&mapr->collider, mapr->w, mapr->h);
 		mapr->map_change = false;
 	}
-	menu->mini->getMapTitle(mapr->title);
+	menu->mini->setMapTitle(mapr->title);
 	menu->mini->render(pc->stats.pos);
 	menu->render();
 
@@ -1053,10 +1054,6 @@ void GameStatePlay::showLoading() {
 
 bool GameStatePlay::isPaused() {
 	return menu->pause;
-}
-
-Avatar *GameStatePlay::getAvatar() const {
-	return pc;
 }
 
 GameStatePlay::~GameStatePlay() {

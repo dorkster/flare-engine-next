@@ -91,8 +91,8 @@ MenuVendor::MenuVendor(StatBlock *_stats)
 	slots_area.w = slots_cols*ICON_SIZE;
 	slots_area.h = slots_rows*ICON_SIZE;
 
-	stock[VENDOR_BUY].init(VENDOR_SLOTS, slots_area, ICON_SIZE, slots_cols);
-	stock[VENDOR_SELL].init(VENDOR_SLOTS, slots_area, ICON_SIZE, slots_cols);
+	stock[VENDOR_BUY].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
+	stock[VENDOR_SELL].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
 	buyback_stock.init(NPC_VENDOR_MAX_STOCK);
 
 	tablist.add(tabControl);
@@ -136,6 +136,11 @@ void MenuVendor::logic() {
 	tablist_buy.logic();
 	tablist_sell.logic();
 
+	tabControl->logic();
+	if (TOUCHSCREEN && activetab != tabControl->getActiveTab()) {
+		tablist_buy.defocus();
+		tablist_sell.defocus();
+	}
 	activetab = tabControl->getActiveTab();
 
 	if (activetab == VENDOR_BUY)
@@ -154,15 +159,6 @@ void MenuVendor::logic() {
 		setNPC(NULL);
 		snd->play(sfx_close);
 	}
-}
-
-void MenuVendor::tabsLogic() {
-	tabControl->logic();
-	if (TOUCHSCREEN && activetab != tabControl->getActiveTab()) {
-		tablist_buy.defocus();
-		tablist_sell.defocus();
-	}
-	activetab = tabControl->getActiveTab();
 }
 
 void MenuVendor::setTab(int tab) {
@@ -238,19 +234,6 @@ TooltipData MenuVendor::checkTooltip(const Point& position) {
 }
 
 /**
- * Several NPCs vendors can share this menu.
- * When the player talks to a new NPC, apply that NPC's inventory
- */
-void MenuVendor::setInventory() {
-	for (unsigned i=0; i<VENDOR_SLOTS; i++) {
-		stock[VENDOR_BUY][i] = npc->stock[i];
-		stock[VENDOR_SELL][i] = buyback_stock[i];
-	}
-	sort(VENDOR_BUY);
-	sort(VENDOR_SELL);
-}
-
-/**
  * Save changes to the inventory back to the NPC
  * For persistent stock amounts and buyback (at least until
  * the player leaves this map)
@@ -285,8 +268,15 @@ void MenuVendor::setNPC(NPC* _npc) {
 		return;
 	}
 
-	setTab(0);
-	setInventory();
+	setTab(VENDOR_BUY);
+
+	for (unsigned i=0; i<VENDOR_SLOTS; i++) {
+		stock[VENDOR_BUY][i] = npc->stock[i];
+		stock[VENDOR_SELL][i] = buyback_stock[i];
+	}
+	sort(VENDOR_BUY);
+	sort(VENDOR_SELL);
+
 	if (!visible) {
 		visible = true;
 		snd->play(sfx_open);

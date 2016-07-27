@@ -54,8 +54,10 @@ void HazardManager::logic() {
 
 	// remove all hazards with lifespan 0.  Most hazards still display their last frame.
 	for (size_t i=h.size(); i>0; i--) {
-		if (h[i-1]->lifespan == 0)
-			expire(i-1);
+		if (h[i-1]->lifespan == 0) {
+			delete h[i-1];
+			h.erase(h.begin()+(i-1));
+		}
 	}
 
 	checkNewHazards();
@@ -66,7 +68,8 @@ void HazardManager::logic() {
 
 		// remove all hazards that need to die immediately (e.g. exit the map)
 		if (h[i-1]->remove_now) {
-			expire(i-1);
+			delete h[i-1];
+			h.erase(h.begin()+(i-1));
 			continue;
 		}
 
@@ -91,7 +94,7 @@ void HazardManager::logic() {
 
 					// only check living enemies
 					if (enemies->enemies[eindex]->stats.hp > 0 && h[i]->active && (enemies->enemies[eindex]->stats.hero_ally == h[i]->target_party)) {
-						if (isWithin(h[i]->pos, h[i]->radius, enemies->enemies[eindex]->stats.pos)) {
+						if (isWithinRadius(h[i]->pos, h[i]->radius, enemies->enemies[eindex]->stats.pos)) {
 							if (!h[i]->hasEntity(enemies->enemies[eindex])) {
 								h[i]->addEntity(enemies->enemies[eindex]);
 								if (!h[i]->beacon) last_enemy = enemies->enemies[eindex];
@@ -108,7 +111,7 @@ void HazardManager::logic() {
 			// process hazards that can hurt the hero
 			if (h[i]->source_type != SOURCE_TYPE_HERO && h[i]->source_type != SOURCE_TYPE_ALLY) { //enemy or neutral sources
 				if (pc->stats.hp > 0 && h[i]->active) {
-					if (isWithin(h[i]->pos, h[i]->radius, pc->stats.pos)) {
+					if (isWithinRadius(h[i]->pos, h[i]->radius, pc->stats.pos)) {
 						if (!h[i]->hasEntity(pc)) {
 							h[i]->addEntity(pc);
 							// hit!
@@ -122,7 +125,7 @@ void HazardManager::logic() {
 				for (unsigned int eindex = 0; eindex < enemies->enemies.size(); eindex++) {
 					// only check living allies
 					if (enemies->enemies[eindex]->stats.hp > 0 && h[i]->active && enemies->enemies[eindex]->stats.hero_ally) {
-						if (isWithin(h[i]->pos, h[i]->radius, enemies->enemies[eindex]->stats.pos)) {
+						if (isWithinRadius(h[i]->pos, h[i]->radius, enemies->enemies[eindex]->stats.pos)) {
 							if (!h[i]->hasEntity(enemies->enemies[eindex])) {
 								h[i]->addEntity(enemies->enemies[eindex]);
 								// hit!
@@ -159,7 +162,6 @@ void HazardManager::checkNewHazards() {
 	while (!powers->hazards.empty()) {
 		Hazard *new_haz = powers->hazards.front();
 		powers->hazards.pop();
-		//new_haz->setCollision(collider);
 
 		h.push_back(new_haz);
 	}
@@ -179,17 +181,13 @@ void HazardManager::checkNewHazards() {
 	}
 }
 
-void HazardManager::expire(size_t index) {
-	delete h[index];
-	h.erase(h.begin()+index);
-}
-
 /**
  * Reset all hazards and get new collision object
  */
 void HazardManager::handleNewMap() {
-	for (unsigned int i = 0; i < h.size(); i++)
+	for (unsigned int i = 0; i < h.size(); i++) {
 		delete h[i];
+	}
 	h.clear();
 	last_enemy = NULL;
 }

@@ -322,7 +322,7 @@ void MapRenderer::renderIsoLayer(const Map_Layer& layerdata) {
 	int_fast16_t i; // first index of the map array
 	int_fast16_t j; // second index of the map array
 	Point dest;
-	const Point upperleft = floor(screen_to_map(0, 0, shakycam.x, shakycam.y));
+	const Point upperleft = FPointToPoint(screen_to_map(0, 0, shakycam.x, shakycam.y));
 	const int_fast16_t max_tiles_width =   static_cast<int_fast16_t>((VIEW_W / TILE_W) + 2*tset.max_size_x);
 	const int_fast16_t max_tiles_height = static_cast<int_fast16_t>((2 * VIEW_H / TILE_H) + 2*tset.max_size_y);
 
@@ -352,7 +352,7 @@ void MapRenderer::renderIsoLayer(const Map_Layer& layerdata) {
 		const int_fast16_t j_end = std::max(static_cast<int_fast16_t>(j+i-w+1),	std::max(static_cast<int_fast16_t>(j - max_tiles_width), static_cast<int_fast16_t>(0)));
 
 		Point p = map_to_screen(float(i), float(j), shakycam.x, shakycam.y);
-		p = center_tile(p);
+		p = centerTile(p);
 
 		// draw one horizontal line
 		while (j > j_end) {
@@ -390,7 +390,7 @@ void MapRenderer::renderIsoBackObjects(std::vector<Renderable> &r) {
 void MapRenderer::renderIsoFrontObjects(std::vector<Renderable> &r) {
 	Point dest;
 
-	const Point upperleft = floor(screen_to_map(0, 0, shakycam.x, shakycam.y));
+	const Point upperleft = FPointToPoint(screen_to_map(0, 0, shakycam.x, shakycam.y));
 	const int_fast16_t max_tiles_width = static_cast<int_fast16_t>((VIEW_W / TILE_W) + 2 * tset.max_size_x);
 	const int_fast16_t max_tiles_height = static_cast<int_fast16_t>(((VIEW_H / TILE_H) + 2 * tset.max_size_y)*2);
 
@@ -426,7 +426,7 @@ void MapRenderer::renderIsoFrontObjects(std::vector<Renderable> &r) {
 
 		// draw one horizontal line
 		Point p = map_to_screen(float(i), float(j), shakycam.x, shakycam.y);
-		p = center_tile(p);
+		p = centerTile(p);
 		const Map_Layer &current_layer = layers[index_objectlayer];
 		while (j > j_end) {
 			--j;
@@ -478,7 +478,7 @@ void MapRenderer::renderIso(std::vector<Renderable> &r, std::vector<Renderable> 
 void MapRenderer::renderOrthoLayer(const Map_Layer& layerdata) {
 
 	Point dest;
-	const Point upperleft = floor(screen_to_map(0, 0, shakycam.x, shakycam.y));
+	const Point upperleft = FPointToPoint(screen_to_map(0, 0, shakycam.x, shakycam.y));
 
 	short int startj = static_cast<short int>(std::max(0, upperleft.y));
 	short int starti = static_cast<short int>(std::max(0, upperleft.x));
@@ -490,7 +490,7 @@ void MapRenderer::renderOrthoLayer(const Map_Layer& layerdata) {
 
 	for (j = startj; j < max_tiles_height; j++) {
 		Point p = map_to_screen(starti, j, shakycam.x, shakycam.y);
-		p = center_tile(p);
+		p = centerTile(p);
 		for (i = starti; i < max_tiles_width; i++) {
 
 			if (const unsigned short current_tile = layerdata[i][j]) {
@@ -520,7 +520,7 @@ void MapRenderer::renderOrthoFrontObjects(std::vector<Renderable> &r) {
 	std::vector<Renderable>::iterator r_cursor = r.begin();
 	std::vector<Renderable>::iterator r_end = r.end();
 
-	const Point upperleft = floor(screen_to_map(0, 0, shakycam.x, shakycam.y));
+	const Point upperleft = FPointToPoint(screen_to_map(0, 0, shakycam.x, shakycam.y));
 
 	short int startj = static_cast<short int>(std::max(0, upperleft.y));
 	short int starti = static_cast<short int>(std::max(0, upperleft.x));
@@ -535,7 +535,7 @@ void MapRenderer::renderOrthoFrontObjects(std::vector<Renderable> &r) {
 
 	for (j = startj; j < max_tiles_height; j++) {
 		Point p = map_to_screen(starti, j, shakycam.x, shakycam.y);
-		p = center_tile(p);
+		p = centerTile(p);
 		for (i = starti; i<max_tiles_width; i++) {
 
 			if (const unsigned short current_tile = layers[index_objectlayer][i][j]) {
@@ -686,7 +686,7 @@ void MapRenderer::checkHotspots() {
 					is_npc = true;
 
 					Point p = map_to_screen(float(npc->x), float(npc->y), shakycam.x, shakycam.y);
-					p = center_tile(p);
+					p = centerTile(p);
 
 					Rect dest;
 					dest.x = p.x - npc->z;
@@ -694,7 +694,7 @@ void MapRenderer::checkHotspots() {
 					dest.w = npc->b;
 					dest.h = npc->c;
 
-					if (isWithin(dest, inpt->mouse)) {
+					if (isWithinRect(dest, inpt->mouse)) {
 						matched = true;
 						tip_pos.x = dest.x + dest.w/2;
 						tip_pos.y = p.y - TOOLTIP_MARGIN_NPC;
@@ -703,7 +703,7 @@ void MapRenderer::checkHotspots() {
 				else {
 					for (unsigned index = 0; index <= index_objectlayer; ++index) {
 						Point p = map_to_screen(float(x), float(y), shakycam.x, shakycam.y);
-						p = center_tile(p);
+						p = centerTile(p);
 
 						if (const short current_tile = layers[index][x][y]) {
 							// first check if mouse pointer is in rectangle of that tile:
@@ -714,7 +714,7 @@ void MapRenderer::checkHotspots() {
 							dest.w = tile.tile->getClip().w;
 							dest.h = tile.tile->getClip().h;
 
-							if (isWithin(dest, inpt->mouse)) {
+							if (isWithinRect(dest, inpt->mouse)) {
 								matched = true;
 								tip_pos = map_to_screen(it->center.x, it->center.y, shakycam.x, shakycam.y);
 								tip_pos.y -= TILE_H;
@@ -736,7 +736,7 @@ void MapRenderer::checkHotspots() {
 					// new tooltip?
 					createTooltip((*it).getComponent(EC_TOOLTIP));
 
-					if ((((*it).reachable_from.w == 0 && (*it).reachable_from.h == 0) || isWithin((*it).reachable_from, floor(cam)))
+					if ((((*it).reachable_from.w == 0 && (*it).reachable_from.h == 0) || isWithinRect((*it).reachable_from, FPointToPoint(cam)))
 							&& calcDist(cam, (*it).center) < INTERACT_RANGE) {
 
 						// only check events if the player is clicking
@@ -783,7 +783,7 @@ void MapRenderer::checkNearestEvent() {
 		if ((*it).cooldown_ticks != 0) continue;
 
 		float distance = calcDist(cam, (*it).center);
-		if ((((*it).reachable_from.w == 0 && (*it).reachable_from.h == 0) || isWithin((*it).reachable_from, floor(cam)))
+		if ((((*it).reachable_from.w == 0 && (*it).reachable_from.h == 0) || isWithinRect((*it).reachable_from, FPointToPoint(cam)))
 				&& distance < INTERACT_RANGE && distance < best_distance) {
 			best_distance = distance;
 			nearest = it;
@@ -861,6 +861,18 @@ bool MapRenderer::isValidTile(const unsigned &tile) {
 		return false;
 
 	return tset.tiles[tile].tile != NULL;
+}
+
+Point MapRenderer::centerTile(const Point& p) {
+	Point r = p;
+
+	if (TILESET_ORIENTATION == TILESET_ORTHOGONAL) {
+		r.x += TILE_W_HALF;
+		r.y += TILE_H_HALF;
+	}
+	else //TILESET_ISOMETRIC
+		r.y += TILE_H_HALF;
+	return r;
 }
 
 MapRenderer::~MapRenderer() {
