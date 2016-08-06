@@ -27,11 +27,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Animation.h"
 #include "AnimationManager.h"
 #include "AnimationSet.h"
+#include "EventManager.h"
 #include "FileParser.h"
 #include "Hazard.h"
 #include "MapCollision.h"
 #include "PowerManager.h"
 #include "Settings.h"
+#include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "StatBlock.h"
 #include "Utils.h"
@@ -44,10 +46,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 /**
  * PowerManager constructor
  */
-PowerManager::PowerManager(LootManager *_lootm)
+PowerManager::PowerManager()
 	: collider(NULL)
-	, lootm(_lootm)
-	, log_msg("")
 	, used_items()
 	, used_equipped_items() {
 	loadEffects();
@@ -119,7 +119,6 @@ void PowerManager::loadPowers() {
 		return;
 
 	bool clear_post_effects = true;
-	bool clear_loot = true;
 
 	int input_id = 0;
 	bool skippingEntry = false;
@@ -137,7 +136,6 @@ void PowerManager::loadPowers() {
 				powers.resize(input_id + 1);
 
 			clear_post_effects = true;
-			clear_loot = true;
 
 			continue;
 		}
@@ -235,13 +233,13 @@ void PowerManager::loadPowers() {
 			powers[input_id].requires_empty_target = toBool(infile.val);
 		else if (infile.key == "requires_item") {
 			// @ATTR power.requires_item|item_id, int : Item, Quantity|Requires a specific item of a specific quantity in inventory.
-			powers[input_id].requires_item = toInt(infile.nextValue());
-			powers[input_id].requires_item_quantity = toInt(infile.nextValue(), 1);
+			powers[input_id].requires_item = popFirstInt(infile.val);
+			powers[input_id].requires_item_quantity = toInt(popFirstString(infile.val), 1);
 		}
 		else if (infile.key == "requires_equipped_item") {
 			// @ATTR power.requires_equipped_item|item_id, int : Item, Quantity|Requires a specific item of a specific quantity to be equipped on hero.
-			powers[input_id].requires_equipped_item = toInt(infile.nextValue());
-			powers[input_id].requires_equipped_item_quantity = toInt(infile.nextValue());
+			powers[input_id].requires_equipped_item = popFirstInt(infile.val);
+			powers[input_id].requires_equipped_item_quantity = popFirstInt(infile.val);
 
 			// a maximum of 1 equipped item can be consumed at a time
 			if (powers[input_id].requires_equipped_item_quantity > 1) {
@@ -355,7 +353,7 @@ void PowerManager::loadPowers() {
 		}
 		else if (infile.key == "target_range")
 			// @ATTR power.target_range|float|The distance from the caster that the power can be activated
-			powers[input_id].target_range = toFloat(infile.nextValue());
+			powers[input_id].target_range = toFloat(popFirstString(infile.val));
 		//steal effects
 		else if (infile.key == "hp_steal")
 			// @ATTR power.hp_steal|int|Percentage of damage to steal into HP
@@ -490,7 +488,7 @@ void PowerManager::loadPowers() {
 			// @ATTR power.target_categories|list(predefined_string)|Hazard will only affect enemies in these categories.
 			powers[input_id].target_categories.clear();
 			std::string cat;
-			while ((cat = infile.nextValue()) != "") {
+			while ((cat = popFirstString(infile.val)) != "") {
 				powers[input_id].target_categories.push_back(cat);
 			}
 		}
@@ -525,17 +523,6 @@ void PowerManager::loadPowers() {
 
 			powers[input_id].mod_crit_value = popFirstInt(infile.val);
 		}
-		else if (infile.key == "loot") {
-			// @ATTR power.loot|list(loot)|Give the player this loot when the power is used
-			if (clear_loot) {
-				powers[input_id].loot.clear();
-				clear_loot = false;
-			}
-			if (lootm) {
-				powers[input_id].loot.push_back(Event_Component());
-				lootm->parseLoot(infile, &powers[input_id].loot.back(), &powers[input_id].loot);
-			}
-		}
 		else if (infile.key == "target_movement_normal") {
 			// @ATTR power.target_movement_normal|bool|Power can affect entities with normal movement (aka walking on ground)
 			powers[input_id].target_movement_normal = toBool(infile.val);
@@ -551,6 +538,16 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "walls_block_aoe") {
 			// @ATTR power.walls_block_aoe|bool|When true, prevents hazard aoe from hitting targets that are behind walls/pits.
 			powers[input_id].walls_block_aoe = toBool(infile.val);
+		}
+		else if (infile.key == "script") {
+			// @ATTR power.script|["on_cast", "on_hit", "on_wall"], filename : Trigger, Filename|Loads and executes a script file when the trigger is activated.
+			std::string trigger = popFirstString(infile.val);
+			if (trigger == "on_cast") powers[input_id].script_trigger = SCRIPT_TRIGGER_CAST;
+			else if (trigger == "on_hit") powers[input_id].script_trigger = SCRIPT_TRIGGER_HIT;
+			else if (trigger == "on_wall") powers[input_id].script_trigger = SCRIPT_TRIGGER_WALL;
+			else infile.error("PowerManager: Unknown script trigger '%s'", trigger.c_str());
+
+			powers[input_id].script = popFirstString(infile.val);
 		}
 
 		else infile.error("PowerManager: '%s' is not a valid key", infile.key.c_str());
@@ -753,11 +750,6 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 	haz->post_power = powers[power_index].post_power;
 	haz->wall_power = powers[power_index].wall_power;
 
-	// handle loot
-	if (!powers[power_index].loot.empty()) {
-		haz->loot = powers[power_index].loot;
-	}
-
 	// flag missile powers for reflection
 	haz->missile = (powers[power_index].type == POWTYPE_MISSILE);
 
@@ -771,6 +763,11 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 	if (powers[power_index].sfx_hit_enable) {
 		haz->sfx_hit = powers[power_index].sfx_hit;
 		haz->sfx_hit_enable = powers[power_index].sfx_hit_enable;
+	}
+
+	if (powers[power_index].script_trigger != -1) {
+		haz->script_trigger = powers[power_index].script_trigger;
+		haz->script = powers[power_index].script;
 	}
 }
 
@@ -815,13 +812,6 @@ void PowerManager::buff(int power_index, StatBlock *src_stats, const FPoint& tar
 	// otherwise the post power will chain off the hazard itself
 	if (!powers[power_index].use_hazard) {
 		activate(powers[power_index].post_power, src_stats, src_stats->pos);
-
-		// handle loot
-		for (unsigned i=0; i<powers[power_index].loot.size(); i++) {
-			loot.push_back(powers[power_index].loot[i]);
-			loot.back().x = static_cast<int>(src_stats->pos.x);
-			loot.back().y = static_cast<int>(src_stats->pos.y);
-		}
 	}
 }
 
@@ -1111,7 +1101,7 @@ bool PowerManager::transform(int power_index, StatBlock *src_stats, const FPoint
 	inpt->lockActionBar();
 
 	if (src_stats->transformed && powers[power_index].spawn_type != "untransform") {
-		log_msg = msg->get("You are already transformed, untransform first.");
+		pc->logMsg(msg->get("You are already transformed, untransform first."), true);
 		return false;
 	}
 
@@ -1123,7 +1113,7 @@ bool PowerManager::transform(int power_index, StatBlock *src_stats, const FPoint
 			src_stats->transform_type = "untransform"; // untransform() is called only if type !=""
 		}
 		else {
-			log_msg = msg->get("Could not untransform at this position.");
+			pc->logMsg(msg->get("Could not untransform at this position."), true);
 			inpt->unlockActionBar();
 			collider->block(src_stats->pos.x, src_stats->pos.y, false);
 			return false;
@@ -1199,6 +1189,10 @@ bool PowerManager::activate(int power_index, StatBlock *src_stats, const FPoint&
 
 	if (powers[power_index].type == POWTYPE_BLOCK)
 		return block(power_index, src_stats);
+
+	if (powers[power_index].script_trigger == SCRIPT_TRIGGER_CAST) {
+		EventManager::executeScript(powers[power_index].script, src_stats->pos.x, src_stats->pos.y);
+	}
 
 	// logic for different types of powers are very different.  We allow these
 	// separate functions to handle the details.

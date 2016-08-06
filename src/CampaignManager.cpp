@@ -37,7 +37,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 CampaignManager::CampaignManager()
 	: status()
-	, log_msg("")
 	, bonus_xp(0.0) {
 }
 
@@ -48,7 +47,7 @@ void CampaignManager::setAll(const std::string& s) {
 	std::string str = s + ',';
 	std::string token;
 	while (str != "") {
-		token = popFirstString(str, ',');
+		token = popFirstString(str);
 		if (token != "") this->setStatus(token);
 	}
 }
@@ -118,17 +117,22 @@ bool CampaignManager::checkItem(int item_id) {
 }
 
 void CampaignManager::removeCurrency(int quantity) {
-	menu->inv->removeCurrency(quantity);
-	addMsg(msg->get("%d %s removed.", quantity, CURRENCY));
-	items->playSound(CURRENCY_ID);
+	int max_amount = std::min(quantity, menu->inv->currency);
+
+	if (max_amount > 0) {
+		menu->inv->removeCurrency(max_amount);
+		pc->logMsg(msg->get("%d %s removed.", max_amount, CURRENCY), false);
+		items->playSound(CURRENCY_ID);
+	}
 }
 
 void CampaignManager::removeItem(int item_id) {
 	if (item_id < 0 || static_cast<unsigned>(item_id) >= items->items.size()) return;
 
-	menu->inv->remove(item_id);
-	addMsg(msg->get("%s removed.", items->getItemName(item_id)));
-	items->playSound(item_id);
+	if (menu->inv->remove(item_id)) {
+		pc->logMsg(msg->get("%s removed.", items->getItemName(item_id)), false);
+		items->playSound(item_id);
+	}
 }
 
 void CampaignManager::rewardItem(ItemStack istack) {
@@ -139,9 +143,9 @@ void CampaignManager::rewardItem(ItemStack istack) {
 
 	if (istack.item != CURRENCY_ID) {
 		if (istack.quantity <= 1)
-			addMsg(msg->get("You receive %s.", items->getItemName(istack.item)));
+			pc->logMsg(msg->get("You receive %s.", items->getItemName(istack.item)), false);
 		if (istack.quantity > 1)
-			addMsg(msg->get("You receive %s x%d.", istack.quantity, items->getItemName(istack.item)));
+			pc->logMsg(msg->get("You receive %s x%d.", istack.quantity, items->getItemName(istack.item)), false);
 	}
 }
 
@@ -150,7 +154,7 @@ void CampaignManager::rewardCurrency(int amount) {
 	stack.item = CURRENCY_ID;
 	stack.quantity = amount;
 
-	addMsg(msg->get("You receive %d %s.", amount, CURRENCY));
+	pc->logMsg(msg->get("You receive %d %s.", amount, CURRENCY), false);
 	rewardItem(stack);
 }
 
@@ -159,38 +163,33 @@ void CampaignManager::rewardXP(int amount, bool show_message) {
 	pc->stats.addXP(static_cast<int>(bonus_xp));
 	bonus_xp -= static_cast<float>(static_cast<int>(bonus_xp));
 	pc->stats.refresh_stats = true;
-	if (show_message) addMsg(msg->get("You receive %d XP.", amount));
+	if (show_message) pc->logMsg(msg->get("You receive %d XP.", amount), false);
 }
 
 void CampaignManager::restoreHPMP(const std::string& s) {
 	if (s == "hp") {
 		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
-		addMsg(msg->get("HP restored."));
+		pc->logMsg(msg->get("HP restored."), false);
 	}
 	else if (s == "mp") {
 		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
-		addMsg(msg->get("MP restored."));
+		pc->logMsg(msg->get("MP restored."), false);
 	}
 	else if (s == "hpmp") {
 		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
 		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
-		addMsg(msg->get("HP and MP restored."));
+		pc->logMsg(msg->get("HP and MP restored."), false);
 	}
 	else if (s == "status") {
 		pc->stats.effects.clearNegativeEffects();
-		addMsg(msg->get("Negative effects removed."));
+		pc->logMsg(msg->get("Negative effects removed."), false);
 	}
 	else if (s == "all") {
 		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
 		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
 		pc->stats.effects.clearNegativeEffects();
-		addMsg(msg->get("HP and MP restored, negative effects removed"));
+		pc->logMsg(msg->get("HP and MP restored, negative effects removed"), false);
 	}
-}
-
-void CampaignManager::addMsg(const std::string& new_msg) {
-	if (log_msg != "") log_msg += " ";
-	log_msg += new_msg;
 }
 
 bool CampaignManager::checkAllRequirements(const Event_Component& ec) {

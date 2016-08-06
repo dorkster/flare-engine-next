@@ -93,7 +93,7 @@ GameStatePlay::GameStatePlay()
 		items = new ItemManager();
 
 	loot = new LootManager();
-	powers = new PowerManager(loot);
+	powers = new PowerManager();
 	camp = new CampaignManager();
 	mapr = new MapRenderer();
 	pc = new Avatar();
@@ -307,6 +307,12 @@ void GameStatePlay::checkTeleport() {
 			menu->mini->prerender(&mapr->collider, mapr->w, mapr->h);
 			npc_id = nearest_npc = -1;
 
+			// use the default hero spawn position for this map
+			if (mapr->teleport_destination.x == -1 && mapr->teleport_destination.y == -1) {
+				mapr->cam.x = pc->stats.pos.x = mapr->hero_pos.x;
+				mapr->cam.y = pc->stats.pos.y = mapr->hero_pos.y;
+			}
+
 			// store this as the new respawn point (provided the tile is open)
 			if (mapr->collider.is_valid_position(pc->stats.pos.x, pc->stats.pos.y, MOVEMENT_NORMAL, true)) {
 				mapr->respawn_map = teleport_mapname;
@@ -379,46 +385,14 @@ void GameStatePlay::checkLog() {
 		menu->hudlog->clear();
 	}
 
-	// Map events can create messages
-	if (mapr->log_msg != "") {
-		menu->questlog->add(mapr->log_msg, LOG_TYPE_MESSAGES, false);
-		menu->hudlog->add(mapr->log_msg, false);
-		mapr->log_msg = "";
-	}
+	while (!pc->log_msg.empty()) {
+		const std::string& str = pc->log_msg.front().first;
+		const bool prevent_spam = pc->log_msg.front().second;
 
-	// The avatar can create messages (e.g. level up)
-	if (pc->log_msg != "") {
-		menu->questlog->add(pc->log_msg, LOG_TYPE_MESSAGES);
-		menu->hudlog->add(pc->log_msg);
-		pc->log_msg = "";
-	}
+		menu->questlog->add(str, LOG_TYPE_MESSAGES, prevent_spam);
+		menu->hudlog->add(str, prevent_spam);
 
-	// Campaign events can create messages (e.g. quest rewards)
-	if (camp->log_msg != "") {
-		menu->questlog->add(camp->log_msg, LOG_TYPE_MESSAGES, false);
-		menu->hudlog->add(camp->log_msg, false);
-		camp->log_msg = "";
-	}
-
-	// MenuInventory has hints to help the player use items properly
-	if (menu->inv->log_msg != "") {
-		menu->questlog->add(menu->inv->log_msg, LOG_TYPE_MESSAGES);
-		menu->hudlog->add(menu->inv->log_msg);
-		menu->inv->log_msg = "";
-	}
-
-	// MenuStash can display a message when the stash is full
-	if (menu->stash->log_msg != "") {
-		menu->questlog->add(menu->stash->log_msg, LOG_TYPE_MESSAGES);
-		menu->hudlog->add(menu->stash->log_msg);
-		menu->stash->log_msg = "";
-	}
-
-	// PowerManager has hints for powers
-	if (powers->log_msg != "") {
-		menu->questlog->add(powers->log_msg, LOG_TYPE_MESSAGES);
-		menu->hudlog->add(powers->log_msg);
-		powers->log_msg = "";
+		pc->log_msg.pop();
 	}
 }
 
@@ -604,12 +578,6 @@ void GameStatePlay::checkLootDrop() {
 			loot->addLoot(menu->inv->drop_stack.front(), pc->stats.pos, true);
 		}
 		menu->inv->drop_stack.pop();
-	}
-
-	// check loot dropped by powers
-	if (!powers->loot.empty()) {
-		loot->checkLoot(powers->loot);
-		powers->loot.clear();
 	}
 }
 

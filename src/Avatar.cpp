@@ -104,9 +104,10 @@ void Avatar::init() {
 	// other init
 	sprites = 0;
 	stats.cur_state = AVATAR_STANCE;
-	stats.pos.x = mapr->spawn.x;
-	stats.pos.y = mapr->spawn.y;
-	stats.direction = mapr->spawn_dir;
+	if (mapr->hero_pos_enabled) {
+		stats.pos.x = mapr->hero_pos.x;
+		stats.pos.y = mapr->hero_pos.y;
+	}
 	current_power = 0;
 	newLevelNotification = false;
 
@@ -127,7 +128,9 @@ void Avatar::init() {
 	stats.speed = 0.2f;
 	stats.recalc();
 
-	log_msg = "";
+	while (!log_msg.empty()) {
+		log_msg.pop();
+	}
 	respawn = false;
 
 	stats.cooldown_ticks = 0;
@@ -383,7 +386,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 			ss << " " << msg->get("You may increase one attribute through the Character Menu.");
 			newLevelNotification = true;
 		}
-		log_msg = ss.str();
+		logMsg(ss.str(), true);
 		stats.recalc();
 		snd->play(sound_levelup);
 
@@ -598,12 +601,10 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 					snd->play(sound_die);
 
 					if (stats.permadeath) {
-						log_msg = msg->get("You are defeated. Game over! ${INPUT_CONTINUE} to exit to Title.");
-						log_msg = substituteVarsInString(log_msg, this);
+						logMsg(substituteVarsInString(msg->get("You are defeated. Game over! ${INPUT_CONTINUE} to exit to Title."), this), true);
 					}
 					else {
-						log_msg = msg->get("You are defeated. ${INPUT_CONTINUE} to continue.");
-						log_msg = substituteVarsInString(log_msg, this);
+						logMsg(substituteVarsInString(msg->get("You are defeated. ${INPUT_CONTINUE} to continue."), this), true);
 					}
 
 					// if the player is attacking, we need to block further input
@@ -830,7 +831,7 @@ void Avatar::untransform() {
 	// For timed transformations, move the player to the last valid tile when untransforming
 	mapr->collider.unblock(stats.pos.x, stats.pos.y);
 	if (!mapr->collider.is_valid_position(stats.pos.x,stats.pos.y,MOVEMENT_NORMAL, true)) {
-		log_msg = msg->get("Transformation expired. You have been moved back to a safe place.");
+		logMsg(msg->get("Transformation expired. You have been moved back to a safe place."), true);
 		if (transform_map != mapr->getFilename()) {
 			mapr->teleportation = true;
 			mapr->teleport_mapname = transform_map;
@@ -948,6 +949,10 @@ void Avatar::addRenders(std::vector<Renderable> &r) {
 			r.push_back(ren);
 		}
 	}
+}
+
+void Avatar::logMsg(const std::string& str, bool prevent_spam) {
+	log_msg.push(std::pair<std::string, bool>(str, prevent_spam));
 }
 
 Avatar::~Avatar() {
