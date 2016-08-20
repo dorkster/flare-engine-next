@@ -424,6 +424,10 @@ void MenuManager::logic() {
 			if (act->twostep_slot != -1) {
 				act->twostep_slot = -1;
 			}
+			else if (devconsole->visible) {
+				devconsole->visible = false;
+				devconsole->reset();
+			}
 			else if (menus_open) {
 				closeAll();
 			}
@@ -1407,6 +1411,9 @@ bool MenuManager::isDragging() {
 	return drag_src != 0;
 }
 
+bool MenuManager::isNPCMenuVisible() {
+	return npc->visible || talker->visible || vendor->visible;
+}
 MenuManager::~MenuManager() {
 
 	tip_buf.clear();
