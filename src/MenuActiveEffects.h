@@ -28,23 +28,43 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 #include "Menu.h"
+#include "TooltipData.h"
 #include "Utils.h"
 
 class StatBlock;
+
+class EffectIcon {
+public:
+	int icon;
+	int type;
+	int current;
+	int max;
+	Rect pos;
+	Rect overlay;
+	std::string name;
+
+	EffectIcon()
+		: icon(-1)
+		, type(0)
+		, current(0)
+		, max(0)
+	{}
+};
 
 class MenuActiveEffects : public Menu {
 private:
 	Sprite *timer;
 	StatBlock *stats;
-	bool orientation;
-
-	void renderIcon(int icon_id, int index, int current, int max);
+	bool is_vertical;
+	std::vector<EffectIcon> effect_icons;
 
 public:
 	explicit MenuActiveEffects(StatBlock *_stats);
 	~MenuActiveEffects();
 	void loadGraphics();
+	void logic();
 	void render();
+	TooltipData checkTooltip(const Point& mouse);
 };
 
 #endif

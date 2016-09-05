@@ -178,6 +178,7 @@ class EffectDef {
 public:
 	std::string id;
 	std::string type;
+	std::string name;
 	int icon;
 	std::string animation;
 	bool can_stack;
@@ -186,6 +187,7 @@ public:
 	EffectDef()
 		: id("")
 		, type("")
+		, name("")
 		, icon(-1)
 		, animation("")
 		, can_stack(true)
@@ -221,7 +223,7 @@ Rect resizeToScreen(int w, int h, bool crop, ALIGNMENT align);
 
 size_t stringFindCaseInsensitive(const std::string &_a, const std::string &_b);
 
-std::string getDurationString(const int duration);
+std::string getDurationString(const int duration, size_t precision = 2);
 
 std::string substituteVarsInString(const std::string &_s, Avatar* avatar = NULL);
 

@@ -37,7 +37,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 MenuActiveEffects::MenuActiveEffects(StatBlock *_stats)
 	: timer(NULL)
 	, stats(_stats)
-	, orientation(false) { // horizontal
+	, is_vertical(false)
+{
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuActiveEffects|Description of menus/activeeffects.txt
@@ -46,9 +47,9 @@ MenuActiveEffects::MenuActiveEffects(StatBlock *_stats)
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
-			// @ATTR orientation|bool|True is vertical orientation; False is horizontal orientation.
-			if(infile.key == "orientation") {
-				orientation = toBool(infile.val);
+			// @ATTR vertical|bool|True is vertical orientation; False is horizontal orientation.
+			if(infile.key == "vertical") {
+				is_vertical = toBool(infile.val);
 			}
 			else {
 				infile.error("MenuActiveEffects: '%s' is not a valid key.", infile.key.c_str());
@@ -70,58 +71,100 @@ void MenuActiveEffects::loadGraphics() {
 	}
 }
 
-void MenuActiveEffects::renderIcon(int icon_id, int index, int current, int max) {
-	if (icon_id > -1) {
-		Point pos;
-		Rect src, overlay;
-		if (orientation == 0) {
-			pos.x = window_area.x + (index * ICON_SIZE);
-			pos.y = window_area.y;
-		}
-		else if (orientation == 1) {
-			pos.x = window_area.x;
-			pos.y = window_area.y + (index * ICON_SIZE);
-		}
+void MenuActiveEffects::logic() {
+	effect_icons.clear();
 
-		icons->setIcon(icon_id, pos);
+	for (size_t i = 0; i < stats->effects.effect_list.size(); ++i) {
+		if (stats->effects.effect_list[i].icon == -1)
+			continue;
+
+		const Effect &ed = stats->effects.effect_list[i];
+		EffectIcon ei;
+		ei.icon = ed.icon;
+		ei.name = ed.name;
+		ei.type = ed.type;
+
+		// icon position
+		if (!is_vertical) {
+			ei.pos.x = window_area.x + (static_cast<int>(effect_icons.size()) * ICON_SIZE);
+			ei.pos.y = window_area.y;
+		}
+		else {
+			ei.pos.x = window_area.x;
+			ei.pos.y = window_area.y + (static_cast<int>(effect_icons.size()) * ICON_SIZE);
+		}
+		ei.pos.w = ei.pos.h = ICON_SIZE;
+
+		// timer overlay
+		ei.overlay.x = 0;
+		ei.overlay.w = ICON_SIZE;
+
+		if (ed.type == EFFECT_SHIELD) {
+			ei.overlay.y = (ICON_SIZE * ed.magnitude) / ed.magnitude_max;
+			ei.current = ed.magnitude;
+			ei.max = ed.magnitude_max;
+		}
+		else if (ed.type == EFFECT_HEAL) {
+			ei.overlay.y = ICON_SIZE;
+			// current and max are ignored
+		}
+		else {
+			ei.overlay.y = (ICON_SIZE * ed.ticks) / ed.duration;
+			ei.current = ed.ticks;
+			ei.max = ed.duration;
+		}
+		ei.overlay.h = ICON_SIZE - ei.overlay.y;
+
+		effect_icons.push_back(ei);
+	}
+
+	if (!is_vertical) {
+		window_area.w = static_cast<int>(effect_icons.size()) * ICON_SIZE;
+		window_area.h = ICON_SIZE;
+	}
+	else {
+		window_area.w = ICON_SIZE;
+		window_area.h = static_cast<int>(effect_icons.size()) * ICON_SIZE;
+	}
+	Menu::align();
+}
+
+void MenuActiveEffects::render() {
+	for (size_t i = 0; i < effect_icons.size(); ++i) {
+		Point icon_pos(effect_icons[i].pos.x, effect_icons[i].pos.y);
+		icons->setIcon(effect_icons[i].icon, icon_pos);
 		icons->render();
 
-		if (max > 0) {
-			overlay.x = 0;
-			overlay.y = (ICON_SIZE * current) / max;
-			overlay.w = ICON_SIZE;
-			overlay.h = ICON_SIZE - overlay.y;
-
-			if (timer) {
-				timer->setClip(overlay);
-				timer->setDest(pos);
-				render_device->render(timer);
-			}
+		if (timer) {
+			timer->setClip(effect_icons[i].overlay);
+			timer->setDest(effect_icons[i].pos);
+			render_device->render(timer);
 		}
 	}
 }
 
-void MenuActiveEffects::render() {
-	int count=-1;
+TooltipData MenuActiveEffects::checkTooltip(const Point& mouse) {
+	TooltipData tip;
 
-	// Step through the list of effects and render those that are active
-	for (unsigned int i=0; i<stats->effects.effect_list.size(); i++) {
-		int type = stats->effects.effect_list[i].type;
-		int icon = stats->effects.effect_list[i].icon;
-		int ticks = stats->effects.effect_list[i].ticks;
-		int duration = stats->effects.effect_list[i].duration;
-		int magnitude = stats->effects.effect_list[i].magnitude;
-		int magnitude_max = stats->effects.effect_list[i].magnitude_max;
+	for (size_t i = 0; i < effect_icons.size(); ++i) {
+		if (!effect_icons[i].name.empty() && isWithinRect(effect_icons[i].pos, mouse)) {
+			tip.addText(msg->get(effect_icons[i].name));
 
-		if (icon >= 0) count++;
+			std::stringstream ss;
+			if (effect_icons[i].type == EFFECT_SHIELD) {
+				ss << "(" << effect_icons[i].current << "/" << effect_icons[i].max << ")";
+				tip.addText(ss.str());
+			}
+			else if (effect_icons[i].type != EFFECT_HEAL) {
+				ss << msg->get("Remaining:") << " " << getDurationString(effect_icons[i].current, 1);
+				tip.addText(ss.str());
+			}
 
-		if (type == EFFECT_SHIELD)
-			renderIcon(icon,count,magnitude,magnitude_max);
-		else if (type == EFFECT_HEAL)
-			renderIcon(icon,count,0,0);
-		else if (ticks >= 0 && duration >= 0)
-			renderIcon(icon,count,ticks,duration);
+			break;
+		}
 	}
+
+	return tip;
 }
 
 MenuActiveEffects::~MenuActiveEffects() {

@@ -347,6 +347,7 @@ void MenuManager::logic() {
 	}
 
 	book->logic();
+	effects->logic();
 	act->logic();
 	hudlog->logic();
 	enemy->logic();
@@ -1214,6 +1215,9 @@ void MenuManager::render() {
 				if (inv->visible && !mouse_dragging && isWithinRect(inv->window_area,inpt->mouse)) {
 					tip_new = inv->checkTooltip(inpt->mouse);
 				}
+			}
+			if (isWithinRect(effects->window_area, inpt->mouse)) {
+				tip_new = effects->checkTooltip(inpt->mouse);
 			}
 			if (isWithinRect(act->window_area,inpt->mouse)) {
 				tip_new = act->checkTooltip(inpt->mouse);
