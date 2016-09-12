@@ -48,27 +48,18 @@ public:
 
 	void loadSounds(StatBlock *src_stats = NULL);
 	void unloadSounds();
+	void playAttackSound(const std::string& attack_name);
 	bool move();
 	bool takeHit(Hazard &h);
 	virtual void doRewards(int) {}
 
 	// sound effects
-	SoundManager::SoundID sound_melee;
-	SoundManager::SoundID sound_mental;
+	std::vector<std::pair<std::string, SoundManager::SoundID> > sound_attack;
 	SoundManager::SoundID sound_hit;
 	SoundManager::SoundID sound_die;
 	SoundManager::SoundID sound_critdie;
 	SoundManager::SoundID sound_block;
 	SoundManager::SoundID sound_levelup;
-
-	// sound effects flags
-	bool play_sfx_phys;
-	bool play_sfx_ment;
-
-	bool play_sfx_hit;
-	bool play_sfx_die;
-	bool play_sfx_critdie;
-	bool play_sfx_block;
 
 	bool setAnimation(const std::string& animation);
 	Animation *activeAnimation;

@@ -45,58 +45,40 @@ const float speedMultiplyer[8] = { static_cast<float>(1.0/M_SQRT2), 1.0f, static
 
 Entity::Entity()
 	: sprites(NULL)
-	, sound_melee(0)
-	, sound_mental(0)
+	, sound_attack()
 	, sound_hit(0)
 	, sound_die(0)
 	, sound_critdie(0)
 	, sound_block(0)
 	, sound_levelup(0)
-	, play_sfx_phys(false)
-	, play_sfx_ment(false)
-	, play_sfx_hit(false)
-	, play_sfx_die(false)
-	, play_sfx_critdie(false)
-	, play_sfx_block(false)
 	, activeAnimation(NULL)
 	, animationSet(NULL) {
 }
 
 Entity::Entity(const Entity &e)
 	: sprites(e.sprites)
-	, sound_melee(e.sound_melee)
-	, sound_mental(e.sound_mental)
+	, sound_attack(e.sound_attack)
 	, sound_hit(e.sound_hit)
 	, sound_die(e.sound_die)
 	, sound_critdie(e.sound_critdie)
 	, sound_block(e.sound_block)
 	, sound_levelup(e.sound_levelup)
-	, play_sfx_phys(e.play_sfx_phys)
-	, play_sfx_ment(e.play_sfx_ment)
-	, play_sfx_hit(e.play_sfx_hit)
-	, play_sfx_die(e.play_sfx_die)
-	, play_sfx_critdie(e.play_sfx_critdie)
-	, play_sfx_block(e.play_sfx_block)
 	, activeAnimation(new Animation(*e.activeAnimation))
 	, animationSet(e.animationSet)
 	, stats(StatBlock(e.stats)) {
 }
 
 void Entity::loadSounds(StatBlock *src_stats) {
-	snd->unload(sound_melee);
-	snd->unload(sound_mental);
-	snd->unload(sound_hit);
-	snd->unload(sound_die);
-	snd->unload(sound_critdie);
-	snd->unload(sound_block);
-	snd->unload(sound_levelup);
+	unloadSounds();
 
 	if (!src_stats) src_stats = &stats;
 
-	if (src_stats->sfx_phys != "")
-		sound_melee = snd->load(src_stats->sfx_phys, "Entity melee attack");
-	if (src_stats->sfx_ment != "")
-		sound_mental = snd->load(src_stats->sfx_ment, "Entity mental attack");
+	for (size_t i = 0; i < src_stats->sfx_attack.size(); ++i) {
+		std::string anim_name = src_stats->sfx_attack[i].first;
+		SoundManager::SoundID sid = snd->load(src_stats->sfx_attack[i].second, "Entity attack");
+		sound_attack.push_back(std::pair<std::string, SoundManager::SoundID>(anim_name, sid));
+	}
+
 	if (src_stats->sfx_hit != "")
 		sound_hit = snd->load(src_stats->sfx_hit, "Entity was hit");
 	if (src_stats->sfx_die != "")
@@ -110,8 +92,9 @@ void Entity::loadSounds(StatBlock *src_stats) {
 }
 
 void Entity::unloadSounds() {
-	snd->unload(sound_melee);
-	snd->unload(sound_mental);
+	for (size_t i = 0; i < sound_attack.size(); ++i) {
+		snd->unload(sound_attack[i].second);
+	}
 	snd->unload(sound_hit);
 	snd->unload(sound_die);
 	snd->unload(sound_critdie);
@@ -119,6 +102,14 @@ void Entity::unloadSounds() {
 	snd->unload(sound_levelup);
 }
 
+void Entity::playAttackSound(const std::string& attack_name) {
+	for (size_t i = 0; i < sound_attack.size(); ++i) {
+		if (sound_attack[i].first == attack_name) {
+			snd->play(sound_attack[i].second);
+			return;
+		}
+	}
+}
 
 void Entity::move_from_offending_tile() {
 
@@ -283,7 +274,7 @@ bool Entity::takeHit(Hazard &h) {
 		h.lifespan = h.base_lifespan;
 
 		if (activeAnimation->getName() == "block") {
-			play_sfx_block = true;
+			snd->play(sound_block);
 		}
 
 		return false;
@@ -346,7 +337,7 @@ bool Entity::takeHit(Hazard &h) {
 				if (MAX_RESIST < 100) dmg = 1;
 			}
 			if (activeAnimation->getName() == "block") {
-				play_sfx_block = true;
+				snd->play(sound_block);
 				resetActiveAnimation();
 			}
 		}
@@ -451,7 +442,7 @@ bool Entity::takeHit(Hazard &h) {
 		}
 
 		// play hit sound effect
-		play_sfx_hit = true;
+		snd->play(sound_hit);
 
 		// if this hit caused a debuff, activate an on_debuff power
 		if (!was_debuffed && stats.effects.isDebuffed()) {
