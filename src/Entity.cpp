@@ -204,6 +204,11 @@ bool Entity::takeHit(Hazard &h) {
 			return false;
 	}
 
+	// check if this entity allows attacks from this power id
+	if (!stats.power_filter.empty() && std::find(stats.power_filter.begin(), stats.power_filter.end(), h.power_index) == stats.power_filter.end()) {
+		return false;
+	}
+
 	//if the target is already dead, they cannot be hit
 	if ((stats.cur_state == ENEMY_DEAD || stats.cur_state == ENEMY_CRITDEAD) && !stats.hero)
 		return false;
@@ -252,10 +257,7 @@ bool Entity::takeHit(Hazard &h) {
 		avoidance = stats.get(STAT_AVOIDANCE);
 	}
 
-	int true_avoidance = 100 - (accuracy + 25 - avoidance);
-	//if we are using an absolute accuracy, offset the constant 25 added to the accuracy
-	if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ABSOLUTE)
-		true_avoidance += 25;
+	int true_avoidance = 100 - (accuracy - avoidance);
 	clampFloor(true_avoidance, MIN_AVOIDANCE);
 	clampCeil(true_avoidance, MAX_AVOIDANCE);
 
@@ -280,9 +282,9 @@ bool Entity::takeHit(Hazard &h) {
 		return false;
 	}
 
+	bool missed = false;
 	if (percentChance(true_avoidance)) {
-		combat_text->addString(msg->get("miss"), stats.pos, COMBAT_MESSAGE_MISS);
-		return false;
+		missed = true;
 	}
 
 	// calculate base damage
@@ -363,11 +365,22 @@ bool Entity::takeHit(Hazard &h) {
 			mapr->shaky_cam_ticks = MAX_FRAMES_PER_SEC/2;
 	}
 
-	if(stats.hero)
+	// misses cause reduced damage
+	if (missed) {
+		dmg = (dmg * randBetween(MIN_MISS_DAMAGE, MAX_MISS_DAMAGE)) / 100;
+	}
+
+	if (dmg == 0) {
+		combat_text->addString(msg->get("miss"), stats.pos, COMBAT_MESSAGE_MISS);
+		return false;
+	}
+	else if(stats.hero)
 		combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_TAKEDMG);
 	else {
 		if(crit)
 			combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_CRIT);
+		else if (missed)
+			combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_MISS);
 		else
 			combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_GIVEDMG);
 	}
