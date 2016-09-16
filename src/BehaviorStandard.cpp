@@ -105,26 +105,14 @@ void BehaviorStandard::doUpkeep() {
 	// check for bleeding to death
 	if (e->stats.hp <= 0 && !(e->stats.cur_state == ENEMY_DEAD || e->stats.cur_state == ENEMY_CRITDEAD)) {
 		//work out who the kill is attributed to
-		bool source_hero = false;
-		bool source_ally = false;
-		bool source_enemy = false;
-		for (unsigned i=0; i<e->stats.effects.effect_list.size(); i++) {
-			if (e->stats.effects.effect_list[i].type == EFFECT_DAMAGE) {
-				switch(e->stats.effects.effect_list[i].source_type) {
-					case(SOURCE_TYPE_ALLY):
-						source_ally = true;
-						break;
-					case(SOURCE_TYPE_ENEMY):
-						source_enemy = true;
-						break;
-					case(SOURCE_TYPE_HERO):
-						source_hero = true;
-						break;
-				}
+		int bleed_source_type = -1;
+
+		for (size_t i = 0; i < e->stats.effects.effect_list.size(); ++i) {
+			if (e->stats.effects.effect_list[i].type == EFFECT_DAMAGE || e->stats.effects.effect_list[i].type == EFFECT_DAMAGE_PERCENT) {
+				bleed_source_type = e->stats.effects.effect_list[i].source_type;
+				break;
 			}
 		}
-
-		int bleed_source_type = source_hero ? SOURCE_TYPE_HERO : (source_ally ? SOURCE_TYPE_ALLY : (source_enemy ? SOURCE_TYPE_ENEMY : SOURCE_TYPE_NEUTRAL));
 
 		e->doRewards(bleed_source_type);
 
@@ -194,7 +182,7 @@ void BehaviorStandard::findTarget() {
 	}
 
 	// check exiting combat (player died or got too far away)
-	if (e->stats.in_combat && hero_dist > (e->stats.threat_range *2) && !e->stats.join_combat && e->stats.combat_style != COMBAT_AGGRESSIVE) {
+	if (e->stats.in_combat && hero_dist > (e->stats.threat_range_far) && !e->stats.join_combat && e->stats.combat_style != COMBAT_AGGRESSIVE) {
 		e->stats.in_combat = false;
 	}
 
@@ -249,7 +237,7 @@ void BehaviorStandard::findTarget() {
 	// If we have a successful chance_flee roll, try to move to a safe distance
 	if (
 			e->stats.cur_state == ENEMY_STANCE &&
-			!move_to_safe_dist && hero_dist < e->stats.threat_range/2 &&
+			!move_to_safe_dist && hero_dist < e->stats.flee_range &&
 			hero_dist >= e->stats.melee_range &&
 			percentChance(e->stats.chance_flee) &&
 			flee_cooldown == 0
@@ -476,7 +464,7 @@ void BehaviorStandard::checkMove() {
 void BehaviorStandard::checkMoveStateStance() {
 
 	// If the enemy is capable of fleeing and is at a safe distance, have it hold its position instead of moving
-	if (hero_dist >= e->stats.threat_range/2 && e->stats.chance_flee > 0 && e->stats.waypoints.empty()) return;
+	if (hero_dist >= e->stats.flee_range && e->stats.chance_flee > 0 && e->stats.waypoints.empty()) return;
 
 	// try to move to the target if we're either:
 	// 1. too far away and chance_pursue roll succeeds
@@ -529,7 +517,7 @@ void BehaviorStandard::checkMoveStateMove() {
 	}
 
 	// close enough to the hero or is at a safe distance
-	if (pc->stats.alive && ((target_dist < e->stats.melee_range && !fleeing) || (move_to_safe_dist && target_dist >= e->stats.threat_range/2) || stop_fleeing)) {
+	if (pc->stats.alive && ((target_dist < e->stats.melee_range && !fleeing) || (move_to_safe_dist && target_dist >= e->stats.flee_range) || stop_fleeing)) {
 		if (stop_fleeing) {
 			flee_cooldown = e->stats.flee_cooldown;
 		}

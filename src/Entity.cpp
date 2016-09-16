@@ -243,24 +243,6 @@ bool Entity::takeHit(Hazard &h) {
 	// prepare the combat text
 	CombatText *combat_text = comb;
 
-	// if it's a miss, do nothing
-	int accuracy = h.accuracy;
-	if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_MULTIPLY)
-		accuracy = accuracy * powers->powers[h.power_index].mod_accuracy_value / 100;
-	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ADD)
-		accuracy += powers->powers[h.power_index].mod_accuracy_value;
-	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ABSOLUTE)
-		accuracy = powers->powers[h.power_index].mod_accuracy_value;
-
-	int avoidance = 0;
-	if(!powers->powers[h.power_index].trait_avoidance_ignore) {
-		avoidance = stats.get(STAT_AVOIDANCE);
-	}
-
-	int true_avoidance = 100 - (accuracy - avoidance);
-	clampFloor(true_avoidance, MIN_AVOIDANCE);
-	clampCeil(true_avoidance, MAX_AVOIDANCE);
-
 	if (h.missile && percentChance(stats.get(STAT_REFLECT))) {
 		// reflect the missile 180 degrees
 		h.setAngle(h.angle+static_cast<float>(M_PI));
@@ -282,6 +264,22 @@ bool Entity::takeHit(Hazard &h) {
 		return false;
 	}
 
+	// if it's a miss, do nothing
+	int accuracy = h.accuracy;
+	if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_MULTIPLY)
+		accuracy = (accuracy * powers->powers[h.power_index].mod_accuracy_value) / 100;
+	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ADD)
+		accuracy += powers->powers[h.power_index].mod_accuracy_value;
+	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ABSOLUTE)
+		accuracy = powers->powers[h.power_index].mod_accuracy_value;
+
+	int avoidance = 0;
+	if(!powers->powers[h.power_index].trait_avoidance_ignore) {
+		avoidance = stats.get(STAT_AVOIDANCE);
+	}
+
+	int true_avoidance = std::min(std::max(100 - (accuracy - avoidance), MIN_AVOIDANCE), MAX_AVOIDANCE);
+
 	bool missed = false;
 	if (percentChance(true_avoidance)) {
 		missed = true;
@@ -300,10 +298,11 @@ bool Entity::takeHit(Hazard &h) {
 	// apply elemental resistance
 	if (h.trait_elemental >= 0 && unsigned(h.trait_elemental) < stats.vulnerable.size()) {
 		unsigned i = h.trait_elemental;
-		int vulnerable = stats.vulnerable[i];
-		clampFloor(vulnerable,MIN_RESIST);
+
+		int vulnerable = std::max(stats.vulnerable[i], MIN_RESIST);
 		if (stats.vulnerable[i] < 100)
-			clampCeil(vulnerable,MAX_RESIST);
+			vulnerable = std::min(vulnerable, MAX_RESIST);
+
 		dmg = (dmg * vulnerable) / 100;
 	}
 

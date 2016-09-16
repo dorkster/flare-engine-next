@@ -139,6 +139,8 @@ void GameStatePlay::resetGame() {
 	// Finalize new character settings
 	menu->talker->setHero(pc->stats);
 	pc->loadSounds();
+
+	mapr->executeOnLoadEvents();
 }
 
 /**
@@ -254,6 +256,7 @@ void GameStatePlay::checkLoot() {
 }
 
 void GameStatePlay::checkTeleport() {
+	bool on_load_teleport = false;
 
 	// both map events and player powers can cause teleportation
 	if (mapr->teleportation || pc->stats.teleportation) {
@@ -271,7 +274,7 @@ void GameStatePlay::checkTeleport() {
 
 		// if we're not changing map, move allies to a the player's new position
 		// when changing maps, enemies->handleNewMap() does something similar to this
-		if (mapr->teleport_mapname == "") {
+		if (mapr->teleport_mapname.empty()) {
 			FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
 			for (unsigned int i=0; i < enemies->enemies.size(); i++) {
 				if(enemies->enemies[i]->stats.hero_ally && enemies->enemies[i]->stats.alive) {
@@ -283,7 +286,7 @@ void GameStatePlay::checkTeleport() {
 		}
 
 		// process intermap teleport
-		if (mapr->teleportation && mapr->teleport_mapname != "") {
+		if (mapr->teleportation && !mapr->teleport_mapname.empty()) {
 			std::string teleport_mapname = mapr->teleport_mapname;
 			mapr->teleport_mapname = "";
 			inpt->lock_all = (teleport_mapname == "maps/spawn.txt");
@@ -328,15 +331,23 @@ void GameStatePlay::checkTeleport() {
 			else if (SAVE_ONLOAD) {
 				save_load->saveGame();
 			}
+
+			// switch off teleport flag so we can check if an on_load event has teleportation
+			mapr->teleportation = false;
+
+			mapr->executeOnLoadEvents();
+			if (mapr->teleportation)
+				on_load_teleport = true;
 		}
 
 		mapr->collider.block(pc->stats.pos.x, pc->stats.pos.y, false);
 
-		pc->stats.teleportation = false; // teleport spell
+		pc->stats.teleportation = false;
 
 	}
 
-	if (mapr->teleport_mapname == "") mapr->teleportation = false;
+	if (!on_load_teleport && mapr->teleport_mapname.empty())
+		mapr->teleportation = false;
 }
 
 /**
