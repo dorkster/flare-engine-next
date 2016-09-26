@@ -721,7 +721,7 @@ void MenuPowers::createTooltip(TooltipData* tip, int slot_num, const std::vector
 
 			for (size_t j=0; j<ELEMENTS.size(); ++j) {
 				if (pwr.post_effects[i].id == ELEMENTS[j].id + "_resist") {
-					ss << "% " << msg->get(ELEMENTS[j].name);
+					ss << "% " << msg->get("%s Resistance", ELEMENTS[j].name.c_str());
 					break;
 				}
 			}
@@ -1186,7 +1186,7 @@ void MenuPowers::logic() {
 	tablist.logic();
 	if (!tabs.empty()) {
 		for (size_t i=0; i<tabs.size(); i++) {
-			if (tab_control->getActiveTab() == static_cast<int>(i)) {
+			if (tab_control && tab_control->getActiveTab() == static_cast<int>(i)) {
 				tablist.setNextTabList(&tablist_pow[i]);
 			}
 			tablist_pow[i].logic();
