@@ -337,24 +337,18 @@ void MenuPowers::loadPower(FileParser &infile) {
 	// @ATTR power.position|point|Position of this power icon; relative to MenuPowers "pos".
 	else if (infile.key == "position") power_cell.back().pos = toPoint(infile.val);
 
-	// @ATTR power.requires_physoff|int|Power requires Physical and Offense stat of this value.
-	else if (infile.key == "requires_physoff") power_cell.back().requires_physoff = toInt(infile.val);
-	// @ATTR power.requires_physdef|int|Power requires Physical and Defense stat of this value.
-	else if (infile.key == "requires_physdef") power_cell.back().requires_physdef = toInt(infile.val);
-	// @ATTR power.requires_mentoff|int|Power requires Mental and Offense stat of this value.
-	else if (infile.key == "requires_mentoff") power_cell.back().requires_mentoff = toInt(infile.val);
-	// @ATTR power.requires_mentdef|int|Power requires Mental and Defense stat of this value.
-	else if (infile.key == "requires_mentdef") power_cell.back().requires_mentdef = toInt(infile.val);
+	// @ATTR power.requires_primary|predefined_string, int : Primary stat name, Required value|Power requires this primary stat to be at least the specificed value.
+	else if (infile.key == "requires_primary") {
+		std::string prim_stat = popFirstString(infile.val);
+		size_t prim_stat_index = getPrimaryStatIndex(prim_stat);
 
-	// @ATTR power.requires_defense|int|Power requires Defense stat of this value.
-	else if (infile.key == "requires_defense") power_cell.back().requires_defense = toInt(infile.val);
-	// @ATTR power.requires_offense|int|Power requires Offense stat of this value.
-	else if (infile.key == "requires_offense") power_cell.back().requires_offense = toInt(infile.val);
-	// @ATTR power.requires_physical|int|Power requires Physical stat of this value.
-	else if (infile.key == "requires_physical") power_cell.back().requires_physical = toInt(infile.val);
-	// @ATTR power.requires_mental|int|Power requires Mental stat of this value.
-	else if (infile.key == "requires_mental") power_cell.back().requires_mental = toInt(infile.val);
-
+		if (prim_stat_index != PRIMARY_STATS.size()) {
+			power_cell.back().requires_primary[prim_stat_index] = toInt(infile.val);
+		}
+		else {
+			infile.error("MenuPowers: '%s' is not a valid primary stat.", prim_stat.c_str());
+		}
+	}
 	// @ATTR power.requires_point|bool|Power requires a power point to unlock.
 	else if (infile.key == "requires_point") power_cell.back().requires_point = toBool(infile.val);
 	// @ATTR power.requires_level|int|Power requires at least this level for the hero.
@@ -405,24 +399,18 @@ void MenuPowers::loadUpgrade(FileParser &infile) {
 	if (skip_section)
 		return;
 
-	// @ATTR upgrade.requires_physoff|int|Upgrade requires Physical and Offense stat of this value.
-	if (infile.key == "requires_physoff") power_cell_upgrade.back().requires_physoff = toInt(infile.val);
-	// @ATTR upgrade.requires_physdef|int|Upgrade requires Physical and Defense stat of this value.
-	else if (infile.key == "requires_physdef") power_cell_upgrade.back().requires_physdef = toInt(infile.val);
-	// @ATTR upgrade.requires_mentoff|int|Upgrade requires Mental and Offense stat of this value.
-	else if (infile.key == "requires_mentoff") power_cell_upgrade.back().requires_mentoff = toInt(infile.val);
-	// @ATTR upgrade.requires_mentdef|int|Upgrade requires Mental and Defense stat of this value.
-	else if (infile.key == "requires_mentdef") power_cell_upgrade.back().requires_mentdef = toInt(infile.val);
+	// @ATTR upgrade.requires_primary|predefined_string, int : Primary stat name, Required value|Upgrade requires this primary stat to be at least the specificed value.
+	if (infile.key == "requires_primary") {
+		std::string prim_stat = popFirstString(infile.val);
+		size_t prim_stat_index = getPrimaryStatIndex(prim_stat);
 
-	// @ATTR upgrade.requires_defense|int|Upgrade requires Defense stat of this value.
-	else if (infile.key == "requires_defense") power_cell_upgrade.back().requires_defense = toInt(infile.val);
-	// @ATTR upgrade.requires_offense|int|Upgrade requires Offense stat of this value.
-	else if (infile.key == "requires_offense") power_cell_upgrade.back().requires_offense = toInt(infile.val);
-	// @ATTR upgrade.requires_physical|int|Upgrade requires Physical stat of this value.
-	else if (infile.key == "requires_physical") power_cell_upgrade.back().requires_physical = toInt(infile.val);
-	// @ATTR upgrade.requires_mental|int|Upgrade requires Mental stat of this value.
-	else if (infile.key == "requires_mental") power_cell_upgrade.back().requires_mental = toInt(infile.val);
-
+		if (prim_stat_index != PRIMARY_STATS.size()) {
+			power_cell_upgrade.back().requires_primary[prim_stat_index] = toInt(infile.val);
+		}
+		else {
+			infile.error("MenuPowers: '%s' is not a valid primary stat.", prim_stat.c_str());
+		}
+	}
 	// @ATTR upgrade.requires_point|bool|Upgrade requires a power point to unlock.
 	else if (infile.key == "requires_point") power_cell_upgrade.back().requires_point = toBool(infile.val);
 	// @ATTR upgrade.requires_level|int|Upgrade requires at least this level for the hero.
@@ -446,16 +434,15 @@ bool MenuPowers::checkRequirements(int pci) {
 		if (!checkUnlocked(power_cell_all[pci].requires_power_cell[i]))
 			return false;
 
-	if ((stats->physoff() >= power_cell_all[pci].requires_physoff) &&
-			(stats->physdef() >= power_cell_all[pci].requires_physdef) &&
-			(stats->mentoff() >= power_cell_all[pci].requires_mentoff) &&
-			(stats->mentdef() >= power_cell_all[pci].requires_mentdef) &&
-			(stats->get_defense() >= power_cell_all[pci].requires_defense) &&
-			(stats->get_offense() >= power_cell_all[pci].requires_offense) &&
-			(stats->get_physical() >= power_cell_all[pci].requires_physical) &&
-			(stats->get_mental() >= power_cell_all[pci].requires_mental) &&
-			(stats->level >= power_cell_all[pci].requires_level)) return true;
-	return false;
+	if (stats->level < power_cell_all[pci].requires_level)
+		return false;
+
+	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		if (stats->get_primary(i) < power_cell_all[pci].requires_primary[i])
+			return false;
+	}
+
+	return true;
 }
 
 bool MenuPowers::checkUnlocked(int pci) {
@@ -572,14 +559,9 @@ int MenuPowers::getNextLevelCell(int pci) {
 
 void MenuPowers::replaceCellWithUpgrade(int pci, int uci) {
 	power_cell[pci].id = power_cell_upgrade[uci].id;
-	power_cell[pci].requires_physoff = power_cell_upgrade[uci].requires_physoff;
-	power_cell[pci].requires_physdef = power_cell_upgrade[uci].requires_physdef;
-	power_cell[pci].requires_mentoff = power_cell_upgrade[uci].requires_mentoff;
-	power_cell[pci].requires_mentdef = power_cell_upgrade[uci].requires_mentdef;
-	power_cell[pci].requires_defense = power_cell_upgrade[uci].requires_defense;
-	power_cell[pci].requires_offense = power_cell_upgrade[uci].requires_offense;
-	power_cell[pci].requires_physical = power_cell_upgrade[uci].requires_physical;
-	power_cell[pci].requires_mental = power_cell_upgrade[uci].requires_mental;
+	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		power_cell[pci].requires_primary[i] = power_cell_upgrade[uci].requires_primary[i];
+	}
 	power_cell[pci].requires_level = power_cell_upgrade[uci].requires_level;
 	power_cell[pci].requires_power = power_cell_upgrade[uci].requires_power;
 	power_cell[pci].requires_power_cell = power_cell_upgrade[uci].requires_power_cell;
@@ -725,6 +707,13 @@ void MenuPowers::createTooltip(TooltipData* tip, int slot_num, const std::vector
 					break;
 				}
 			}
+
+			for (size_t j=0; j<PRIMARY_STATS.size(); ++j) {
+				if (pwr.post_effects[i].id == PRIMARY_STATS[j].id) {
+					ss << " " << PRIMARY_STATS[j].name;
+					break;
+				}
+			}
 		}
 		else {
 			if (effect_ptr->type == "damage") {
@@ -786,18 +775,6 @@ void MenuPowers::createTooltip(TooltipData* tip, int slot_num, const std::vector
 			}
 			else if (effect_ptr->type == "fear") {
 				ss << msg->get("Fear");
-			}
-			else if (effect_ptr->type == "offense") {
-				ss << pwr.post_effects[i].magnitude << " " << msg->get("Offense");
-			}
-			else if (effect_ptr->type == "defense") {
-				ss << pwr.post_effects[i].magnitude << " " << msg->get("Defense");
-			}
-			else if (effect_ptr->type == "physical") {
-				ss << pwr.post_effects[i].magnitude << " " << msg->get("Physical");
-			}
-			else if (effect_ptr->type == "mental") {
-				ss << pwr.post_effects[i].magnitude << " " << msg->get("Mental");
 			}
 			else if (effect_ptr->type == "death_sentence") {
 				ss << msg->get("Lifespan");
@@ -979,53 +956,13 @@ void MenuPowers::createTooltip(TooltipData* tip, int slot_num, const std::vector
 	}
 
 	// add requirement
-	if ((power_cells[slot_num].requires_physoff > 0) && (stats->physoff() < power_cells[slot_num].requires_physoff)) {
-		tip->addColoredText(msg->get("Requires Physical Offense %d", power_cells[slot_num].requires_physoff), color_penalty);
-	}
-	else if((power_cells[slot_num].requires_physoff > 0) && (stats->physoff() >= power_cells[slot_num].requires_physoff)) {
-		tip->addText(msg->get("Requires Physical Offense %d", power_cells[slot_num].requires_physoff));
-	}
-	if ((power_cells[slot_num].requires_physdef > 0) && (stats->physdef() < power_cells[slot_num].requires_physdef)) {
-		tip->addColoredText(msg->get("Requires Physical Defense %d", power_cells[slot_num].requires_physdef), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_physdef > 0) && (stats->physdef() >= power_cells[slot_num].requires_physdef)) {
-		tip->addText(msg->get("Requires Physical Defense %d", power_cells[slot_num].requires_physdef));
-	}
-	if ((power_cells[slot_num].requires_mentoff > 0) && (stats->mentoff() < power_cells[slot_num].requires_mentoff)) {
-		tip->addColoredText(msg->get("Requires Mental Offense %d", power_cells[slot_num].requires_mentoff), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_mentoff > 0) && (stats->mentoff() >= power_cells[slot_num].requires_mentoff)) {
-		tip->addText(msg->get("Requires Mental Offense %d", power_cells[slot_num].requires_mentoff));
-	}
-	if ((power_cells[slot_num].requires_mentdef > 0) && (stats->mentdef() < power_cells[slot_num].requires_mentdef)) {
-		tip->addColoredText(msg->get("Requires Mental Defense %d", power_cells[slot_num].requires_mentdef), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_mentdef > 0) && (stats->mentdef() >= power_cells[slot_num].requires_mentdef)) {
-		tip->addText(msg->get("Requires Mental Defense %d", power_cells[slot_num].requires_mentdef));
-	}
-	if ((power_cells[slot_num].requires_offense > 0) && (stats->get_offense() < power_cells[slot_num].requires_offense)) {
-		tip->addColoredText(msg->get("Requires Offense %d", power_cells[slot_num].requires_offense), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_offense > 0) && (stats->get_offense() >= power_cells[slot_num].requires_offense)) {
-		tip->addText(msg->get("Requires Offense %d", power_cells[slot_num].requires_offense));
-	}
-	if ((power_cells[slot_num].requires_defense > 0) && (stats->get_defense() < power_cells[slot_num].requires_defense)) {
-		tip->addColoredText(msg->get("Requires Defense %d", power_cells[slot_num].requires_defense), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_defense > 0) && (stats->get_defense() >= power_cells[slot_num].requires_defense)) {
-		tip->addText(msg->get("Requires Defense %d", power_cells[slot_num].requires_defense));
-	}
-	if ((power_cells[slot_num].requires_physical > 0) && (stats->get_physical() < power_cells[slot_num].requires_physical)) {
-		tip->addColoredText(msg->get("Requires Physical %d", power_cells[slot_num].requires_physical), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_physical > 0) && (stats->get_physical() >= power_cells[slot_num].requires_physical)) {
-		tip->addText(msg->get("Requires Physical %d", power_cells[slot_num].requires_physical));
-	}
-	if ((power_cells[slot_num].requires_mental > 0) && (stats->get_mental() < power_cells[slot_num].requires_mental)) {
-		tip->addColoredText(msg->get("Requires Mental %d", power_cells[slot_num].requires_mental), color_penalty);
-	}
-	else if ((power_cells[slot_num].requires_mental > 0) && (stats->get_mental() >= power_cells[slot_num].requires_mental)) {
-		tip->addText(msg->get("Requires Mental %d", power_cells[slot_num].requires_mental));
+	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		if (power_cells[slot_num].requires_primary[i] > 0) {
+			if (stats->get_primary(i) < power_cells[slot_num].requires_primary[i])
+				tip->addColoredText(msg->get("Requires %s %d", power_cells[slot_num].requires_primary[i], PRIMARY_STATS[i].name.c_str()), color_penalty);
+			else
+				tip->addText(msg->get("Requires %s %d", power_cells[slot_num].requires_primary[i], PRIMARY_STATS[i].name.c_str()));
+		}
 	}
 
 	// Draw required Level Tooltip
@@ -1409,14 +1346,12 @@ bool MenuPowers::meetsUsageStats(int power_index) {
 	// If we didn't find power in power_menu, than it has no stats requirements
 	if (id == -1) return true;
 
-	return stats->physoff() >= power_cell[id].requires_physoff
-		   && stats->physdef() >= power_cell[id].requires_physdef
-		   && stats->mentoff() >= power_cell[id].requires_mentoff
-		   && stats->mentdef() >= power_cell[id].requires_mentdef
-		   && stats->get_defense() >= power_cell[id].requires_defense
-		   && stats->get_offense() >= power_cell[id].requires_offense
-		   && stats->get_mental() >= power_cell[id].requires_mental
-		   && stats->get_physical() >= power_cell[id].requires_physical;
+	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		if (stats->get_primary(i) < power_cell[id].requires_primary[i])
+			return false;
+	}
+
+	return true;
 }
 
 bool MenuPowers::isTabListSelected() {

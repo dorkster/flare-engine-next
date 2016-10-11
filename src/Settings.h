@@ -45,6 +45,12 @@ public:
 
 const int ACTIONBAR_MAX = 12; // maximum number of slots in MenuActionBar
 
+class PrimaryStat {
+public:
+	std::string id;
+	std::string name;
+};
+
 class HeroClass {
 public:
 	std::string name;
@@ -52,28 +58,13 @@ public:
 	int currency;
 	std::string equipment;
 	std::string carried;
-	int physical;
-	int mental;
-	int offense;
-	int defense;
+	std::vector<int> primary;
 	std::vector<int> hotkeys;
 	std::vector<int> powers;
 	std::vector<std::string> statuses;
 	std::string power_tree;
 
-	HeroClass()
-		: name("")
-		, description("")
-		, currency(0)
-		, equipment("")
-		, carried("")
-		, physical(0)
-		, mental(0)
-		, offense(0)
-		, defense(0)
-		, hotkeys(std::vector<int>(ACTIONBAR_MAX, 0))
-		, power_tree("") {
-	}
+	HeroClass();
 };
 
 // Path info
@@ -190,6 +181,9 @@ extern int MAX_CRIT_DAMAGE;
 extern int MIN_OVERHIT_DAMAGE;
 extern int MAX_OVERHIT_DAMAGE;
 
+// Primary stats
+extern std::vector<PrimaryStat> PRIMARY_STATS;
+
 // Elemental types
 extern std::vector<Element> ELEMENTS;
 
@@ -225,6 +219,7 @@ bool saveSettings();
 bool loadDefaults();
 void loadMobileDefaults();
 void updateScreenVars();
+size_t getPrimaryStatIndex(const std::string& id_str);
 
 // version information
 std::string getVersionString();

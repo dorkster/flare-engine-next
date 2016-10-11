@@ -49,22 +49,13 @@ typedef enum {
 // active states
 const int ENEMY_STANCE = 0;
 const int ENEMY_MOVE = 1;
-const int ENEMY_CHARGE = 2;
-const int ENEMY_MELEE_PHYS = 3;
-const int ENEMY_MELEE_MENT = 4;
-const int ENEMY_RANGED_PHYS = 5;
-const int ENEMY_RANGED_MENT = 6;
-const int ENEMY_SPAWN = 7;
+const int ENEMY_POWER = 2;
+const int ENEMY_SPAWN = 3;
 // interrupt states
-const int ENEMY_BLOCK = 9;
-const int ENEMY_HIT = 10;
-const int ENEMY_DEAD = 11;
-const int ENEMY_CRITDEAD = 12;
-const int ENEMY_HALF_DEAD = 13;
-const int ENEMY_JOIN_COMBAT = 14;
-
-// final shared states
-const int ENEMY_POWER = 15; // enemy performing a power. anim/sfx based on power
+const int ENEMY_BLOCK = 4;
+const int ENEMY_HIT = 5;
+const int ENEMY_DEAD = 6;
+const int ENEMY_CRITDEAD = 7;
 
 // combat styles; enemy only
 const int COMBAT_DEFAULT = 0;
@@ -146,63 +137,25 @@ public:
 	int power_points_per_level;
 
 	// base stats ("attributes")
-	int offense_character;
-	int defense_character;
-	int physical_character;
-	int mental_character;
+	std::vector<int> primary;
 
 	// combat stats
 	std::vector<int> starting; // default level 1 values per stat. Read from file and never changes at runtime.
 	std::vector<int> base; // values before any active effects are applied
 	std::vector<int> current; // values after all active effects are applied
 	std::vector<int> per_level; // value increases each level after level 1
-	std::vector<int> per_physical;
-	std::vector<int> per_mental;
-	std::vector<int> per_offense;
-	std::vector<int> per_defense;
+	std::vector< std::vector<int> > per_primary;
 
 	int get(STAT stat) {
 		return current[stat];
 	}
 
 	// additional values to base stats, given by items
-	int offense_additional;
-	int defense_additional;
-	int physical_additional;
-	int mental_additional;
+	std::vector<int> primary_additional;
 
-	// getters for full base stats (character + additional)
-	int get_offense()  const {
-		return offense_character + offense_additional;
-	}
-	int get_defense()  const {
-		return defense_character + defense_additional;
-	}
-	int get_physical() const {
-		return physical_character + physical_additional;
-	}
-	int get_mental()   const {
-		return mental_character + mental_additional;
-	}
-
-	// derived stats ("disciplines")
-	int physoff() {
-		return get_physical() + get_offense();
-	}
-	int physdef() {
-		return get_physical() + get_defense();
-	}
-	int mentoff() {
-		return get_mental() + get_offense();
-	}
-	int mentdef() {
-		return get_mental() + get_defense();
-	}
-	int physment() {
-		return get_physical() + get_mental();
-	}
-	int offdef() {
-		return get_offense() + get_defense();
+	// getter for full base stats (character + additional)
+	int get_primary(size_t index) const {
+		return primary[index] + primary_additional[index];
 	}
 
 	// Base class picked when starting a new game. Defaults to "Adventurer".
