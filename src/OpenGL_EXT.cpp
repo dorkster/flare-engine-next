@@ -20,7 +20,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "OpenGL_EXT.h"
 
 #ifdef _WIN32
-PFNGLACTIVETEXTUREARBPROC         glActiveTexture            = NULL;
+PFNGLACTIVETEXTUREARBPROC         glWinActiveTexture         = NULL;
 #endif
 
 #ifndef __ANDROID__
@@ -67,7 +67,7 @@ void init(void **context)
 	if (context != NULL)
 	{
 		#ifdef _WIN32
-		glActiveTexture	           = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
+		glWinActiveTexture         = (PFNGLACTIVETEXTUREARBPROC)         glGetProcAddressARB("glActiveTextureARB");
 		#endif
 
 		#ifndef __ANDROID__
