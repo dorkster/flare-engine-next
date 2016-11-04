@@ -28,6 +28,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "OpenGLRenderDevice.h"
 
+#ifdef _WIN32
+#define glActiveTexture glWinActiveTexture
+#endif
+
 /**
  * These will be used for both drawing on screen and image
  */
