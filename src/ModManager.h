@@ -57,12 +57,16 @@ private:
 	std::map<std::string,std::string> loc_cache;
 	std::vector<std::string> mod_paths;
 
+	const std::vector<std::string> *cmd_line_mods;
+
 public:
-	ModManager();
+	ModManager(const std::vector<std::string> *_cmd_line_mods);
 	~ModManager();
 	Mod loadMod(const std::string& name);
 	void applyDepends();
 	bool haveFallbackMod();
+	void saveMods();
+	void resetModConfig();
 
 	// Returns the filename within the latest mod, in which the provided generic
 	// filename was found.
