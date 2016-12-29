@@ -135,6 +135,11 @@ OpenGLImage::OpenGLImage(RenderDevice *_device)
 }
 
 OpenGLImage::~OpenGLImage() {
+	if ((int)texture != -1)
+		glDeleteTextures(1, &texture);
+
+	if ((int)normalTexture != -1)
+		glDeleteTextures(1, &normalTexture);
 }
 
 int OpenGLImage::getWidth() const {
@@ -1020,18 +1025,6 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 	// store image to cache
 	cacheStore(filename, image);
 	return image;
-}
-
-void OpenGLRenderDevice::freeImage(Image *image) {
-	if (!image) return;
-
-	cacheRemove(image);
-
-	if ((int)static_cast<OpenGLImage *>(image)->texture != -1)
-		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->texture));
-
-	if ((int)static_cast<OpenGLImage *>(image)->normalTexture != -1)
-		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->normalTexture));
 }
 
 void OpenGLRenderDevice::windowResize() {
