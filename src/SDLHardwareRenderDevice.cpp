@@ -38,6 +38,8 @@ SDLHardwareImage::SDLHardwareImage(RenderDevice *_device, SDL_Renderer *_rendere
 }
 
 SDLHardwareImage::~SDLHardwareImage() {
+	if (surface)
+		SDL_DestroyTexture(surface);
 }
 
 int SDLHardwareImage::getWidth() const {
@@ -495,16 +497,6 @@ Image *SDLHardwareRenderDevice::loadImage(const std::string&filename, const std:
 	// store image to cache
 	cacheStore(filename, image);
 	return image;
-}
-
-void SDLHardwareRenderDevice::freeImage(Image *image) {
-	if (!image) return;
-
-	cacheRemove(image);
-
-	if (static_cast<SDLHardwareImage *>(image)->surface) {
-		SDL_DestroyTexture(static_cast<SDLHardwareImage *>(image)->surface);
-	}
 }
 
 void SDLHardwareRenderDevice::windowResize() {
