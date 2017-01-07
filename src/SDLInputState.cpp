@@ -175,14 +175,14 @@ void SDLInputState::handle() {
 
 		switch (event.type) {
 			case SDL_MOUSEMOTION:
+				last_is_joystick = false;
 				if (!PlatformOptions.is_mobile_device) {
 					mouse = scaleMouse(event.motion.x, event.motion.y);
-
-					if (!curs->show_cursor)
-						render_device->showMouseCursor();
+					curs->show_cursor = true;
 				}
 				break;
 			case SDL_MOUSEWHEEL:
+				last_is_joystick = false;
 				if (!PlatformOptions.is_mobile_device) {
 					if (event.wheel.y > 0) {
 						scroll_up = true;
@@ -192,6 +192,7 @@ void SDLInputState::handle() {
 				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
+				last_is_joystick = false;
 				if (!PlatformOptions.is_mobile_device) {
 					mouse = scaleMouse(event.button.x, event.button.y);
 					bind_button = (event.button.button + MOUSE_BIND_OFFSET) * (-1);
@@ -204,6 +205,7 @@ void SDLInputState::handle() {
 				}
 				break;
 			case SDL_MOUSEBUTTONUP:
+				last_is_joystick = false;
 				if (!PlatformOptions.is_mobile_device) {
 					mouse = scaleMouse(event.button.x, event.button.y);
 					bind_button = (event.button.button + MOUSE_BIND_OFFSET) * (-1);
@@ -238,6 +240,7 @@ void SDLInputState::handle() {
 			// Mobile touch events
 			// NOTE Should these be limited to mobile only?
 			case SDL_FINGERMOTION:
+				last_is_joystick = false;
 				if (PlatformOptions.is_mobile_device) {
 					mouse.x = static_cast<int>((event.tfinger.x + event.tfinger.dx) * VIEW_W);
 					mouse.y = static_cast<int>((event.tfinger.y + event.tfinger.dy) * VIEW_H);
@@ -250,6 +253,7 @@ void SDLInputState::handle() {
 				}
 				break;
 			case SDL_FINGERDOWN:
+				last_is_joystick = false;
 				if (PlatformOptions.is_mobile_device) {
 					touch_locked = true;
 					mouse.x = static_cast<int>(event.tfinger.x * VIEW_W);
@@ -259,6 +263,7 @@ void SDLInputState::handle() {
 				}
 				break;
 			case SDL_FINGERUP:
+				last_is_joystick = false;
 				if (PlatformOptions.is_mobile_device) {
 					touch_locked = false;
 					un_press[MAIN1] = true;
@@ -267,6 +272,9 @@ void SDLInputState::handle() {
 				break;
 
 			case SDL_KEYDOWN:
+				if (!NO_MOUSE)
+					last_is_joystick = false;
+
 				for (int key=0; key<key_count; key++) {
 					if (event.key.keysym.sym == binding[key] || event.key.keysym.sym == binding_alt[key]) {
 						pressing[key] = true;
@@ -278,6 +286,9 @@ void SDLInputState::handle() {
 				if (event.key.keysym.sym == SDLK_DOWN) pressing_down = true;
 				break;
 			case SDL_KEYUP:
+				if (!NO_MOUSE)
+					last_is_joystick = false;
+
 				for (int key=0; key<key_count; key++) {
 					if (event.key.keysym.sym == binding[key] || event.key.keysym.sym == binding_alt[key]) {
 						un_press[key] = true;
@@ -288,14 +299,11 @@ void SDLInputState::handle() {
 				if (event.key.keysym.sym == SDLK_UP) pressing_up = false;
 				if (event.key.keysym.sym == SDLK_DOWN) pressing_down = false;
 				break;
-				/*
-				case SDL_JOYAXISMOTION:
-					// Reading joystick from SDL_JOYAXISMOTION is slow. Joystick analog input is handled by SDL_JoystickGetAxis() now.
-					break;
-				*/
 			case SDL_JOYHATMOTION:
 				if (joy && SDL_JoystickInstanceID(joy) == event.jhat.which && ENABLE_JOYSTICK) {
-					render_device->hideMouseCursor();
+					last_is_joystick = true;
+					curs->show_cursor = false;
+					hideCursor();
 					joy_hat_event = true;
 					switch (event.jhat.value) {
 						case SDL_HAT_CENTERED:
@@ -391,7 +399,9 @@ void SDLInputState::handle() {
 				if (joy && SDL_JoystickInstanceID(joy) == event.jbutton.which && ENABLE_JOYSTICK) {
 					for (int key=0; key<key_count; key++) {
 						if (event.jbutton.button == binding_joy[key]) {
-							render_device->hideMouseCursor();
+							last_is_joystick = true;
+							curs->show_cursor = false;
+							hideCursor();
 							pressing[key] = true;
 							un_press[key] = false;
 						}
@@ -402,9 +412,62 @@ void SDLInputState::handle() {
 				if (joy && SDL_JoystickInstanceID(joy) == event.jbutton.which && ENABLE_JOYSTICK) {
 					for (int key=0; key<key_count; key++) {
 						if (event.jbutton.button == binding_joy[key]) {
+							last_is_joystick = true;
 							un_press[key] = true;
 						}
 						last_joybutton = event.jbutton.button;
+					}
+				}
+				break;
+			case SDL_JOYAXISMOTION:
+				if(ENABLE_JOYSTICK && joy_axis_num > 0 && !joy_hat_event) {
+					std::vector<bool> joy_axis_pressed;
+					joy_axis_pressed.resize(joy_axis_num*2, false);
+					last_joyaxis = -1;
+
+					for (int i=0; i<joy_axis_num*2; i++) {
+						int axis = SDL_JoystickGetAxis(joy, i/2);
+
+						joy_axis_deltas[i] = (axis - joy_axis_prev[i])/2;
+						joy_axis_prev[i] = axis;
+
+						if (i % 2 == 0) {
+							if (axis < -JOY_DEADZONE)
+								joy_axis_pressed[i] = true;
+							else if (axis <= JOY_DEADZONE)
+								joy_axis_pressed[i] = false;
+						}
+						else {
+							if (axis > JOY_DEADZONE)
+								joy_axis_pressed[i] = true;
+							else if (axis >= -JOY_DEADZONE)
+								joy_axis_pressed[i] = false;
+						}
+					}
+					for (int i=0; i<joy_axis_num*2; i++) {
+						int bind_axis = (i+JOY_AXIS_OFFSET) * (-1);
+						for (int key=0; key<key_count; key++) {
+							if (bind_axis == binding_joy[key]) {
+								if (joy_axis_pressed[i]) {
+									pressing[key] = true;
+									un_press[key] = false;
+								}
+								else {
+									if (pressing[key]) {
+										un_press[key] = true;
+									}
+									pressing[key] = false;
+									lock[key] = false;
+								}
+							}
+						}
+
+						if (joy_axis_pressed[i] && joy_axis_deltas[i] != 0) {
+							last_is_joystick = true;
+							curs->show_cursor = false;
+							hideCursor();
+							last_joyaxis = (i+JOY_AXIS_OFFSET) * (-1);
+						}
 					}
 				}
 				break;
@@ -429,56 +492,6 @@ void SDLInputState::handle() {
 				break;
 			default:
 				break;
-		}
-	}
-
-	// joystick analog input
-	if(ENABLE_JOYSTICK && joy_axis_num > 0 && !joy_hat_event) {
-		std::vector<bool> joy_axis_pressed;
-		joy_axis_pressed.resize(joy_axis_num*2, false);
-		last_joyaxis = -1;
-
-		for (int i=0; i<joy_axis_num*2; i++) {
-			int axis = SDL_JoystickGetAxis(joy, i/2);
-
-			joy_axis_deltas[i] = (axis - joy_axis_prev[i])/2;
-			joy_axis_prev[i] = axis;
-
-			if (i % 2 == 0) {
-				if (axis < -JOY_DEADZONE)
-					joy_axis_pressed[i] = true;
-				else if (axis <= JOY_DEADZONE)
-					joy_axis_pressed[i] = false;
-			}
-			else {
-				if (axis > JOY_DEADZONE)
-					joy_axis_pressed[i] = true;
-				else if (axis >= -JOY_DEADZONE)
-					joy_axis_pressed[i] = false;
-			}
-		}
-		for (int i=0; i<joy_axis_num*2; i++) {
-			int bind_axis = (i+JOY_AXIS_OFFSET) * (-1);
-			for (int key=0; key<key_count; key++) {
-				if (bind_axis == binding_joy[key]) {
-					if (joy_axis_pressed[i]) {
-						pressing[key] = true;
-						un_press[key] = false;
-					}
-					else {
-						if (pressing[key]) {
-							un_press[key] = true;
-						}
-						pressing[key] = false;
-						lock[key] = false;
-					}
-				}
-			}
-
-			if (joy_axis_pressed[i] && joy_axis_deltas[i] != 0) {
-				render_device->hideMouseCursor();
-				last_joyaxis = (i+JOY_AXIS_OFFSET) * (-1);
-			}
 		}
 	}
 
@@ -630,6 +643,10 @@ std::string SDLInputState::getContinueString() {
 
 int SDLInputState::getNumJoysticks() {
 	return joy_num;
+}
+
+bool SDLInputState::usingMouse() {
+	return !NO_MOUSE && !last_is_joystick;
 }
 
 SDLInputState::~SDLInputState() {
