@@ -33,7 +33,8 @@ EffectManager::EffectManager()
 	, triggered_hit(false)
 	, triggered_halfdeath(false)
 	, triggered_joincombat(false)
-	, triggered_death(false) {
+	, triggered_death(false)
+	, refresh_stats(false) {
 	clearStatus();
 }
 
@@ -81,6 +82,7 @@ EffectManager& EffectManager::operator= (const EffectManager &emSource) {
 	immunity_mp_steal = emSource.immunity_mp_steal;
 	immunity_knockback = emSource.immunity_knockback;
 	immunity_damage_reflect = emSource.immunity_damage_reflect;
+	immunity_stat_debuff = emSource.immunity_stat_debuff;
 	stun = emSource.stun;
 	revive = emSource.revive;
 	convert = emSource.convert;
@@ -104,6 +106,7 @@ EffectManager& EffectManager::operator= (const EffectManager &emSource) {
 	triggered_halfdeath = emSource.triggered_halfdeath;
 	triggered_joincombat = emSource.triggered_joincombat;
 	triggered_death = emSource.triggered_death;
+	refresh_stats = emSource.refresh_stats;
 
 	return *this;
 }
@@ -123,6 +126,7 @@ void EffectManager::clearStatus() {
 	immunity_mp_steal = false;
 	immunity_knockback = false;
 	immunity_damage_reflect = false;
+	immunity_stat_debuff = false;
 	stun = false;
 	revive = false;
 	convert = false;
@@ -150,6 +154,18 @@ void EffectManager::logic() {
 		// @CLASS EffectManager|Description of "type" in powers/effects.txt
 		// expire timed effects and total up magnitudes of active effects
 		if (effect_list[i].duration >= 0) {
+			if (effect_list[i].duration > 0) {
+				if (effect_list[i].ticks > 0) effect_list[i].ticks--;
+				if (effect_list[i].ticks == 0) {
+					//death sentence is only applied at the end of the timer
+					// @TYPE death_sentence|Causes sudden death at the end of the effect duration.
+					if (effect_list[i].type == EFFECT_DEATH_SENTENCE) death_sentence = true;
+					removeEffect(i);
+					i--;
+					continue;
+				}
+			}
+
 			// @TYPE damage|Damage per second
 			if (effect_list[i].type == EFFECT_DAMAGE && effect_list[i].ticks % MAX_FRAMES_PER_SEC == 1) damage += effect_list[i].magnitude;
 			// @TYPE damage_percent|Damage per second (percentage of max HP)
@@ -174,6 +190,7 @@ void EffectManager::logic() {
 				immunity_mp_steal = true;
 				immunity_knockback = true;
 				immunity_damage_reflect = true;
+				immunity_stat_debuff = true;
 			}
 			// @TYPE immunity_damage|Removes and prevents damage over time. Magnitude is ignored.
 			else if (effect_list[i].type == EFFECT_IMMUNITY_DAMAGE) immunity_damage = true;
@@ -189,6 +206,8 @@ void EffectManager::logic() {
 			else if (effect_list[i].type == EFFECT_IMMUNITY_KNOCKBACK) immunity_knockback = true;
 			// @TYPE immunity_damage_reflect|Prevents damage reflection. Magnitude is ignored.
 			else if (effect_list[i].type == EFFECT_IMMUNITY_DAMAGE_REFLECT) immunity_damage_reflect = true;
+			// @TYPE immunity_stat_debuff|Prevents stat value altering effects that have a magnitude less than 0. Magnitude is ignored.
+			else if (effect_list[i].type == EFFECT_IMMUNITY_STAT_DEBUFF) immunity_stat_debuff = true;
 
 			// @TYPE stun|Can't move or attack. Being attacked breaks stun.
 			else if (effect_list[i].type == EFFECT_STUN) stun = true;
@@ -212,18 +231,6 @@ void EffectManager::logic() {
 			// @TYPE ${PRIMARYSTAT}|Increases ${PRIMARYSTAT}, where ${PRIMARYSTAT} is any of the primary stats defined in engine/primary_stats.txt. Example: physical
 			else if (effect_list[i].type >= EFFECT_COUNT) {
 				bonus_primary[effect_list[i].type - EFFECT_COUNT - STAT_COUNT - ELEMENTS.size()] += effect_list[i].magnitude;
-			}
-
-			if (effect_list[i].duration > 0) {
-				if (effect_list[i].ticks > 0) effect_list[i].ticks--;
-				if (effect_list[i].ticks == 0) {
-					//death sentence is only applied at the end of the timer
-					// @TYPE death_sentence|Causes sudden death at the end of the effect duration.
-					if (effect_list[i].type == EFFECT_DEATH_SENTENCE) death_sentence = true;
-					removeEffect(i);
-					i--;
-					continue;
-				}
 			}
 		}
 		// expire shield effects
@@ -255,6 +262,7 @@ void EffectManager::logic() {
 
 void EffectManager::addEffect(EffectDef &effect, int duration, int magnitude, bool item, int trigger, int passive_id, int source_type) {
 	int effect_type = getType(effect.type);
+	refresh_stats = true;
 
 	// if we're already immune, don't add negative effects
 	if (immunity_damage && (effect_type == EFFECT_DAMAGE || effect_type == EFFECT_DAMAGE_PERCENT))
@@ -264,6 +272,8 @@ void EffectManager::addEffect(EffectDef &effect, int duration, int magnitude, bo
 	else if (immunity_stun && effect_type == EFFECT_STUN)
 		return;
 	else if (immunity_knockback && effect_type == EFFECT_KNOCKBACK)
+		return;
+	else if (immunity_stat_debuff && effect_type > EFFECT_COUNT && magnitude < 0)
 		return;
 
 	// only allow one knockback effect at a time
@@ -318,6 +328,7 @@ void EffectManager::addEffect(EffectDef &effect, int duration, int magnitude, bo
 void EffectManager::removeEffect(size_t id) {
 	removeAnimation(id);
 	effect_list.erase(effect_list.begin()+id);
+	refresh_stats = true;
 }
 
 void EffectManager::removeAnimation(size_t id) {
@@ -362,7 +373,9 @@ void EffectManager::clearNegativeEffects(int type) {
 			removeEffect(i-1);
 		else if ((type == -1 || type == EFFECT_IMMUNITY_STUN) && effect_list[i-1].type == EFFECT_STUN)
 			removeEffect(i-1);
-		else if ((type == -1 || type == EFFECT_KNOCKBACK) && effect_list[i-1].type == EFFECT_KNOCKBACK)
+		else if ((type == -1 || type == EFFECT_IMMUNITY_KNOCKBACK) && effect_list[i-1].type == EFFECT_KNOCKBACK)
+			removeEffect(i-1);
+		else if ((type == -1 || type == EFFECT_IMMUNITY_STAT_DEBUFF) && effect_list[i-1].type > EFFECT_COUNT && effect_list[i-1].magnitude_max < 0)
 			removeEffect(i-1);
 	}
 }
@@ -424,6 +437,7 @@ int EffectManager::getType(const std::string& type) {
 	else if (type == "immunity_mp_steal") return EFFECT_IMMUNITY_MP_STEAL;
 	else if (type == "immunity_knockback") return EFFECT_IMMUNITY_KNOCKBACK;
 	else if (type == "immunity_damage_reflect") return EFFECT_IMMUNITY_DAMAGE_REFLECT;
+	else if (type == "immunity_stat_debuff") return EFFECT_IMMUNITY_STAT_DEBUFF;
 	else if (type == "stun") return EFFECT_STUN;
 	else if (type == "revive") return EFFECT_REVIVE;
 	else if (type == "convert") return EFFECT_CONVERT;
@@ -463,6 +477,7 @@ bool EffectManager::isDebuffed() {
 		else if (effect_list[i-1].type == EFFECT_SPEED && effect_list[i-1].magnitude_max < 100) return true;
 		else if (effect_list[i-1].type == EFFECT_STUN) return true;
 		else if (effect_list[i-1].type == EFFECT_KNOCKBACK) return true;
+		else if (effect_list[i-1].type > EFFECT_COUNT && effect_list[i-1].magnitude_max < 0) return true;
 	}
 	return false;
 }
