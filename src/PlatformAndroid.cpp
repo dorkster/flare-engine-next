@@ -75,7 +75,8 @@ void PlatformInit(struct PlatformOptions_t *options) {
 void PlatformSetPaths() {
 	const std::string externalSDList[] = {
 		"/mnt/extSdCard/Android",
-		"/storage/extSdCard/Android"
+		"/storage/extSdCard/Android",
+		"/mnt/m_external_sd/Android"
 		};
 	const int externalSDList_size = 2;
 
@@ -97,6 +98,7 @@ void PlatformSetPaths() {
 			"/storage/sdcard0/Android",
 			"/storage/emulated/0/Android",
 			"/storage/emulated/legacy/Android",
+			"/mnt/m_internal_storage/Android"
 			};
 		const int internalSDList_size = 5;
 
