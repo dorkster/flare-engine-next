@@ -614,8 +614,8 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	{
 		glUniform1i(uniforms.light, 0);
 	}
-	glUniform1i(uniforms.screenWidth, VIEW_W);
-	glUniform1i(uniforms.screenHeight, VIEW_H);
+	glUniform1i(uniforms.screenWidth, SCREEN_W);
+	glUniform1i(uniforms.screenHeight, SCREEN_H);
 
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
