@@ -111,6 +111,8 @@ private:
 		GLint texture;
 		GLint normals;
 		GLint light;
+		GLint screenWidth;
+		GLint screenHeight;
 		GLint offset;
 		GLint texelOffset;
 	} uniforms;
