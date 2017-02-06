@@ -524,6 +524,9 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.normals = glGetUniformLocation(m_program, "normals");
 	uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
 
+	uniforms.screenWidth = glGetUniformLocation(m_program, "screenWidth");
+	uniforms.screenHeight = glGetUniformLocation(m_program, "screenHeight");
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
 
@@ -611,7 +614,8 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	{
 		glUniform1i(uniforms.light, 0);
 	}
-
+	glUniform1i(uniforms.screenWidth, SCREEN_W);
+	glUniform1i(uniforms.screenHeight, SCREEN_H);
 
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);

@@ -9,6 +9,9 @@ uniform sampler2D texture;
 uniform sampler2D normals;
 uniform bool lightEnabled;
 
+uniform int screenWidth;
+uniform int screenHeight;
+
 varying vec2 texcoord;
 
 void main()
@@ -21,7 +24,7 @@ void main()
 		vec3 light = vec3(0.5);
 		vec3 ambientColor = vec3(0.9);
 		float ambientIntensity = 0.1;
-		vec2 resolution = vec2(640, 480);
+		vec2 resolution = vec2(screenWidth, screenHeight);
 		vec3 lightColor = vec3(0.7);
 		bool useNormals = true;
 		bool useShadow = true;
