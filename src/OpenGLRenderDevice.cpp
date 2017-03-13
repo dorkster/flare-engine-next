@@ -1037,6 +1037,14 @@ void OpenGLRenderDevice::windowResize() {
 	SCREEN_W = static_cast<short unsigned int>(w);
 	SCREEN_H = static_cast<short unsigned int>(h);
 
+	for (size_t i = 0; i < VIRTUAL_HEIGHTS.size(); ++i) {
+		if (SCREEN_H >= VIRTUAL_HEIGHTS[i]) {
+			VIEW_H = VIRTUAL_HEIGHTS[i];
+		}
+	}
+
+	VIEW_H_HALF = VIEW_H / 2;
+
 	VIEW_SCALING = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
 	VIEW_W = static_cast<short unsigned int>(static_cast<float>(SCREEN_W) * VIEW_SCALING);
 
