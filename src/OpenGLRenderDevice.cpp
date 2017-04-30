@@ -343,6 +343,11 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 			}
 		}
 		else {
+			if (!is_initialized) {
+				// save the system gamma levels if we just created the window
+				SDL_GetWindowGammaRamp(window, gamma_r, gamma_g, gamma_b);
+			}
+
 			fullscreen = FULLSCREEN;
 			hwsurface = HWSURFACE;
 			vsync = VSYNC;
@@ -370,6 +375,14 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 		icons = new IconManager();
 		delete curs;
 		curs = new CursorManager();
+
+		if (fullscreen && CHANGE_GAMMA)
+			setGamma(GAMMA);
+		else {
+			resetGamma();
+			CHANGE_GAMMA = false;
+			GAMMA = 1.0;
+		}
 	}
 
 	return (is_initialized ? 0 : -1);
@@ -863,6 +876,8 @@ void OpenGLRenderDevice::commitFrame() {
 }
 
 void OpenGLRenderDevice::destroyContext() {
+	resetGamma();
+
 	// we need to free all loaded graphics as they may be tied to the current context
 	RenderDevice::cacheRemoveAll();
 	reload_graphics = true;
@@ -940,6 +955,10 @@ void OpenGLRenderDevice::setGamma(float g) {
 	Uint16 ramp[256];
 	SDL_CalculateGammaRamp(g, ramp);
 	SDL_SetWindowGammaRamp(window, ramp, ramp, ramp);
+}
+
+void OpenGLRenderDevice::resetGamma() {
+	SDL_SetWindowGammaRamp(window, gamma_r, gamma_g, gamma_b);
 }
 
 void OpenGLRenderDevice::updateTitleBar() {
