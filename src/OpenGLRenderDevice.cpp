@@ -376,7 +376,7 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 		delete curs;
 		curs = new CursorManager();
 
-		if (fullscreen && CHANGE_GAMMA)
+		if (CHANGE_GAMMA)
 			setGamma(GAMMA);
 		else {
 			resetGamma();
