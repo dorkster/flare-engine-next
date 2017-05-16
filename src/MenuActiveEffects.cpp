@@ -72,6 +72,12 @@ void MenuActiveEffects::loadGraphics() {
 }
 
 void MenuActiveEffects::logic() {
+	for(size_t i; i < effect_icons.size(); ++i){
+		if(effect_icons[i].stacksLabel){
+			delete effect_icons[i].stacksLabel;
+		}
+	}
+
 	effect_icons.clear();
 
 	for (size_t i = 0; i < stats->effects.effect_list.size(); ++i) {
@@ -79,10 +85,48 @@ void MenuActiveEffects::logic() {
 			continue;
 
 		const Effect &ed = stats->effects.effect_list[i];
+
+		size_t most_recent_id = effect_icons.size()-1;
+		if(ed.group_stack){
+			if( effect_icons.size()>0
+				&& effect_icons[most_recent_id].type == ed.type
+				&& effect_icons[most_recent_id].name == ed.name){
+
+				effect_icons[most_recent_id].stacks++;
+
+				if(ed.type == EFFECT_SHIELD){
+					//Shields stacks in momment of addition, we never have to reach that
+				}else if (ed.type == EFFECT_HEAL){
+					//No special behavior
+				}else{
+					if(ed.ticks < effect_icons[most_recent_id].current){
+						if (ed.duration > 0)
+							effect_icons[most_recent_id].overlay.y = (ICON_SIZE * ed.ticks) / ed.duration;
+						else
+							effect_icons[most_recent_id].overlay.y = ICON_SIZE;
+						effect_icons[most_recent_id].current = ed.ticks;
+						effect_icons[most_recent_id].max = ed.duration;
+					}
+				}
+
+				if(!effect_icons[most_recent_id].stacksLabel){
+					effect_icons[most_recent_id].stacksLabel = new WidgetLabel();
+					effect_icons[most_recent_id].stacksLabel->setX(effect_icons[most_recent_id].pos.x);
+					effect_icons[most_recent_id].stacksLabel->setY(effect_icons[most_recent_id].pos.y);
+					effect_icons[most_recent_id].stacksLabel->setMaxWidth(ICON_SIZE);
+				}
+
+				effect_icons[most_recent_id].stacksLabel->set(msg->get("x%d", effect_icons[most_recent_id].stacks));
+
+				continue;
+			}
+		}
+
 		EffectIcon ei;
 		ei.icon = ed.icon;
 		ei.name = ed.name;
 		ei.type = ed.type;
+		ei.stacks = 1;
 
 		// icon position
 		if (!is_vertical) {
@@ -143,6 +187,10 @@ void MenuActiveEffects::render() {
 			timer->setDest(effect_icons[i].pos);
 			render_device->render(timer);
 		}
+
+		if(effect_icons[i].stacksLabel){
+			effect_icons[i].stacksLabel->render();
+		}
 	}
 }
 
@@ -165,6 +213,12 @@ TooltipData MenuActiveEffects::checkTooltip(const Point& mouse) {
 			else if (effect_icons[i].max > 0) {
 				ss << msg->get("Remaining:") << " " << getDurationString(effect_icons[i].current, 1);
 				tip.addText(ss.str());
+			}
+
+			if(effect_icons[i].type != EFFECT_SHIELD){
+				if(effect_icons[i].stacks > 1){
+					tip.addText(msg->get("x%d stacks", effect_icons[i].stacks));
+				}
 			}
 
 			break;
