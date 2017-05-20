@@ -111,6 +111,14 @@ void PowerManager::loadEffects() {
 			// @ATTR effect.render_above|bool|Effect is rendered above
 			effects.back().render_above = toBool(infile.val);
 		}
+		else if (infile.key == "color_mod") {
+			// @ATTR color_mod|color|Changes the color of the afflicted entity.
+			effects.back().color_mod = toRGB(infile.val);
+		}
+		else if (infile.key == "alpha_mod") {
+			// @ATTR alpha_mod|int|Changes the alpha of the afflicted entity.
+			effects.back().alpha_mod = static_cast<uint8_t>(toInt(infile.val));
+		}
 		else {
 			infile.error("PowerManager: '%s' is not a valid key.", infile.key.c_str());
 		}
@@ -474,7 +482,7 @@ void PowerManager::loadPowers() {
 			}
 		}
 		else if (infile.key == "spawn_level") {
-			// @ATTR power.spawn_limit|["default", "fixed", "stat", "level"], [int, predefined_string] : Mode, Value|The level of spawned creatures. "fixed" and "level" take an integer. "stat" takes a primary stat as a string (e.g. "physical").
+			// @ATTR power.spawn_level|["default", "fixed", "stat", "level"], [int, predefined_string] : Mode, Value|The level of spawned creatures. "fixed" and "level" take an integer. "stat" takes a primary stat as a string (e.g. "physical").
 			std::string mode = popFirstString(infile.val);
 			if (mode == "default") powers[input_id].spawn_level_mode = SPAWN_LEVEL_MODE_DEFAULT;
 			else if (mode == "fixed") powers[input_id].spawn_level_mode = SPAWN_LEVEL_MODE_FIXED;

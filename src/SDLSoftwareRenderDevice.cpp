@@ -294,7 +294,20 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 int SDLSoftwareRenderDevice::render(Renderable& r, Rect& dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
-	return SDL_BlitSurface(static_cast<SDLSoftwareImage *>(r.image)->surface, &src, screen, &_dest);
+
+	SDL_Surface *surface = static_cast<SDLSoftwareImage *>(r.image)->surface;
+
+	if (r.blend_mode == RENDERABLE_BLEND_ADD) {
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_ADD);
+	}
+	else { // RENDERABLE_BLEND_NORMAL
+		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND);
+	}
+
+	SDL_SetSurfaceColorMod(surface, r.color_mod.r, r.color_mod.g, r.color_mod.b);
+	SDL_SetSurfaceAlphaMod(surface, r.alpha_mod);
+
+	return SDL_BlitSurface(surface, &src, screen, &_dest);
 }
 
 int SDLSoftwareRenderDevice::render(Sprite *r) {

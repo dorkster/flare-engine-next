@@ -29,6 +29,11 @@ class Image;
 class RenderDevice;
 class FontStyle;
 
+enum {
+	RENDERABLE_BLEND_NORMAL = 0,
+	RENDERABLE_BLEND_ADD = 1,
+};
+
 /** A Sprite representation
  *
  * A Sprite is instantiated from a Image instance using
@@ -142,12 +147,20 @@ public:
 	FPoint map_pos;     // The map location on the floor between someone's feet
 	Point offset;      // offset from map_pos to topleft corner of sprite
 	uint64_t prio;     // 64-32 bit for map position, 31-16 for intertile position, 15-0 user dependent, such as Avatar.
+
+	uint8_t blend_mode;
+	Color color_mod;
+	uint8_t alpha_mod;
+
 	Renderable()
 		: image(NULL)
 		, src(Rect())
 		, map_pos()
 		, offset()
-		, prio(0) {
+		, prio(0)
+		, blend_mode(RENDERABLE_BLEND_NORMAL)
+		, color_mod(255, 255, 255)
+		, alpha_mod(255) {
 	}
 };
 
