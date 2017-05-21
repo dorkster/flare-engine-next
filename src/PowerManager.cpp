@@ -193,6 +193,10 @@ void PowerManager::loadPowers() {
 			// @ATTR power.state_duration|duration|Sets the length of time the caster is in their state animation. A time longer than the animation length will cause the animation to pause on the last frame. Times shorter than the state animation length will have no effect.
 			powers[input_id].state_duration = parse_duration(infile.val);
 		}
+		else if (infile.key == "prevent_interrupt") {
+			// @ATTR prevent_interrupt|bool|Prevents the caster from being interrupted by a hit when casting this power.
+			powers[input_id].prevent_interrupt = toBool(infile.val);
+		}
 		else if (infile.key == "face")
 			// @ATTR power.face|bool|Power will make hero or enemy to face the target location.
 			powers[input_id].face = toBool(infile.val);
@@ -448,6 +452,10 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "wall_power")
 			// @ATTR power.wall_power|power_id|Trigger a power if the hazard hit a wall.
 			powers[input_id].wall_power = toInt(infile.val);
+		else if (infile.key == "wall_reflect")
+			// @ATTR power.wall_reflect|bool|Moving power will bounce off walls and keep going
+			powers[input_id].wall_reflect = toBool(infile.val);
+
 		// spawn info
 		else if (infile.key == "spawn_type")
 			// @ATTR power.spawn_type|predefined_string|For non-transform powers, an enemy is spawned from this category. For transform powers, the caster will transform into a creature from this category.
@@ -790,6 +798,7 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 	// pre/post power effects
 	haz->post_power = powers[power_index].post_power;
 	haz->wall_power = powers[power_index].wall_power;
+	haz->wall_reflect = powers[power_index].wall_reflect;
 
 	// flag missile powers for reflection
 	haz->missile = (powers[power_index].type == POWTYPE_MISSILE);
