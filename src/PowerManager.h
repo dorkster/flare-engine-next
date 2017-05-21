@@ -237,6 +237,12 @@ public:
 	int script_trigger;
 	std::string script;
 
+	std::vector< std::pair<std::string, int> > remove_effects;
+
+	int replace_by_effect_power;
+	std::string replace_by_effect_id;
+	int replace_by_effect_count;
+
 	Power()
 		: type(-1)
 		, name("")
@@ -346,7 +352,13 @@ public:
 		, walls_block_aoe(false)
 
 		, script_trigger(-1)
-		, script("") {
+		, script("")
+
+		, remove_effects()
+
+		, replace_by_effect_power(0)
+		, replace_by_effect_id("")
+		, replace_by_effect_count(0) {
 	}
 
 };

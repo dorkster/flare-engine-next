@@ -126,6 +126,7 @@ public:
 	void addEffect(EffectDef &effect, int duration, int magnitude, bool item, int trigger, int passive_id, int source_type);
 	void removeEffectType(const int type);
 	void removeEffectPassive(int id);
+	void removeEffectID(const std::vector< std::pair<std::string, int> >& remove_effects);
 	void clearEffects();
 	void clearNegativeEffects(int type = -1);
 	void clearItemEffects();
@@ -134,6 +135,7 @@ public:
 	bool isDebuffed();
 	Color getCurrentColor();
 	uint8_t getCurrentAlpha();
+	bool hasEffect(const std::string& id, int req_count);
 
 	std::vector<Effect> effect_list;
 
