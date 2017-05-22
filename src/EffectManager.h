@@ -33,7 +33,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 class Animation;
 class Hazard;
 
-#define EFFECT_COUNT 25
+#define EFFECT_COUNT 26
 
 enum EFFECT_TYPE {
 	EFFECT_NONE = 0,
@@ -44,23 +44,24 @@ enum EFFECT_TYPE {
 	EFFECT_MPOT = 5,
 	EFFECT_MPOT_PERCENT = 6,
 	EFFECT_SPEED = 7,
-	EFFECT_IMMUNITY = 8,
-	EFFECT_IMMUNITY_DAMAGE = 9,
-	EFFECT_IMMUNITY_SLOW = 10,
-	EFFECT_IMMUNITY_STUN = 11,
-	EFFECT_IMMUNITY_HP_STEAL = 12,
-	EFFECT_IMMUNITY_MP_STEAL = 13,
-	EFFECT_IMMUNITY_KNOCKBACK = 14,
-	EFFECT_IMMUNITY_DAMAGE_REFLECT = 15,
-	EFFECT_IMMUNITY_STAT_DEBUFF = 16,
-	EFFECT_STUN = 17,
-	EFFECT_REVIVE = 18,
-	EFFECT_CONVERT = 19,
-	EFFECT_FEAR = 20,
-	EFFECT_DEATH_SENTENCE = 21,
-	EFFECT_SHIELD = 22,
-	EFFECT_HEAL = 23,
-	EFFECT_KNOCKBACK = 24
+	EFFECT_ATTACK_SPEED = 8,
+	EFFECT_IMMUNITY = 9,
+	EFFECT_IMMUNITY_DAMAGE = 10,
+	EFFECT_IMMUNITY_SLOW = 11,
+	EFFECT_IMMUNITY_STUN = 12,
+	EFFECT_IMMUNITY_HP_STEAL = 13,
+	EFFECT_IMMUNITY_MP_STEAL = 14,
+	EFFECT_IMMUNITY_KNOCKBACK = 15,
+	EFFECT_IMMUNITY_DAMAGE_REFLECT = 16,
+	EFFECT_IMMUNITY_STAT_DEBUFF = 17,
+	EFFECT_STUN = 18,
+	EFFECT_REVIVE = 19,
+	EFFECT_CONVERT = 20,
+	EFFECT_FEAR = 21,
+	EFFECT_DEATH_SENTENCE = 22,
+	EFFECT_SHIELD = 23,
+	EFFECT_HEAL = 24,
+	EFFECT_KNOCKBACK = 25
 };
 
 class Effect {
@@ -83,6 +84,7 @@ public:
 	bool group_stack;
 	Color color_mod;
 	uint8_t alpha_mod;
+	std::string attack_speed_anim;
 
 	Effect()
 		: id("")
@@ -102,7 +104,8 @@ public:
 		, source_type(SOURCE_TYPE_HERO)
 		, group_stack(false)
 		, color_mod(255, 255, 255)
-		, alpha_mod(255) {
+		, alpha_mod(255)
+		, attack_speed_anim("") {
 	}
 
 	~Effect() {
@@ -136,6 +139,7 @@ public:
 	Color getCurrentColor();
 	uint8_t getCurrentAlpha();
 	bool hasEffect(const std::string& id, int req_count);
+	float getAttackSpeed(const std::string& anim_name);
 
 	std::vector<Effect> effect_list;
 

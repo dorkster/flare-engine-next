@@ -1217,9 +1217,11 @@ body {
 
 <p><strong>effect.render_above</strong> | <code>bool</code> | Effect is rendered above</p>
 
-<p><strong>color_mod</strong> | <code>color</code> | Changes the color of the afflicted entity.</p>
+<p><strong>effect.color_mod</strong> | <code>color</code> | Changes the color of the afflicted entity.</p>
 
-<p><strong>alpha_mod</strong> | <code>int</code> | Changes the alpha of the afflicted entity.</p>
+<p><strong>effect.alpha_mod</strong> | <code>int</code> | Changes the alpha of the afflicted entity.</p>
+
+<p><strong>effect.attack_speed_anim</strong> | <code>string</code> | If the type of Effect is attack_speed, this defines the attack animation that will have its speed changed.</p>
 
 <hr />
 
@@ -1302,6 +1304,8 @@ body {
 <p><strong>power.complete_animation</strong> | <code>bool</code> | For hazards; Play the entire animation, even if the hazard has hit a target.</p>
 
 <p><strong>power.charge_speed</strong> | <code>float</code> | Moves the caster at this speed in the direction they are facing until the state animation is finished.</p>
+
+<p><strong>power.attack_speed</strong> | <code>int</code> | Changes attack animation speed for this Power. A value of 100 is 100% speed (aka normal speed).</p>
 
 <p><strong>power.use_hazard</strong> | <code>bool</code> | Power uses hazard.</p>
 
@@ -1828,6 +1832,8 @@ body {
 <p><strong>mpot_percent</strong> | MP restored per second (percentage of max MP)</p>
 
 <p><strong>speed</strong> | Changes movement speed. A magnitude of 100 is 100% speed (aka normal speed).</p>
+
+<p><strong>attack_speed</strong> | Changes attack speed. A magnitude of 100 is 100% speed (aka normal speed).</p>
 
 <p><strong>immunity</strong> | Applies all immunity effects. Magnitude is ignored.</p>
 

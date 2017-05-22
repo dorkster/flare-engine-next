@@ -112,12 +112,16 @@ void PowerManager::loadEffects() {
 			effects.back().render_above = toBool(infile.val);
 		}
 		else if (infile.key == "color_mod") {
-			// @ATTR color_mod|color|Changes the color of the afflicted entity.
+			// @ATTR effect.color_mod|color|Changes the color of the afflicted entity.
 			effects.back().color_mod = toRGB(infile.val);
 		}
 		else if (infile.key == "alpha_mod") {
-			// @ATTR alpha_mod|int|Changes the alpha of the afflicted entity.
+			// @ATTR effect.alpha_mod|int|Changes the alpha of the afflicted entity.
 			effects.back().alpha_mod = static_cast<uint8_t>(toInt(infile.val));
+		}
+		else if (infile.key == "attack_speed_anim") {
+			// @ATTR effect.attack_speed_anim|string|If the type of Effect is attack_speed, this defines the attack animation that will have its speed changed.
+			effects.back().attack_speed_anim = infile.val;
 		}
 		else {
 			infile.error("PowerManager: '%s' is not a valid key.", infile.key.c_str());
@@ -322,6 +326,14 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "charge_speed")
 			// @ATTR power.charge_speed|float|Moves the caster at this speed in the direction they are facing until the state animation is finished.
 			powers[input_id].charge_speed = toFloat(infile.val) / MAX_FRAMES_PER_SEC;
+		else if (infile.key == "attack_speed") {
+			// @ATTR power.attack_speed|int|Changes attack animation speed for this Power. A value of 100 is 100% speed (aka normal speed).
+			powers[input_id].attack_speed = static_cast<float>(toInt(infile.val));
+			if (powers[input_id].attack_speed < 100) {
+				logInfo("PowerManager: Attack speeds less than 100 are unsupported.");
+				powers[input_id].attack_speed = 100;
+			}
+		}
 		// hazard traits
 		else if (infile.key == "use_hazard")
 			// @ATTR power.use_hazard|bool|Power uses hazard.
@@ -612,6 +624,8 @@ void PowerManager::loadPowers() {
 
 bool PowerManager::isValidEffect(const std::string& type) {
 	if (type == "speed")
+		return true;
+	if (type == "attack_speed")
 		return true;
 
 	if (type == "physical")
