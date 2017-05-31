@@ -793,11 +793,11 @@ body {
 
 <p>Description of menus/actionbar.txt</p>
 
-<p><strong>slot</strong> | <code>repeatable(int, int, int) : Index, X, Y</code> | Index (max 10) and position for power slot.</p>
+<p><strong>slot</strong> | <code>repeatable(int, int, int, bool) : Index, X, Y, Locked</code> | Index (max 10) and position for power slot. If a slot is locked, its Power can't be changed by the player.</p>
 
-<p><strong>slot_M1</strong> | <code>point</code> | Position for the primary action slot.</p>
+<p><strong>slot_M1</strong> | <code>point, bool : Position, Locked</code> | Position for the primary action slot. If the slot is locked, its Power can't be changed by the player.</p>
 
-<p><strong>slot_M2</strong> | <code>point</code> | Position for the secondary action slot.</p>
+<p><strong>slot_M2</strong> | <code>point, bool : Position Locked</code> | Position for the secondary action slot. If the slot is locked, its Power can't be changed by the player.</p>
 
 <p><strong>char_menu</strong> | <code>point</code> | Position for the Character menu button.</p>
 
@@ -1365,11 +1365,11 @@ body {
 
 <p><strong>power.buff_party_power_id</strong> | <code>power_id</code> | Buffs a power id for all party members</p>
 
-<p><strong>power.post_effect</strong> | <code>predefined_string, int, duration : Effect ID, Magnitude, Duration</code> | Post effect. Duration is in 'ms' or 's'.</p>
+<p><strong>power.post_effect</strong> | <code>predefined_string, int, duration , int : Effect ID, Magnitude, Duration, Chance to apply</code> | Post effect. Duration is in 'ms' or 's'.</p>
 
-<p><strong>power.post_power</strong> | <code>power_id</code> | Trigger a power if the hazard did damage.</p>
+<p><strong>power.post_power</strong> | <code>power_id, int : Power, Chance to cast</code> | Trigger a power if the hazard did damage.</p>
 
-<p><strong>power.wall_power</strong> | <code>power_id</code> | Trigger a power if the hazard hit a wall.</p>
+<p><strong>power.wall_power</strong> | <code>power_id, int : Power, Chance to cast</code> | Trigger a power if the hazard hit a wall.</p>
 
 <p><strong>power.wall_reflect</strong> | <code>bool</code> | Moving power will bounce off walls and keep going</p>
 
@@ -1404,6 +1404,8 @@ body {
 <p><strong>power.remove_effect</strong> | <code>repeatable(predefined_string, int) : Effect ID, Number of Effect instances</code> | Removes a number of instances of a specific Effect ID. Omitting the number of instances, or setting it to zero, will remove all instances/stacks.</p>
 
 <p><strong>power.replace_by_effect</strong> | <code>int, predefined_string, int : Power ID, Effect ID, Number of Effect instances</code> | If the caster has at least the number of instances of the Effect ID, the defined Power ID will be cast instead.</p>
+
+<p><strong>power.requires_corpse</strong> | <code>["consume", bool]</code> | If true, a corpse must be targeted for this power to be used. If "consume", then the corpse is also consumed on Power use.</p>
 
 <hr />
 

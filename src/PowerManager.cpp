@@ -441,7 +441,7 @@ void PowerManager::loadPowers() {
 			// @ATTR power.buff_party_power_id|power_id|Buffs a power id for all party members
 			powers[input_id].buff_party_power_id = toInt(infile.val);
 		else if (infile.key == "post_effect") {
-			// @ATTR power.post_effect|predefined_string, int, duration : Effect ID, Magnitude, Duration|Post effect. Duration is in 'ms' or 's'.
+			// @ATTR power.post_effect|predefined_string, int, duration , int: Effect ID, Magnitude, Duration, Chance to apply|Post effect. Duration is in 'ms' or 's'.
 			if (clear_post_effects) {
 				powers[input_id].post_effects.clear();
 				clear_post_effects = false;
@@ -454,16 +454,30 @@ void PowerManager::loadPowers() {
 			else {
 				pe.magnitude = popFirstInt(infile.val);
 				pe.duration = parse_duration(popFirstString(infile.val));
+				std::string chance = popFirstString(infile.val);
+				if (!chance.empty()) {
+					pe.chance = toInt(chance);
+				}
 				powers[input_id].post_effects.push_back(pe);
 			}
 		}
 		// pre and post power effects
-		else if (infile.key == "post_power")
-			// @ATTR power.post_power|power_id|Trigger a power if the hazard did damage.
-			powers[input_id].post_power = toInt(infile.val);
-		else if (infile.key == "wall_power")
-			// @ATTR power.wall_power|power_id|Trigger a power if the hazard hit a wall.
-			powers[input_id].wall_power = toInt(infile.val);
+		else if (infile.key == "post_power") {
+			// @ATTR power.post_power|power_id, int : Power, Chance to cast|Trigger a power if the hazard did damage.
+			powers[input_id].post_power = popFirstInt(infile.val);
+			std::string chance = popFirstString(infile.val);
+			if (!chance.empty()) {
+				powers[input_id].post_power_chance = toInt(chance);
+			}
+		}
+		else if (infile.key == "wall_power") {
+			// @ATTR power.wall_power|power_id, int : Power, Chance to cast|Trigger a power if the hazard hit a wall.
+			powers[input_id].wall_power = popFirstInt(infile.val);
+			std::string chance = popFirstString(infile.val);
+			if (!chance.empty()) {
+				powers[input_id].wall_power_chance = toInt(chance);
+			}
+		}
 		else if (infile.key == "wall_reflect")
 			// @ATTR power.wall_reflect|bool|Moving power will bounce off walls and keep going
 			powers[input_id].wall_reflect = toBool(infile.val);
@@ -609,6 +623,17 @@ void PowerManager::loadPowers() {
 			powers[input_id].replace_by_effect_power = popFirstInt(infile.val);
 			powers[input_id].replace_by_effect_id = popFirstString(infile.val);
 			powers[input_id].replace_by_effect_count = popFirstInt(infile.val);
+		}
+		else if (infile.key == "requires_corpse") {
+			// @ATTR power.requires_corpse|["consume", bool]|If true, a corpse must be targeted for this power to be used. If "consume", then the corpse is also consumed on Power use.
+			if (infile.val == "consume") {
+				powers[input_id].requires_corpse = true;
+				powers[input_id].remove_corpse = true;
+			}
+			else {
+				powers[input_id].requires_corpse = toBool(infile.val);
+				powers[input_id].remove_corpse = false;
+			}
 		}
 
 		else infile.error("PowerManager: '%s' is not a valid key", infile.key.c_str());
@@ -811,7 +836,9 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 
 	// pre/post power effects
 	haz->post_power = powers[power_index].post_power;
+	haz->post_power_chance = powers[power_index].post_power_chance;
 	haz->wall_power = powers[power_index].wall_power;
+	haz->wall_power_chance = powers[power_index].wall_power_chance;
 	haz->wall_reflect = powers[power_index].wall_reflect;
 
 	// flag missile powers for reflection
@@ -877,7 +904,9 @@ void PowerManager::buff(int power_index, StatBlock *src_stats, const FPoint& tar
 	// this is also where Effects are removed for non-hazard powers
 	if (!powers[power_index].use_hazard) {
 		src_stats->effects.removeEffectID(powers[power_index].remove_effects);
-		activate(powers[power_index].post_power, src_stats, src_stats->pos);
+		if (percentChance(powers[power_index].post_power_chance)) {
+			activate(powers[power_index].post_power, src_stats, src_stats->pos);
+		}
 	}
 }
 
@@ -892,6 +921,8 @@ void PowerManager::playSound(int power_index) {
 
 bool PowerManager::effect(StatBlock *src_stats, StatBlock *caster_stats, int power_index, int source_type) {
 	for (unsigned i=0; i<powers[power_index].post_effects.size(); i++) {
+		if (!percentChance(powers[power_index].post_effects[i].chance))
+			return false;
 
 		EffectDef effect_data;
 		EffectDef* effect_ptr = getEffectDef(powers[power_index].post_effects[i].id);
@@ -1254,6 +1285,9 @@ bool PowerManager::activate(int power_index, StatBlock *src_stats, const FPoint&
 	if (src_stats->hero) {
 		if (powers[power_index].requires_mp > src_stats->mp)
 			return false;
+
+		if (powers[power_index].requires_corpse && !src_stats->target_corpse)
+			return false;
 	}
 
 	if (src_stats->hp > 0 && powers[power_index].sacrifice == false && powers[power_index].requires_hp >= src_stats->hp)
@@ -1317,6 +1351,12 @@ void PowerManager::payPowerCost(int power_index, StatBlock *src_stats) {
 		}
 		src_stats->hp -= powers[power_index].requires_hp;
 		src_stats->hp = (src_stats->hp < 0 ? 0 : src_stats->hp);
+
+		// consume corpses
+		if (powers[power_index].requires_corpse && powers[power_index].remove_corpse && src_stats->target_corpse) {
+			src_stats->target_corpse->corpse_ticks = 0;
+			src_stats->target_corpse = NULL;
+		}
 	}
 }
 

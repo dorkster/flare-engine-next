@@ -84,11 +84,13 @@ public:
 	std::string id;
 	int magnitude;
 	int duration;
+	int chance;
 
 	PostEffect()
 		: id("")
 		, magnitude(0)
-		, duration(0) {
+		, duration(0)
+		, chance(100) {
 	}
 };
 
@@ -214,7 +216,9 @@ public:
 	std::vector<PostEffect> post_effects;
 
 	int post_power;
+	int post_power_chance;
 	int wall_power;
+	int wall_power_chance;
 	bool wall_reflect;
 
 	// spawn info
@@ -245,6 +249,9 @@ public:
 	int replace_by_effect_power;
 	std::string replace_by_effect_id;
 	int replace_by_effect_count;
+
+	bool requires_corpse;
+	bool remove_corpse;
 
 	Power()
 		: type(-1)
@@ -337,7 +344,9 @@ public:
 		, buff_party_power_id(0)
 
 		, post_power(0)
+		, post_power_chance(100)
 		, wall_power(0)
+		, wall_power_chance(100)
 		, wall_reflect(false)
 
 		, spawn_type("")
@@ -364,7 +373,10 @@ public:
 
 		, replace_by_effect_power(0)
 		, replace_by_effect_id("")
-		, replace_by_effect_count(0) {
+		, replace_by_effect_count(0)
+
+		, requires_corpse(false)
+		, remove_corpse(false) {
 	}
 
 };
