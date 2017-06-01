@@ -21,6 +21,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define GAMESTATE_H
 
 #include "CommonIncludes.h"
+#include "SharedResources.h"
+#include "WidgetTooltip.h"
 
 class GameState {
 public:
@@ -32,11 +34,13 @@ public:
 	virtual void refreshWidgets();
 
 	GameState* getRequestedGameState();
+	void setRequestedGameState(GameState *new_state);
 	bool isExitRequested() {
 		return exitRequested;
 	}
 	void setLoadingFrame();
 	virtual bool isPaused();
+	void showLoading();
 
 	bool hasMusic;
 	bool has_background;
@@ -49,6 +53,8 @@ public:
 protected:
 	GameState* requestedGameState;
 	bool exitRequested;
+	WidgetTooltip *loading_tip;
+	TooltipData loading_tip_buf;
 };
 
 #endif

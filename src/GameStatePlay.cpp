@@ -66,25 +66,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 GameStatePlay::GameStatePlay()
 	: GameState()
 	, enemy(NULL)
-	, loading(new WidgetLabel())
-	, loading_bg(NULL)
-	// Load the loading screen image (we currently use the confirm dialog background):
 	, npc_id(-1)
 	, npc_from_map(true)
-	, color_normal(font->getColor("menu_normal"))
 	, nearest_npc(-1)
 	, menu_enemy_timeout(MAX_FRAMES_PER_SEC*10)
 {
-	Image *graphics;
 	hasMusic = true;
 	has_background = false;
 	// GameEngine scope variables
-
-	graphics = render_device->loadImage("images/menus/confirm_bg.png");
-	if (graphics) {
-		loading_bg = graphics->createSprite();
-		graphics->unref();
-	}
 
 	if (items == NULL)
 		items = new ItemManager();
@@ -104,8 +93,6 @@ GameStatePlay::GameStatePlay()
 	// LootManager needs hero StatBlock
 	loot->hero = &pc->stats;
 
-	loading->set(0, 0, JUSTIFY_CENTER, VALIGN_CENTER, msg->get("Loading..."), color_normal);
-
 	// load the config file for character titles
 	loadTitles();
 
@@ -114,7 +101,6 @@ GameStatePlay::GameStatePlay()
 
 void GameStatePlay::refreshWidgets() {
 	menu->alignAll();
-	loading->setPos(VIEW_W_HALF, VIEW_H_HALF);
 }
 
 /**
@@ -328,8 +314,8 @@ void GameStatePlay::checkTeleport() {
 				removeSaveDir(save_load->getGameSlot());
 
 				snd->stopMusic();
-				delete requestedGameState;
-				requestedGameState = new GameStateTitle();
+				showLoading();
+				setRequestedGameState(new GameStateTitle());
 			}
 			else if (SAVE_ONLOAD) {
 				save_load->saveGame();
@@ -368,8 +354,8 @@ void GameStatePlay::checkCancel() {
 		saveSettings();
 
 		snd->stopMusic();
-		delete requestedGameState;
-		requestedGameState = new GameStateTitle();
+		showLoading();
+		setRequestedGameState(new GameStateTitle());
 
 		save_load->setGameSlot(0);
 	}
@@ -729,6 +715,7 @@ void GameStatePlay::checkCutscene() {
 	if (!mapr->cutscene)
 		return;
 
+	showLoading();
 	GameStateCutscene *cutscene = new GameStateCutscene(NULL);
 
 	if (!cutscene->load(mapr->cutscene_file)) {
@@ -755,8 +742,7 @@ void GameStatePlay::checkCutscene() {
 	if (SAVE_ONLOAD)
 		save_load->saveGame();
 
-	delete requestedGameState;
-	requestedGameState = cutscene;
+	setRequestedGameState(cutscene);
 }
 
 void GameStatePlay::checkSaveEvent() {
@@ -995,20 +981,6 @@ void GameStatePlay::render() {
 		comb->render();
 }
 
-void GameStatePlay::showLoading() {
-	if (loading_bg == NULL) return;
-
-	Rect dest;
-	dest.x = VIEW_W_HALF - loading_bg->getGraphicsWidth()/2;
-	dest.y = VIEW_H_HALF - loading_bg->getGraphicsHeight()/2;
-
-	loading_bg->setDest(dest);
-	render_device->render(loading_bg);
-	loading->render();
-
-	render_device->commitFrame();
-}
-
 bool GameStatePlay::isPaused() {
 	return menu->pause;
 }
@@ -1060,7 +1032,6 @@ bool GameStatePlay::checkPrimaryStat(const std::string& first, const std::string
 }
 
 GameStatePlay::~GameStatePlay() {
-	if (loading_bg)	delete loading_bg;
 	delete quests;
 	delete npcs;
 	delete hazards;
@@ -1072,8 +1043,6 @@ GameStatePlay::~GameStatePlay() {
 	delete camp;
 	delete items;
 	delete powers;
-
-	delete loading;
 
 	delete enemyg;
 

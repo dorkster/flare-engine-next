@@ -17,6 +17,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 #include "GameState.h"
+#include "Settings.h"
 
 GameState::GameState()
 	: hasMusic(false)
@@ -26,11 +27,21 @@ GameState::GameState()
 	, save_settings_on_exit(true)
 	, load_counter(0)
 	, requestedGameState(NULL)
-	, exitRequested(false) {
+	, exitRequested(false)
+	, loading_tip(new WidgetTooltip())
+{
+	loading_tip_buf.addText(msg->get("Loading..."));
 }
 
 GameState* GameState::getRequestedGameState() {
 	return requestedGameState;
+}
+
+void GameState::setRequestedGameState(GameState *new_state) {
+	delete requestedGameState;
+	requestedGameState = new_state;
+	requestedGameState->setLoadingFrame();
+	requestedGameState->refreshWidgets();
 }
 
 void GameState::logic() {
@@ -50,5 +61,16 @@ bool GameState::isPaused() {
 	return false;
 }
 
+void GameState::showLoading() {
+	if (!loading_tip)
+		return;
+
+	loading_tip->render(loading_tip_buf, Point(VIEW_W, VIEW_H), STYLE_FLOAT);
+
+	render_device->commitFrame();
+}
+
 GameState::~GameState() {
+	if (loading_tip)
+		delete loading_tip;
 }
