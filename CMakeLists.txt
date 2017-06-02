@@ -116,6 +116,7 @@ Set (FLARE_SOURCES
 	./src/EventManager.cpp
 	./src/FileParser.cpp
 	./src/FontEngine.cpp
+	./src/GameSlotPreview.cpp
 	./src/GameState.cpp
 	./src/GameStateConfigBase.cpp
 	./src/GameStateConfigDesktop.cpp
@@ -223,6 +224,7 @@ Set (FLARE_HEADERS
 	./src/EventManager.h
 	./src/FileParser.h
 	./src/FontEngine.h
+	./src/GameSlotPreview.h
 	./src/GameState.h
 	./src/GameStateConfigBase.h
 	./src/GameStateConfigDesktop.h
