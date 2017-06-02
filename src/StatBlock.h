@@ -82,6 +82,7 @@ private:
 	bool loadCoreStat(FileParser *infile);
 	bool loadSfxStat(FileParser *infile);
 	void loadHeroStats();
+	bool checkRequiredSpawns(int req_amount) const;
 	bool statsLoaded;
 
 public:
@@ -119,6 +120,10 @@ public:
 	int summoned_power_index;
 	bool encountered; // enemy only
 	StatBlock* target_corpse;
+	StatBlock* target_nearest;
+	StatBlock* target_nearest_corpse;
+	float target_nearest_dist;
+	float target_nearest_corpse_dist;
 
 	MOVEMENTTYPE movement_type;
 	bool flying;
