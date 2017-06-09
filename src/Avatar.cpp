@@ -532,6 +532,11 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				if (activeAnimation->isFirstFrame()) {
 					stats.effects.triggered_hit = true;
+
+					if (stats.block_power != 0) {
+						hero_cooldown[stats.block_power] = powers->powers[stats.block_power].cooldown;
+						stats.block_power = 0;
+					}
 				}
 
 				if (activeAnimation->getTimesPlayed() >= 1 || activeAnimation->getName() != "hit") {
@@ -663,6 +668,10 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 					stats.prevent_interrupt = power.prevent_interrupt;
 
+					if (power.pre_power > 0 && percentChance(power.pre_power_chance)) {
+						powers->activate(power.pre_power, &stats, target);
+					}
+
 					switch (power.new_state) {
 						case POWSTATE_ATTACK:	// handle attack powers
 							stats.cur_state = AVATAR_ATTACK;
@@ -677,7 +686,6 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 							if (power.type == POWTYPE_BLOCK) {
 								stats.cur_state = AVATAR_BLOCK;
 								powers->activate(action.power, &stats, target);
-								hero_cooldown[action.power] = power.cooldown;
 								stats.refresh_stats = true;
 							}
 							break;

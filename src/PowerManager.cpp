@@ -312,7 +312,7 @@ void PowerManager::loadPowers() {
 			// @ATTR power.visual_random|int|The animation sprite sheet contains rows of random options
 			powers[input_id].visual_random = toInt(infile.val);
 		else if (infile.key == "visual_option")
-			// @ATTR power.visual_option|int|The animation sprite sheet containers rows of similar effects, use a specific option.
+			// @ATTR power.visual_option|int|The animation sprite sheet containers rows of similar effects, use a specific option. If using visual_random, this serves as an offset for the lowest random index.
 			powers[input_id].visual_option = toInt(infile.val);
 		else if (infile.key == "aim_assist")
 			// @ATTR power.aim_assist|bool|If true, power targeting will be offset vertically by the number of pixels set with "aim_assist" in engine/misc.txt.
@@ -381,6 +381,16 @@ void PowerManager::loadPowers() {
 		else if (infile.key == "ignore_zero_damage")
 			// @ATTR power.ignore_zero_damage|bool|If true, hazard can still hit the player when damage is 0, triggering post_power and post_effects.
 			powers[input_id].ignore_zero_damage = toBool(infile.val);
+		else if (infile.key == "lock_target_to_direction")
+			// @ATTR power.lock_target_to_direction|bool|If true, the target is "snapped" to one of the 8 directions.
+			powers[input_id].lock_target_to_direction = toBool(infile.val);
+		else if (infile.key == "movement_type") {
+			// @ATTR power.movement_type|["ground", "flying", "intangible"]|For moving hazards (missile/repeater), this defines which parts of the map it can collide with. The default is "flying".
+			if (infile.val == "ground")         powers[input_id].movement_type = MOVEMENT_NORMAL;
+			else if (infile.val == "flying")    powers[input_id].movement_type = MOVEMENT_FLYING;
+			else if (infile.val == "intangible") powers[input_id].movement_type = MOVEMENT_INTANGIBLE;
+			else infile.error("PowerManager: Unknown movement_type '%s'", infile.val.c_str());
+		}
 		else if (infile.key == "trait_armor_penetration")
 			// @ATTR power.trait_armor_penetration|bool|Ignores the target's Absorbtion stat
 			powers[input_id].trait_armor_penetration = toBool(infile.val);
@@ -468,6 +478,14 @@ void PowerManager::loadPowers() {
 			}
 		}
 		// pre and post power effects
+		else if (infile.key == "pre_power") {
+			// @ATTR power.pre_power|power_id, int : Power, Chance to cast|Trigger a power immediately when casting this one.
+			powers[input_id].pre_power = popFirstInt(infile.val);
+			std::string chance = popFirstString(infile.val);
+			if (!chance.empty()) {
+				powers[input_id].pre_power_chance = toInt(chance);
+			}
+		}
 		else if (infile.key == "post_power") {
 			// @ATTR power.post_power|power_id, int : Power, Chance to cast|Trigger a power if the hazard did damage.
 			powers[input_id].post_power = popFirstInt(infile.val);
@@ -663,14 +681,10 @@ bool PowerManager::isValidEffect(const std::string& type) {
 	if (type == "attack_speed")
 		return true;
 
-	if (type == "physical")
-		return true;
-	if (type == "mental")
-		return true;
-	if (type == "offense")
-		return true;
-	if (type == "defense")
-		return true;
+	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		if (type == PRIMARY_STATS[i].id)
+			return true;
+	}
 
 	for (int i=0; i<STAT_COUNT; ++i) {
 		if (type == STAT_KEY[i])
@@ -796,6 +810,7 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 	}
 	else if (powers[power_index].visual_random) {
 		haz->animationKind = rand() % powers[power_index].visual_random;
+		haz->animationKind += powers[power_index].visual_option;
 	}
 	else if (powers[power_index].visual_option) {
 		haz->animationKind = powers[power_index].visual_option;
@@ -870,6 +885,8 @@ void PowerManager::initHazard(int power_index, StatBlock *src_stats, const FPoin
 		haz->script_trigger = powers[power_index].script_trigger;
 		haz->script = powers[power_index].script;
 	}
+
+	haz->movement_type = powers[power_index].movement_type;
 }
 
 /**
@@ -1120,7 +1137,7 @@ bool PowerManager::repeater(int power_index, StatBlock *src_stats, const FPoint&
 		location_iterator.y += speed.y;
 
 		// only travels until it hits a wall
-		if (collider->is_wall(location_iterator.x, location_iterator.y)) {
+		if (!collider->is_valid_position(location_iterator.x, location_iterator.y, powers[power_index].movement_type, false, false)) {
 			break; // no more hazards
 		}
 
@@ -1265,6 +1282,7 @@ bool PowerManager::block(int power_index, StatBlock *src_stats) {
 		return false;
 
 	src_stats->effects.triggered_block = true;
+	src_stats->block_power = power_index;
 
 	// apply any attached effects
 	// passive_trigger MUST be "TRIGGER_BLOCK", since that is how we will later remove effects added by blocking
@@ -1313,19 +1331,27 @@ bool PowerManager::activate(int power_index, StatBlock *src_stats, const FPoint&
 		EventManager::executeScript(powers[power_index].script, src_stats->pos.x, src_stats->pos.y);
 	}
 
+	// check if we need to snap the target to one of the 8 directions
+	FPoint new_target = target;
+	if (powers[power_index].lock_target_to_direction) {
+		float dist = calcDist(src_stats->pos, new_target);
+		int dir = calcDirection(src_stats->pos.x, src_stats->pos.y, new_target.x, new_target.y);
+		new_target = calcVector(src_stats->pos, dir, dist);
+	}
+
 	// logic for different types of powers are very different.  We allow these
 	// separate functions to handle the details.
 	switch(powers[power_index].type) {
 		case POWTYPE_FIXED:
-			return fixed(power_index, src_stats, target);
+			return fixed(power_index, src_stats, new_target);
 		case POWTYPE_MISSILE:
-			return missile(power_index, src_stats, target);
+			return missile(power_index, src_stats, new_target);
 		case POWTYPE_REPEATER:
-			return repeater(power_index, src_stats, target);
+			return repeater(power_index, src_stats, new_target);
 		case POWTYPE_SPAWN:
-			return spawn(power_index, src_stats, target);
+			return spawn(power_index, src_stats, new_target);
 		case POWTYPE_TRANSFORM:
-			return transform(power_index, src_stats, target);
+			return transform(power_index, src_stats, new_target);
 	}
 
 	return false;
@@ -1378,57 +1404,16 @@ void PowerManager::payPowerCost(int power_index, StatBlock *src_stats) {
  */
 void PowerManager::activatePassives(StatBlock *src_stats) {
 	bool triggered_others = false;
-	int trigger = -1;
 	// unlocked powers
 	for (unsigned i=0; i<src_stats->powers_passive.size(); i++) {
-		if (powers[src_stats->powers_passive[i]].passive) {
-			trigger = powers[src_stats->powers_passive[i]].passive_trigger;
-
-			if (trigger == -1) {
-				if (src_stats->effects.triggered_others) continue;
-				else triggered_others = true;
-			}
-			else if (trigger == TRIGGER_BLOCK && !src_stats->effects.triggered_block) continue;
-			else if (trigger == TRIGGER_HIT && !src_stats->effects.triggered_hit) continue;
-			else if (trigger == TRIGGER_HALFDEATH && !src_stats->effects.triggered_halfdeath) {
-				if (src_stats->hp > src_stats->get(STAT_HP_MAX)/2) continue;
-				else src_stats->effects.triggered_halfdeath = true;
-			}
-			else if (trigger == TRIGGER_JOINCOMBAT && !src_stats->effects.triggered_joincombat) {
-				if (!src_stats->in_combat) continue;
-				else src_stats->effects.triggered_joincombat = true;
-			}
-			else if (trigger == TRIGGER_DEATH && !src_stats->effects.triggered_death) continue;
-
-			activate(src_stats->powers_passive[i], src_stats, src_stats->pos);
-			src_stats->refresh_stats = true;
-		}
+		activatePassiveByTrigger(src_stats->powers_passive[i], src_stats, triggered_others);
 	}
+
 	// item powers
 	for (unsigned i=0; i<src_stats->powers_list_items.size(); i++) {
-		if (powers[src_stats->powers_list_items[i]].passive) {
-			trigger = powers[src_stats->powers_list_items[i]].passive_trigger;
-
-			if (trigger == -1) {
-				if (src_stats->effects.triggered_others) continue;
-				else triggered_others = true;
-			}
-			else if (trigger == TRIGGER_BLOCK && !src_stats->effects.triggered_block) continue;
-			else if (trigger == TRIGGER_HIT && !src_stats->effects.triggered_hit) continue;
-			else if (trigger == TRIGGER_HALFDEATH && !src_stats->effects.triggered_halfdeath) {
-				if (src_stats->hp > src_stats->get(STAT_HP_MAX)/2) continue;
-				else src_stats->effects.triggered_halfdeath = true;
-			}
-			else if (trigger == TRIGGER_JOINCOMBAT && !src_stats->effects.triggered_joincombat) {
-				if (!src_stats->in_combat) continue;
-				else src_stats->effects.triggered_joincombat = true;
-			}
-			else if (trigger == TRIGGER_DEATH && !src_stats->effects.triggered_death) continue;
-
-			activate(src_stats->powers_list_items[i], src_stats, src_stats->pos);
-			src_stats->refresh_stats = true;
-		}
+		activatePassiveByTrigger(src_stats->powers_list_items[i], src_stats, triggered_others);
 	}
+
 	// Only trigger normal passives once
 	if (triggered_others) src_stats->effects.triggered_others = true;
 
@@ -1436,6 +1421,31 @@ void PowerManager::activatePassives(StatBlock *src_stats) {
 	// the block trigger is handled in the Avatar class
 	src_stats->effects.triggered_hit = false;
 	src_stats->effects.triggered_death = false;
+}
+
+void PowerManager::activatePassiveByTrigger(int power_id, StatBlock *src_stats, bool& triggered_others) {
+	if (powers[power_id].passive) {
+		int trigger = powers[power_id].passive_trigger;
+
+		if (trigger == -1) {
+			if (src_stats->effects.triggered_others) return;
+			else triggered_others = true;
+		}
+		else if (trigger == TRIGGER_BLOCK && !src_stats->effects.triggered_block) return;
+		else if (trigger == TRIGGER_HIT && !src_stats->effects.triggered_hit) return;
+		else if (trigger == TRIGGER_HALFDEATH && !src_stats->effects.triggered_halfdeath) {
+			if (src_stats->hp > src_stats->get(STAT_HP_MAX)/2) return;
+			else src_stats->effects.triggered_halfdeath = true;
+		}
+		else if (trigger == TRIGGER_JOINCOMBAT && !src_stats->effects.triggered_joincombat) {
+			if (!src_stats->in_combat) return;
+			else src_stats->effects.triggered_joincombat = true;
+		}
+		else if (trigger == TRIGGER_DEATH && !src_stats->effects.triggered_death) return;
+
+		activate(power_id, src_stats, src_stats->pos);
+		src_stats->refresh_stats = true;
+	}
 }
 
 /**

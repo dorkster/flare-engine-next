@@ -29,6 +29,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define POWER_MANAGER_H
 
 #include "FileParser.h"
+#include "MapCollision.h"
 #include "MapRenderer.h"
 #include "Map.h"
 
@@ -171,6 +172,8 @@ public:
 	bool multihit;
 	bool expire_with_caster;
 	bool ignore_zero_damage;
+	bool lock_target_to_direction;
+	MOVEMENTTYPE movement_type;
 	float target_range;
 	bool target_party;
 	std::vector<std::string> target_categories;
@@ -215,6 +218,8 @@ public:
 
 	std::vector<PostEffect> post_effects;
 
+	int pre_power;
+	int pre_power_chance;
 	int post_power;
 	int post_power_chance;
 	int wall_power;
@@ -311,6 +316,8 @@ public:
 		, multihit(false)
 		, expire_with_caster(false)
 		, ignore_zero_damage(false)
+		, lock_target_to_direction(false)
+		, movement_type(MOVEMENT_FLYING)
 		, target_range(0)
 		, target_party(false)
 		, mod_accuracy_mode(-1)
@@ -345,6 +352,8 @@ public:
 		, buff_party(false)
 		, buff_party_power_id(0)
 
+		, pre_power(0)
+		, pre_power_chance(100)
 		, post_power(0)
 		, post_power_chance(100)
 		, wall_power(0)
@@ -408,6 +417,8 @@ private:
 	bool block(int power_index, StatBlock *src_stats);
 
 	void payPowerCost(int power_index, StatBlock *src_stats);
+
+	void activatePassiveByTrigger(int power_id, StatBlock *src_stats, bool& triggered_others);
 
 public:
 	explicit PowerManager();

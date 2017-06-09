@@ -1295,7 +1295,7 @@ body {
 
 <p><strong>power.visual_random</strong> | <code>int</code> | The animation sprite sheet contains rows of random options</p>
 
-<p><strong>power.visual_option</strong> | <code>int</code> | The animation sprite sheet containers rows of similar effects, use a specific option.</p>
+<p><strong>power.visual_option</strong> | <code>int</code> | The animation sprite sheet containers rows of similar effects, use a specific option. If using visual_random, this serves as an offset for the lowest random index.</p>
 
 <p><strong>power.aim_assist</strong> | <code>bool</code> | If true, power targeting will be offset vertically by the number of pixels set with "aim_assist" in engine/misc.txt.</p>
 
@@ -1330,6 +1330,10 @@ body {
 <p><strong>power.expire_with_caster</strong> | <code>bool</code> | If true, hazard will disappear when the caster dies.</p>
 
 <p><strong>power.ignore_zero_damage</strong> | <code>bool</code> | If true, hazard can still hit the player when damage is 0, triggering post_power and post_effects.</p>
+
+<p><strong>power.lock_target_to_direction</strong> | <code>bool</code> | If true, the target is "snapped" to one of the 8 directions.</p>
+
+<p><strong>power.movement_type</strong> | <code>["ground", "flying", "intangible"]</code> | For moving hazards (missile/repeater), this defines which parts of the map it can collide with. The default is "flying".</p>
 
 <p><strong>power.trait_armor_penetration</strong> | <code>bool</code> | Ignores the target's Absorbtion stat</p>
 
@@ -1370,6 +1374,8 @@ body {
 <p><strong>power.buff_party_power_id</strong> | <code>power_id</code> | Only party members that were spawned with this power ID are affected by "buff_party=true". Setting this to 0 will affect all party members.</p>
 
 <p><strong>power.post_effect</strong> | <code>predefined_string, int, duration , int : Effect ID, Magnitude, Duration, Chance to apply</code> | Post effect. Duration is in 'ms' or 's'.</p>
+
+<p><strong>power.pre_power</strong> | <code>power_id, int : Power, Chance to cast</code> | Trigger a power immediately when casting this one.</p>
 
 <p><strong>power.post_power</strong> | <code>power_id, int : Power, Chance to cast</code> | Trigger a power if the hazard did damage.</p>
 
