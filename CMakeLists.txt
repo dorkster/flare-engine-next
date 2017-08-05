@@ -136,6 +136,7 @@ Set (FLARE_SOURCES
 	./src/Loot.cpp
 	./src/LootManager.cpp
 	./src/Map.cpp
+	./src/MapBackground.cpp
 	./src/MapCollision.cpp
 	./src/MapRenderer.cpp
 	./src/Menu.cpp
@@ -245,6 +246,7 @@ Set (FLARE_HEADERS
 	./src/Loot.h
 	./src/LootManager.h
 	./src/Map.h
+	./src/MapBackground.h
 	./src/MapCollision.h
 	./src/MapRenderer.h
 	./src/Menu.h
