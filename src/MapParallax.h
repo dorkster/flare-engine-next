@@ -16,26 +16,40 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 
-#ifndef MAPBACKGROUND_H
-#define MAPBACKGROUND_H
+#ifndef MAPPARALLAX_H
+#define MAPPARALLAX_H
 
 #include "CommonIncludes.h"
 #include "RenderDevice.h"
 #include "Utils.h"
 
-class MapBackground {
+class MapParallaxLayer {
 public:
-	MapBackground();
-	~MapBackground();
+	Sprite *sprite;
+	float speed;
+	FPoint fixed_speed;
+	FPoint fixed_offset;
+	std::string map_layer;
+
+	MapParallaxLayer()
+		: sprite(NULL)
+		, map_layer("")
+	{}
+};
+
+class MapParallax {
+public:
+	MapParallax();
+	~MapParallax();
 	void clear();
 	void load(const std::string& filename);
 	void setMapCenter(int x, int y);
-	void render(const FPoint& cam);
+	void render(const FPoint& cam, const std::string& map_layer);
 
 private:
-	std::vector<Sprite*> sprites;
-	std::vector<float> speeds;
+	std::vector<MapParallaxLayer> layers;
 	FPoint map_center;
+	size_t current_layer;
 };
 
 #endif
