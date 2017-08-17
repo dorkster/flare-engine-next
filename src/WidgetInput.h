@@ -47,9 +47,8 @@ protected:
 
 	std::string text; // the text that has been typed into the box
 	std::string trimmed_text; // a trimmed version of text that is rendered
-	int cursor_frame;
-	int del_frame;
-	int max_del_frame;
+	std::string trimmed_text_cursor; // same as trimmed_text, but with a '|' inserted to represent the cursor
+	size_t cursor_pos;
 
 	Point font_pos;
 
@@ -60,6 +59,7 @@ public:
 	~WidgetInput();
 	void setPos(int offset_x = 0, int offset_y = 0);
 
+	void activate();
 	void logic();
 	bool logic(int x, int y);
 	void render();
@@ -68,14 +68,16 @@ public:
 		return text;
 	}
 	void setText(std::string _text) {
-		trimmed_text = text = _text;
+		text = _text;
+		cursor_pos = text.length();
 		trimText();
 	}
 	void setPosition(int x, int y);
 
-	bool inFocus;
+	bool edit_mode;
 	unsigned int max_length;
 	bool only_numbers;
+	bool accept_to_defocus;
 };
 
 #endif

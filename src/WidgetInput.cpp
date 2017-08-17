@@ -28,12 +28,11 @@ WidgetInput::WidgetInput(const std::string& filename)
 	, enabled(true)
 	, pressed(false)
 	, hover(false)
-	, cursor_frame(0)
-	, del_frame(0)
-	, max_del_frame(0)
-	, inFocus(false)
+	, cursor_pos(0)
+	, edit_mode(false)
 	, max_length(0)
 	, only_numbers(false)
+	, accept_to_defocus(true)
 {
 
 	loadGraphics(filename);
@@ -59,8 +58,19 @@ void WidgetInput::loadGraphics(const std::string& filename) {
 }
 
 void WidgetInput::trimText() {
-	int padding =font->getFontHeight();
-	trimmed_text = font->trimTextToWidth(text, pos.w-padding, false);
+	std::string text_with_cursor = text;
+	text_with_cursor.insert(cursor_pos, "|");
+
+	int padding = font->getFontHeight();
+	trimmed_text = font->trimTextToWidth(text, pos.w-padding, false, text.length());
+
+	size_t trim_pos = (cursor_pos > 0 ? cursor_pos - 1 : cursor_pos);
+	trimmed_text_cursor = font->trimTextToWidth(text_with_cursor, pos.w-padding, false, trim_pos);
+}
+
+void WidgetInput::activate() {
+	if (!edit_mode)
+		edit_mode = true;
 }
 
 void WidgetInput::logic() {
@@ -75,71 +85,88 @@ bool WidgetInput::logic(int x, int y) {
 	hover = isWithinRect(pos, mouse);
 
 	if (checkClick()) {
-		inFocus = true;
+		edit_mode = true;
 	}
 
 	// if clicking elsewhere unfocus the text box
 	if (inpt->pressing[MAIN1]) {
 		if (!isWithinRect(pos, inpt->mouse)) {
-			inFocus = false;
+			edit_mode = false;
 		}
 	}
 
-	if (inFocus) {
+	if (edit_mode) {
+		inpt->slow_repeat[DEL] = true;
+		inpt->slow_repeat[LEFT] = true;
+		inpt->slow_repeat[RIGHT] = true;
 
 		if (inpt->inkeys != "") {
 			// handle text input
 			// only_numbers will restrict our input to 0-9 characters
 			if (!only_numbers || (inpt->inkeys[0] >= 48 && inpt->inkeys[0] <= 57)) {
-				text += inpt->inkeys;
+				text.insert(cursor_pos, inpt->inkeys);
+				cursor_pos += inpt->inkeys.length();
 				trimText();
 			}
 
 			// HACK: this prevents normal keys from triggering common menu shortcuts
-			if (inpt->pressing[ACCEPT]) {
-				inpt->lock[ACCEPT] = true;
+			for (size_t i = 0; i < inpt->key_count; ++i) {
+				if (inpt->pressing[i]) {
+					inpt->lock[i] = true;
+					inpt->repeat_ticks[i] = 1;
+				}
 			}
-			else if (inpt->pressing[CANCEL]) {
-				inpt->lock[CANCEL] = true;
-			}
-		}
-
-		if (!inpt->pressing[DEL]) {
-			max_del_frame = MAX_FRAMES_PER_SEC;
 		}
 
 		// handle backspaces
-		if (!inpt->lock[DEL] && inpt->pressing[DEL]) {
-			inpt->lock[DEL] = true;
-			del_frame = 0;
-			max_del_frame = std::max(MAX_FRAMES_PER_SEC/8, max_del_frame - (MAX_FRAMES_PER_SEC/4));
-			// remove utf-8 character
-			int n = static_cast<int>(text.length()-1);
-			while (n > 0 && ((text[n] & 0xc0) == 0x80) ) n--;
-			text = text.substr(0, n);
+		if (inpt->pressing[DEL] && inpt->repeat_ticks[DEL] == 0) {
+			if (!text.empty() && cursor_pos > 0) {
+				// remove utf-8 character
+				// size_t old_cursor_pos = cursor_pos;
+				size_t n = cursor_pos-1;
+				while ((text[n] & 0xc0) == 0x80) {
+					n--;
+				}
+				text = text.substr(0, n) + text.substr(cursor_pos, text.length());
+				cursor_pos--;
+				trimText();
+			}
+		}
+
+		// cursor movement
+		if (!text.empty() && cursor_pos > 0 && inpt->pressing[LEFT] && inpt->repeat_ticks[LEFT] == 0) {
+			cursor_pos--;
 			trimText();
-		} else if (inpt->pressing[DEL]) {
-			// delay unlocking of DEL lock
-			del_frame++;
 		}
-		if (inpt->pressing[DEL] && inpt->lock[DEL] && del_frame >= max_del_frame) {
-			// after X frames allow DEL again
-			inpt->lock[DEL]	= false;
+		else if (!text.empty() && cursor_pos < text.length() && inpt->pressing[RIGHT] && inpt->repeat_ticks[RIGHT] == 0) {
+			inpt->lock[RIGHT] = true;
+			cursor_pos++;
+			trimText();
 		}
 
-		// animate cursor
-		// cursor visible one second, invisible the next
-		cursor_frame++;
-		if (cursor_frame == MAX_FRAMES_PER_SEC+MAX_FRAMES_PER_SEC) cursor_frame = 0;
-
+		// defocus with Enter or Escape
+		if (accept_to_defocus && inpt->pressing[ACCEPT] && !inpt->lock[ACCEPT]) {
+			inpt->lock[ACCEPT] = true;
+			edit_mode = false;
+		}
+		else if (inpt->pressing[CANCEL] && !inpt->lock[CANCEL]) {
+			inpt->lock[CANCEL] = true;
+			edit_mode = false;
+		}
 	}
+	else {
+		inpt->slow_repeat[DEL] = false;
+		inpt->slow_repeat[LEFT] = false;
+		inpt->slow_repeat[RIGHT] = false;
+	}
+
 	return true;
 }
 
 void WidgetInput::render() {
 	Rect src;
 	src.x = 0;
-	src.y = (inFocus ? pos.h : 0);
+	src.y = (edit_mode ? pos.h : 0);
 	src.w = pos.w;
 	src.h = pos.h;
 
@@ -153,15 +180,35 @@ void WidgetInput::render() {
 
 	font->setFont("font_regular");
 
-	if (!inFocus) {
+	if (!edit_mode) {
 		font->render(trimmed_text, font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
 	}
 	else {
-		if (cursor_frame < MAX_FRAMES_PER_SEC) {
-			font->renderShadowed(trimmed_text + "|", font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
+		font->renderShadowed(trimmed_text_cursor, font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
+	}
+
+	if (in_focus && !edit_mode) {
+		Point topLeft;
+		Point bottomRight;
+
+		topLeft.x = pos.x + local_frame.x - local_offset.x;
+		topLeft.y = pos.y + local_frame.y - local_offset.y;
+		bottomRight.x = topLeft.x + pos.w;
+		bottomRight.y = topLeft.y + pos.h;
+		Color color = Color(255,248,220,255);
+
+		// Only draw rectangle if it fits in local frame
+		bool draw = true;
+		if (local_frame.w &&
+				(topLeft.x<local_frame.x || bottomRight.x>(local_frame.x+local_frame.w))) {
+			draw = false;
 		}
-		else {
-			font->renderShadowed(trimmed_text, font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
+		if (local_frame.h &&
+				(topLeft.y<local_frame.y || bottomRight.y>(local_frame.y+local_frame.h))) {
+			draw = false;
+		}
+		if (draw) {
+			render_device->drawRectangle(topLeft, bottomRight, color);
 		}
 	}
 }
