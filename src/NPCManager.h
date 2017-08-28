@@ -33,7 +33,7 @@ class StatBlock;
 class NPC;
 class WidgetTooltip;
 
-class NPCManager {
+class NPCManager : public EnemyManager {
 private:
 	WidgetTooltip *tip;
 	StatBlock *stats;

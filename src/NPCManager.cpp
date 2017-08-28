@@ -40,7 +40,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <limits>
 
 NPCManager::NPCManager(StatBlock *_stats)
-	: tip(new WidgetTooltip())
+	: EnemyManager()
+	, tip(new WidgetTooltip())
 	, stats(_stats)
 	, tip_buf() {
 }
@@ -80,8 +81,10 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		NPC *npc = new NPC();
+		NPC *npc = new NPC(*getEnemyPrototype("goblin"));
+
 		npc->load(mn.id);
+
 		npc->pos.x = mn.pos.x;
 		npc->pos.y = mn.pos.y;
 
@@ -132,6 +135,7 @@ void NPCManager::handleNewMap() {
 }
 
 void NPCManager::logic() {
+	EnemyManager::logic();
 	for (unsigned i=0; i<npcs.size(); i++) {
 		npcs[i]->logic();
 	}
@@ -143,7 +147,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC();
+	NPC *n = new NPC(*getEnemyPrototype("goblin"));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);

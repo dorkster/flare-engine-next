@@ -40,6 +40,7 @@ private:
 	std::vector<std::string> anim_prefixes;
 	std::vector<std::vector<Animation*> > anim_entities;
 
+protected:
 	/**
 	 * callee is responsible for deleting returned enemy object
 	 */

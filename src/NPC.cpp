@@ -39,8 +39,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "UtilsParsing.h"
 
-NPC::NPC()
-	: Entity()
+NPC::NPC(const Enemy& e)
+	: Enemy(e)
 	, name("")
 	, gfx("")
 	, pos()
@@ -55,6 +55,8 @@ NPC::NPC()
 	, vox_intro()
 	, vox_quests()
 	, dialog() {
+
+	eb = new BehaviorAlly(this);
 	stock.init(NPC_VENDOR_MAX_STOCK);
 }
 
@@ -247,6 +249,7 @@ void NPC::load(const std::string& npc_id) {
 		}
 		infile.close();
 	}
+
 	loadGraphics();
 
 	// fill inventory with items from random stock table
@@ -310,7 +313,10 @@ int NPC::loadSound(const std::string& fname, int vox_type) {
 }
 
 void NPC::logic() {
-	activeAnimation->advanceFrame();
+
+	Enemy::logic();
+
+	//activeAnimation->advanceFrame();
 }
 
 /**
