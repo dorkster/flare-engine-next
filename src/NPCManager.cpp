@@ -80,7 +80,13 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		NPC *npc = new NPC(*enemym->getEnemyPrototype("enemies/zombie.txt"));
+		// NOTE NPCs currently use their own graphics, so we discard the graphics set by the enemy prototype
+		// TODO use the enemy prototype graphics instead?
+		// TODO don't hard-code enemy filename
+		Enemy* temp = enemym->getEnemyPrototype("enemies/zombie.txt");
+		NPC *npc = new NPC(*temp);
+		anim->decreaseCount(temp->animationSet->getName());
+		delete temp;
 
 		npc->load(mn.id);
 
@@ -148,7 +154,11 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC(*enemym->getEnemyPrototype("enemies/zombie.txt"));
+	// TODO see above todo with getEnemyPrototype()
+	Enemy* temp = enemym->getEnemyPrototype("enemies/zombie.txt");
+	NPC *n = new NPC(*temp);
+	anim->decreaseCount(temp->animationSet->getName());
+	delete temp;
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);
