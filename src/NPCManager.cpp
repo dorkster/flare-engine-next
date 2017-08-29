@@ -80,7 +80,7 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		NPC *npc = new NPC(*enemies->getEnemyPrototype("enemies/zombie.txt"));
+		NPC *npc = new NPC(*enemym->getEnemyPrototype("enemies/zombie.txt"));
 
 		npc->load(mn.id);
 
@@ -148,7 +148,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC(*enemies->getEnemyPrototype("enemies/zombie.txt"));
+	NPC *n = new NPC(*enemym->getEnemyPrototype("enemies/zombie.txt"));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);

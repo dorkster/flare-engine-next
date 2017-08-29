@@ -317,7 +317,7 @@ void NPC::logic() {
 	Enemy::logic();
 
 	// Update event position after NPC has moved
-	for (int i = 0; i < mapr->events.size(); i++)
+	for (size_t i = 0; i < mapr->events.size(); i++)
 	{
 		if (mapr->events[i].npcName == name)
 		{
@@ -331,7 +331,7 @@ void NPC::logic() {
 				static_cast<float>(stats.pos.x) + static_cast<float>(mapr->events[i].hotspot.w)/2;
 			mapr->events[i].center.y =
 				static_cast<float>(stats.pos.y) + static_cast<float>(mapr->events[i].hotspot.h)/2;
-			
+
 			for (int ci = 0; ci < mapr->events[i].components.size(); ci++)
 			{
 				if (mapr->events[i].components[ci].type == EC_NPC_HOTSPOT)
