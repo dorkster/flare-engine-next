@@ -704,7 +704,7 @@ void GameStatePlay::checkNPCInteraction() {
 	if (npc_id != -1) {
 		bool interact_with_npc = false;
 		if (npc_from_map) {
-			float interact_distance = calcDist(pc->stats.pos, npcs->npcs[npc_id]->pos);
+			float interact_distance = calcDist(pc->stats.pos, npcs->npcs[npc_id]->stats.pos);
 
 			if (interact_distance < INTERACT_RANGE) {
 				interact_with_npc = true;

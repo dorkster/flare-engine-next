@@ -60,7 +60,7 @@ public:
 	std::string name;
 	std::string filename;
 	std::string gfx; // filename of sprite.
-	FPoint pos; // map position
+	//FPoint pos; // map position
 
 	int direction;
 

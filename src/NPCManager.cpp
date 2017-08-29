@@ -40,8 +40,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <limits>
 
 NPCManager::NPCManager(StatBlock *_stats)
-	: EnemyManager()
-	, tip(new WidgetTooltip())
+	: tip(new WidgetTooltip())
 	, stats(_stats)
 	, tip_buf() {
 }
@@ -81,12 +80,13 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		NPC *npc = new NPC(*getEnemyPrototype("goblin"));
+		NPC *npc = new NPC(*enemies->getEnemyPrototype("enemies/zombie.txt"));
 
 		npc->load(mn.id);
 
-		npc->pos.x = mn.pos.x;
-		npc->pos.y = mn.pos.y;
+		npc->stats.pos.x = mn.pos.x;
+		npc->stats.pos.y = mn.pos.y;
+		npc->stats.hero_ally = true;
 
 		// npc->stock.sort();
 		npcs.push_back(npc);
@@ -101,8 +101,8 @@ void NPCManager::handleNewMap() {
 		ev.activate_type = EVENT_ON_TRIGGER;
 		ev.keep_after_trigger = true;
 		Rect location;
-		location.x = static_cast<int>(npc->pos.x);
-		location.y = static_cast<int>(npc->pos.y);
+		location.x = static_cast<int>(npc->stats.pos.x);
+		location.y = static_cast<int>(npc->stats.pos.y);
 		location.w = location.h = 1;
 		ev.location = ev.hotspot = location;
 		ev.center.x = static_cast<float>(ev.hotspot.x) + static_cast<float>(ev.hotspot.w)/2;
@@ -121,13 +121,14 @@ void NPCManager::handleNewMap() {
 		// However, it is sufficient for all of our current game data (fantasycore, no-name mod, polymorphable)
 		Renderable ren = npc->activeAnimation->getCurrentFrame(npc->direction);
 		ec.type = EC_NPC_HOTSPOT;
-		ec.x = static_cast<int>(npc->pos.x);
-		ec.y = static_cast<int>(npc->pos.y);
+		ec.x = static_cast<int>(npc->stats.pos.x);
+		ec.y = static_cast<int>(npc->stats.pos.y);
 		ec.z = ren.offset.x;
 		ec.a = ren.offset.y;
 		ec.b = ren.src.w;
 		ec.c = ren.src.h;
 		ev.components.push_back(ec);
+		ev.npcName = npc->name;
 
 		mapr->events.push_back(ev);
 	}
@@ -135,8 +136,8 @@ void NPCManager::handleNewMap() {
 }
 
 void NPCManager::logic() {
-	EnemyManager::logic();
 	for (unsigned i=0; i<npcs.size(); i++) {
+		//npcs[i]->stats.hero_stealth = true;
 		npcs[i]->logic();
 	}
 }
@@ -147,7 +148,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC(*getEnemyPrototype("goblin"));
+	NPC *n = new NPC(*enemies->getEnemyPrototype("enemies/zombie.txt"));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);

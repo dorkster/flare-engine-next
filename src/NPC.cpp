@@ -43,7 +43,7 @@ NPC::NPC(const Enemy& e)
 	: Enemy(e)
 	, name("")
 	, gfx("")
-	, pos()
+	//, pos()
 	, direction(0)
 	, npc_portrait(NULL)
 	, hero_portrait(NULL)
@@ -316,6 +316,33 @@ void NPC::logic() {
 
 	Enemy::logic();
 
+	// Update event position after NPC has moved
+	for (int i = 0; i < mapr->events.size(); i++)
+	{
+		if (mapr->events[i].npcName == name)
+		{
+			mapr->events[i].location.x = stats.pos.x;
+			mapr->events[i].location.y = stats.pos.y;
+
+			mapr->events[i].hotspot.x = stats.pos.x;
+			mapr->events[i].hotspot.y = stats.pos.y;
+
+			mapr->events[i].center.x =
+				static_cast<float>(stats.pos.x) + static_cast<float>(mapr->events[i].hotspot.w)/2;
+			mapr->events[i].center.y =
+				static_cast<float>(stats.pos.y) + static_cast<float>(mapr->events[i].hotspot.h)/2;
+			
+			for (int ci = 0; ci < mapr->events[i].components.size(); ci++)
+			{
+				if (mapr->events[i].components[ci].type == EC_NPC_HOTSPOT)
+				{
+					mapr->events[i].components[ci].x = stats.pos.x;
+					mapr->events[i].components[ci].y = stats.pos.y;
+				}
+			}
+		}
+	}
+
 	//activeAnimation->advanceFrame();
 }
 
@@ -543,8 +570,8 @@ void NPC::processEvent(unsigned int dialog_node, unsigned int cursor) {
 
 Renderable NPC::getRender() {
 	Renderable r = activeAnimation->getCurrentFrame(direction);
-	r.map_pos.x = pos.x;
-	r.map_pos.y = pos.y;
+	r.map_pos.x = stats.pos.x;
+	r.map_pos.y = stats.pos.y;
 
 	return r;
 }
