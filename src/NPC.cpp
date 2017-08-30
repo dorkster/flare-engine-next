@@ -43,7 +43,6 @@ NPC::NPC(const Enemy& e)
 	: Enemy(e)
 	, name("")
 	, gfx("")
-	//, pos()
 	, direction(0)
 	, npc_portrait(NULL)
 	, hero_portrait(NULL)
@@ -126,6 +125,11 @@ void NPC::load(const std::string& npc_id) {
 					e.type = EC_NPC_PORTRAIT_YOU;
 					e.s = infile.val;
 					portrait_filenames.push_back(e.s);
+				}
+				else if (infile.key == "take_a_party") {
+					// @ATTR dialog.take_a_party|bool|Start/stop taking a party with player.
+					e.type = EC_NPC_TAKE_A_PARTY;
+					e.x = toBool(infile.val);
 				}
 				else {
 					Event ev;
@@ -314,36 +318,10 @@ int NPC::loadSound(const std::string& fname, int vox_type) {
 
 void NPC::logic() {
 
-	Enemy::logic();
-
-	// Update event position after NPC has moved
-	for (size_t i = 0; i < mapr->events.size(); i++)
-	{
-		if (mapr->events[i].npcName == name)
-		{
-			mapr->events[i].location.x = static_cast<int>(stats.pos.x);
-			mapr->events[i].location.y = static_cast<int>(stats.pos.y);
-
-			mapr->events[i].hotspot.x = static_cast<int>(stats.pos.x);
-			mapr->events[i].hotspot.y = static_cast<int>(stats.pos.y);
-
-			mapr->events[i].center.x =
-				static_cast<float>(stats.pos.x) + static_cast<float>(mapr->events[i].hotspot.w)/2;
-			mapr->events[i].center.y =
-				static_cast<float>(stats.pos.y) + static_cast<float>(mapr->events[i].hotspot.h)/2;
-
-			for (size_t ci = 0; ci < mapr->events[i].components.size(); ci++)
-			{
-				if (mapr->events[i].components[ci].type == EC_NPC_HOTSPOT)
-				{
-					mapr->events[i].components[ci].x = static_cast<int>(stats.pos.x);
-					mapr->events[i].components[ci].y = static_cast<int>(stats.pos.y);
-				}
-			}
-		}
+	if (stats.hero_ally) {
+		Enemy::logic();
+		moveMapEvents();
 	}
-
-	//activeAnimation->advanceFrame();
 }
 
 /**
@@ -451,6 +429,36 @@ bool NPC::checkMovement(unsigned int dialog_node) {
 	return true;
 }
 
+void NPC::moveMapEvents() {
+
+	// Update event position after NPC has moved
+	for (size_t i = 0; i < mapr->events.size(); i++)
+	{
+		if (mapr->events[i].npcName == name)
+		{
+			mapr->events[i].location.x = static_cast<int>(stats.pos.x);
+			mapr->events[i].location.y = static_cast<int>(stats.pos.y);
+
+			mapr->events[i].hotspot.x = static_cast<int>(stats.pos.x);
+			mapr->events[i].hotspot.y = static_cast<int>(stats.pos.y);
+
+			mapr->events[i].center.x =
+				static_cast<float>(stats.pos.x) + static_cast<float>(mapr->events[i].hotspot.w)/2;
+			mapr->events[i].center.y =
+				static_cast<float>(stats.pos.y) + static_cast<float>(mapr->events[i].hotspot.h)/2;
+
+			for (size_t ci = 0; ci < mapr->events[i].components.size(); ci++)
+			{
+				if (mapr->events[i].components[ci].type == EC_NPC_HOTSPOT)
+				{
+					mapr->events[i].components[ci].x = static_cast<int>(stats.pos.x);
+					mapr->events[i].components[ci].y = static_cast<int>(stats.pos.y);
+				}
+			}
+		}
+	}
+}
+
 bool NPC::checkVendor() {
 	if (!vendor)
 		return false;
@@ -539,6 +547,9 @@ bool NPC::processDialog(unsigned int dialog_node, unsigned int &event_cursor) {
 					break;
 				}
 			}
+		}
+		else if (dialog[dialog_node][event_cursor].type == EC_NPC_TAKE_A_PARTY) {
+			stats.hero_ally = dialog[dialog_node][event_cursor].x == 0 ? false : true;
 		}
 		else if (dialog[dialog_node][event_cursor].type == EC_NONE) {
 			// conversation ends

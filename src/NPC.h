@@ -51,6 +51,7 @@ public:
 	void getDialogNodes(std::vector<int> &result);
 	std::string getDialogTopic(unsigned int dialog_node);
 	bool checkMovement(unsigned int dialog_node);
+	void moveMapEvents();
 	bool checkVendor();
 	bool processDialog(unsigned int dialog_node, unsigned int& event_cursor);
 	void processEvent(unsigned int dialog_node, unsigned int cursor);
@@ -60,7 +61,6 @@ public:
 	std::string name;
 	std::string filename;
 	std::string gfx; // filename of sprite.
-	//FPoint pos; // map position
 
 	int direction;
 

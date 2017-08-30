@@ -56,9 +56,17 @@ void NPCManager::handleNewMap() {
 	Map_NPC mn;
 	ItemStack item_roll;
 
+	std::queue<NPC *> allies;
+
 	// remove existing NPCs
-	for (unsigned i=0; i<npcs.size(); i++)
-		delete(npcs[i]);
+	for (unsigned i=0; i<npcs.size(); i++) {
+		if (npcs[i]->stats.hero_ally) {
+			allies.push(npcs[i]);
+		}
+		else {
+			delete(npcs[i]);
+		}
+	}
 
 	npcs.clear();
 
@@ -92,58 +100,73 @@ void NPCManager::handleNewMap() {
 
 		npc->stats.pos.x = mn.pos.x;
 		npc->stats.pos.y = mn.pos.y;
-		npc->stats.hero_ally = true;
+		npc->stats.hero_ally = false;// true
 
 		// npc->stock.sort();
 		npcs.push_back(npc);
+		createMapEvent(*npc, npcs.size());
+	}
 
-		mapr->collider.block(npc->pos.x, npc->pos.y, false);
+	FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
+	while (!allies.empty()) {
 
-		// create a map event for this npc
-		Event ev;
-		Event_Component ec;
+		NPC *npc = allies.front();
+		allies.pop();
 
-		// the event hotspot is a 1x1 tile at the npc's feet
-		ev.activate_type = EVENT_ON_TRIGGER;
-		ev.keep_after_trigger = true;
-		Rect location;
-		location.x = static_cast<int>(npc->stats.pos.x);
-		location.y = static_cast<int>(npc->stats.pos.y);
-		location.w = location.h = 1;
-		ev.location = ev.hotspot = location;
-		ev.center.x = static_cast<float>(ev.hotspot.x) + static_cast<float>(ev.hotspot.w)/2;
-		ev.center.y = static_cast<float>(ev.hotspot.y) + static_cast<float>(ev.hotspot.h)/2;
+		npc->stats.pos = spawn_pos;
+		npc->stats.direction = pc->stats.direction;
 
-		ec.type = EC_NPC_ID;
-		ec.x = static_cast<int>(npcs.size())-1;
-		ev.components.push_back(ec);
+		npcs.push_back(npc);
+		createMapEvent(*npc, npcs.size());
 
-		ec.type = EC_TOOLTIP;
-		ec.s = npc->name;
-		ev.components.push_back(ec);
-
-		// The hitbox for hovering/clicking on an npc is based on their first frame of animation
-		// This might cause some undesired behavior for npcs that have packed animations and a lot of variation
-		// However, it is sufficient for all of our current game data (fantasycore, no-name mod, polymorphable)
-		Renderable ren = npc->activeAnimation->getCurrentFrame(npc->direction);
-		ec.type = EC_NPC_HOTSPOT;
-		ec.x = static_cast<int>(npc->stats.pos.x);
-		ec.y = static_cast<int>(npc->stats.pos.y);
-		ec.z = ren.offset.x;
-		ec.a = ren.offset.y;
-		ec.b = ren.src.w;
-		ec.c = ren.src.h;
-		ev.components.push_back(ec);
-		ev.npcName = npc->name;
-
-		mapr->events.push_back(ev);
+		mapr->collider.block(npc->stats.pos.x, npc->stats.pos.y, true);
 	}
 
 }
 
+void NPCManager::createMapEvent(const NPC& npc, size_t npcs) {
+	// create a map event for provided npc
+	Event ev;
+	Event_Component ec;
+
+	// the event hotspot is a 1x1 tile at the npc's feet
+	ev.activate_type = EVENT_ON_TRIGGER;
+	ev.keep_after_trigger = true;
+	Rect location;
+	location.x = static_cast<int>(npc.stats.pos.x);
+	location.y = static_cast<int>(npc.stats.pos.y);
+	location.w = location.h = 1;
+	ev.location = ev.hotspot = location;
+	ev.center.x = static_cast<float>(ev.hotspot.x) + static_cast<float>(ev.hotspot.w)/2;
+	ev.center.y = static_cast<float>(ev.hotspot.y) + static_cast<float>(ev.hotspot.h)/2;
+
+	ec.type = EC_NPC_ID;
+	ec.x = static_cast<int>(npcs)-1;
+	ev.components.push_back(ec);
+
+	ec.type = EC_TOOLTIP;
+	ec.s = npc.name;
+	ev.components.push_back(ec);
+
+	// The hitbox for hovering/clicking on an npc is based on their first frame of animation
+	// This might cause some undesired behavior for npcs that have packed animations and a lot of variation
+	// However, it is sufficient for all of our current game data (fantasycore, no-name mod, polymorphable)
+	Renderable ren = npc.activeAnimation->getCurrentFrame(npc.direction);
+	ec.type = EC_NPC_HOTSPOT;
+	ec.x = static_cast<int>(npc.stats.pos.x);
+	ec.y = static_cast<int>(npc.stats.pos.y);
+	ec.z = ren.offset.x;
+	ec.a = ren.offset.y;
+	ec.b = ren.src.w;
+	ec.c = ren.src.h;
+	ev.components.push_back(ec);
+	ev.npcName = npc.name;
+
+	mapr->events.push_back(ev);
+}
+
 void NPCManager::logic() {
 	for (unsigned i=0; i<npcs.size(); i++) {
-		//npcs[i]->stats.hero_stealth = true;
 		npcs[i]->logic();
 	}
 }

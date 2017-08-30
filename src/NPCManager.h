@@ -33,7 +33,7 @@ class StatBlock;
 class NPC;
 class WidgetTooltip;
 
-class NPCManager : public EnemyManager {
+class NPCManager {
 private:
 	WidgetTooltip *tip;
 	StatBlock *stats;
@@ -46,6 +46,7 @@ public:
 
 	std::vector<NPC*> npcs;
 	void handleNewMap();
+	void createMapEvent(const NPC& npc, size_t npcs);
 	void logic();
 	void addRenders(std::vector<Renderable> &r);
 	int getID(const std::string& npcName);
