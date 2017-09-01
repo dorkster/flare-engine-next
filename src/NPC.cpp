@@ -42,7 +42,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 NPC::NPC(const Enemy& e)
 	: Enemy(e)
 	, name("")
-	, gfx("")
 	, direction(0)
 	, npc_portrait(NULL)
 	, hero_portrait(NULL)
@@ -158,10 +157,6 @@ void NPC::load(const std::string& npc_id) {
 					// @ATTR name|string|NPC's name.
 					name = msg->get(infile.val);
 				}
-				else if (infile.key == "gfx") {
-					// @ATTR gfx|filename|Filename of an animation definition.
-					gfx = infile.val;
-				}
 				else if (infile.key == "direction") {
 					// @ATTR direction|direction|The direction to use for this NPC's stance animation.
 					direction = parse_direction(infile.val);
@@ -271,9 +266,9 @@ void NPC::load(const std::string& npc_id) {
 
 void NPC::loadGraphics() {
 
-	if (gfx != "") {
-		anim->increaseCount(gfx);
-		animationSet = anim->getAnimationSet(gfx);
+	if (stats.animations != "") {
+		anim->increaseCount(stats.animations);
+		animationSet = anim->getAnimationSet(stats.animations);
 		activeAnimation = animationSet->getAnimation("");
 	}
 
@@ -319,8 +314,16 @@ int NPC::loadSound(const std::string& fname, int vox_type) {
 void NPC::logic() {
 
 	if (stats.hero_ally) {
+		// TODO: check logic
+		mapr->collider.unblock(stats.pos.x, stats.pos.y);
+
 		Enemy::logic();
 		moveMapEvents();
+	}
+	else
+	{
+		// TODO: check logic
+		mapr->collider.block(stats.pos.x, stats.pos.y, true);
 	}
 }
 
@@ -434,7 +437,7 @@ void NPC::moveMapEvents() {
 	// Update event position after NPC has moved
 	for (size_t i = 0; i < mapr->events.size(); i++)
 	{
-		if (mapr->events[i].npcName == name)
+		if (mapr->events[i].id == filename)
 		{
 			mapr->events[i].location.x = static_cast<int>(stats.pos.x);
 			mapr->events[i].location.y = static_cast<int>(stats.pos.y);
@@ -579,14 +582,6 @@ void NPC::processEvent(unsigned int dialog_node, unsigned int cursor) {
 	EventManager::executeEvent(ev);
 }
 
-Renderable NPC::getRender() {
-	Renderable r = activeAnimation->getCurrentFrame(direction);
-	r.map_pos.x = stats.pos.x;
-	r.map_pos.y = stats.pos.y;
-
-	return r;
-}
-
 bool NPC::isDialogType(const EVENT_COMPONENT_TYPE &event_type) {
 	return event_type == EC_NPC_DIALOG_THEM || event_type == EC_NPC_DIALOG_YOU;
 }
@@ -597,8 +592,8 @@ NPC::~NPC() {
 		delete portraits[i];
 	}
 
-	if (gfx != "") {
-		anim->decreaseCount(gfx);
+	if (stats.animations != "") {
+		anim->decreaseCount(stats.animations);
 	}
 
 	while (!vox_intro.empty()) {

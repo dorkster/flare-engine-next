@@ -44,16 +44,17 @@ protected:
 	/**
 	 * callee is responsible for deleting returned enemy object
 	 */
-	//Enemy *getEnemyPrototype(const std::string& type_id);
+	Enemy *getEnemyPrototype(const std::string& type_id);
 	size_t loadEnemyPrototype(const std::string& type_id);
 
 	std::vector<Enemy> prototypes;
 
 public:
-	Enemy *getEnemyPrototype(const std::string& type_id);
-
 	EnemyManager();
 	~EnemyManager();
+
+	Enemy *getEnemyPrototypeWithoutAnimationChanges(const std::string& type_id);
+
 	void handleNewMap();
 	void handleSpawn();
 	bool checkPartyMembers();

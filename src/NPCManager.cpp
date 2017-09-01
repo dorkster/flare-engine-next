@@ -56,12 +56,12 @@ void NPCManager::handleNewMap() {
 	Map_NPC mn;
 	ItemStack item_roll;
 
-	std::queue<NPC *> allies;
+	std::map<std::string, NPC *> allies;
 
 	// remove existing NPCs
 	for (unsigned i=0; i<npcs.size(); i++) {
 		if (npcs[i]->stats.hero_ally) {
-			allies.push(npcs[i]);
+			allies[npcs[i]->filename] = npcs[i];
 		}
 		else {
 			delete(npcs[i]);
@@ -88,19 +88,18 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		// NOTE NPCs currently use their own graphics, so we discard the graphics set by the enemy prototype
-		// TODO use the enemy prototype graphics instead?
-		// TODO don't hard-code enemy filename
-		Enemy* temp = enemym->getEnemyPrototype("enemies/zombie.txt");
-		NPC *npc = new NPC(*temp);
-		anim->decreaseCount(temp->animationSet->getName());
-		delete temp;
+		// ally npc that was moved from another map should not be loaded once again
+		if (allies.find(mn.id) != allies.end()) {
+			continue;
+		}
+
+		NPC *npc = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(mn.id));
 
 		npc->load(mn.id);
 
 		npc->stats.pos.x = mn.pos.x;
 		npc->stats.pos.y = mn.pos.y;
-		npc->stats.hero_ally = false;// true
+		npc->stats.hero_ally = false;
 
 		// npc->stock.sort();
 		npcs.push_back(npc);
@@ -110,8 +109,8 @@ void NPCManager::handleNewMap() {
 	FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
 	while (!allies.empty()) {
 
-		NPC *npc = allies.front();
-		allies.pop();
+		NPC *npc = allies.begin()->second;
+		allies.erase(allies.begin());
 
 		npc->stats.pos = spawn_pos;
 		npc->stats.direction = pc->stats.direction;
@@ -160,7 +159,7 @@ void NPCManager::createMapEvent(const NPC& npc, size_t npcs) {
 	ec.b = ren.src.w;
 	ec.c = ren.src.h;
 	ev.components.push_back(ec);
-	ev.npcName = npc.name;
+	ev.id = npc.filename;
 
 	mapr->events.push_back(ev);
 }
@@ -177,11 +176,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	// TODO see above todo with getEnemyPrototype()
-	Enemy* temp = enemym->getEnemyPrototype("enemies/zombie.txt");
-	NPC *n = new NPC(*temp);
-	anim->decreaseCount(temp->animationSet->getName());
-	delete temp;
+	NPC *n = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(npcName));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);

@@ -55,12 +55,10 @@ public:
 	bool checkVendor();
 	bool processDialog(unsigned int dialog_node, unsigned int& event_cursor);
 	void processEvent(unsigned int dialog_node, unsigned int cursor);
-	virtual Renderable getRender();
 
 	// general info
 	std::string name;
 	std::string filename;
-	std::string gfx; // filename of sprite.
 
 	int direction;
 
