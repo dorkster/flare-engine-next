@@ -5,9 +5,10 @@ precision mediump float;
 precision mediump int;
 #endif
 
-uniform sampler2D texture;
-uniform sampler2D normals;
-uniform bool lightEnabled;
+uniform sampler2D texture;      // diffuse(albedo) texture,   e.g. orge.png. Naming is similar to default "color" texture, when shaders are not used
+uniform sampler2D normals;      // normals texture,           e.g. orge_N.png
+uniform sampler2D aotexture;    // ambient occlusion texture, e.g. orge_AO.png
+uniform bool lightEnabled;      // it is true if normal and ao textures were loaded. Otherwise it is false
 
 uniform int screenWidth;
 uniform int screenHeight;
