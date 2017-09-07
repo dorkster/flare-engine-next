@@ -273,23 +273,23 @@ void NPC::loadGraphics() {
 
 /**
  * filename assumes the file is in soundfx/npcs/
- * type is a const int enum, see NPC.h
+ * vox_type is a const int enum, see NPC.h
  * returns -1 if not loaded or error.
  * returns index in specific vector where to be found.
  */
-int NPC::loadSound(const std::string& fname, int type) {
+int NPC::loadSound(const std::string& fname, int vox_type) {
 
 	SoundManager::SoundID a = snd->load(fname, "NPC voice");
 
 	if (!a)
 		return -1;
 
-	if (type == NPC_VOX_INTRO) {
+	if (vox_type == NPC_VOX_INTRO) {
 		vox_intro.push_back(a);
 		return static_cast<int>(vox_intro.size()) - 1;
 	}
 
-	if (type == NPC_VOX_QUEST) {
+	if (vox_type == NPC_VOX_QUEST) {
 		vox_quests.push_back(a);
 		return static_cast<int>(vox_quests.size()) - 1;
 	}
@@ -301,17 +301,17 @@ void NPC::logic() {
 }
 
 /**
- * type is a const int enum, see NPC.h
+ * vox_type is a const int enum, see NPC.h
  */
-bool NPC::playSound(int type, int id) {
-	if (type == NPC_VOX_INTRO) {
+bool NPC::playSound(int vox_type, int id) {
+	if (vox_type == NPC_VOX_INTRO) {
 		int roll;
 		if (vox_intro.empty()) return false;
 		roll = rand() % static_cast<int>(vox_intro.size());
 		snd->play(vox_intro[roll], "NPC_VOX");
 		return true;
 	}
-	if (type == NPC_VOX_QUEST) {
+	if (vox_type == NPC_VOX_QUEST) {
 		if (id < 0 || id >= static_cast<int>(vox_quests.size())) return false;
 		snd->play(vox_quests[id], "NPC_VOX");
 		return true;
@@ -530,8 +530,8 @@ Renderable NPC::getRender() {
 	return r;
 }
 
-bool NPC::isDialogType(const EVENT_COMPONENT_TYPE &type) {
-	return type == EC_NPC_DIALOG_THEM || type == EC_NPC_DIALOG_YOU;
+bool NPC::isDialogType(const EVENT_COMPONENT_TYPE &event_type) {
+	return event_type == EC_NPC_DIALOG_THEM || event_type == EC_NPC_DIALOG_YOU;
 }
 
 NPC::~NPC() {

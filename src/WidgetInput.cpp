@@ -19,9 +19,10 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
-#include "WidgetInput.h"
-#include "SharedResources.h"
+#include "Platform.h"
 #include "Settings.h"
+#include "SharedResources.h"
+#include "WidgetInput.h"
 
 WidgetInput::WidgetInput(const std::string& filename)
 	: background(NULL)
@@ -99,6 +100,7 @@ bool WidgetInput::logic(int x, int y) {
 		inpt->slow_repeat[DEL] = true;
 		inpt->slow_repeat[LEFT] = true;
 		inpt->slow_repeat[RIGHT] = true;
+		inpt->startTextInput();
 
 		if (inpt->inkeys != "") {
 			// handle text input
@@ -124,11 +126,11 @@ bool WidgetInput::logic(int x, int y) {
 				// remove utf-8 character
 				// size_t old_cursor_pos = cursor_pos;
 				size_t n = cursor_pos-1;
-				while ((text[n] & 0xc0) == 0x80) {
+				while (n > 0 && ((text[n] & 0xc0) == 0x80)) {
 					n--;
 				}
 				text = text.substr(0, n) + text.substr(cursor_pos, text.length());
-				cursor_pos--;
+				cursor_pos -= (cursor_pos) - n;
 				trimText();
 			}
 		}
@@ -158,6 +160,7 @@ bool WidgetInput::logic(int x, int y) {
 		inpt->slow_repeat[DEL] = false;
 		inpt->slow_repeat[LEFT] = false;
 		inpt->slow_repeat[RIGHT] = false;
+		inpt->stopTextInput();
 	}
 
 	return true;
@@ -210,6 +213,13 @@ void WidgetInput::render() {
 		if (draw) {
 			render_device->drawRectangle(topLeft, bottomRight, color);
 		}
+	}
+
+	// handle on-screen keyboard
+	if (PlatformOptions.is_mobile_device && edit_mode) {
+		osk_buf.clear();
+		osk_buf.addText(trimmed_text_cursor);
+		osk_tip.render(osk_buf, Point(VIEW_W_HALF + pos.w/2, 0), STYLE_FLOAT);
 	}
 }
 

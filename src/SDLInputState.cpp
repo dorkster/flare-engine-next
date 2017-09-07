@@ -42,11 +42,8 @@ SDLInputState::SDLInputState(void)
 	, joy_axis_num(0)
 	, resize_ticks(-1)
 	, joystick_init(false)
+	, text_input(false)
 {
-	// don't use keyboard for touchscreen devices
-	if (!PlatformOptions.is_mobile_device)
-		SDL_StartTextInput();
-
 	PlatformSetExitEventFilter();
 
 	defaultQwertyKeyBindings();
@@ -100,19 +97,19 @@ void SDLInputState::initJoystick() {
 void SDLInputState::defaultQwertyKeyBindings () {
 	if (PlatformOptions.is_mobile_device) {
 		binding[CANCEL] = SDLK_AC_BACK;
-		binding[ACCEPT] = SDLK_MENU;
+		binding_alt[ACCEPT] = SDLK_MENU;
 	}
 	else {
 		binding[CANCEL] = SDLK_ESCAPE;
-		binding[ACCEPT] = SDLK_RETURN;
+		binding_alt[ACCEPT] = SDLK_SPACE;
 	}
+	binding[ACCEPT] = SDLK_RETURN;
 	binding[UP] = SDLK_w;
 	binding[DOWN] = SDLK_s;
 	binding[LEFT] = SDLK_a;
 	binding[RIGHT] = SDLK_d;
 
 	binding_alt[CANCEL] = SDLK_ESCAPE;
-	binding_alt[ACCEPT] = SDLK_SPACE;
 	binding_alt[UP] = SDLK_UP;
 	binding_alt[DOWN] = SDLK_DOWN;
 	binding_alt[LEFT] = SDLK_LEFT;
@@ -671,6 +668,20 @@ int SDLInputState::getNumJoysticks() {
 
 bool SDLInputState::usingMouse() {
 	return !NO_MOUSE && !last_is_joystick;
+}
+
+void SDLInputState::startTextInput() {
+	if (!text_input) {
+		SDL_StartTextInput();
+		text_input = true;
+	}
+}
+
+void SDLInputState::stopTextInput() {
+	if (text_input) {
+		SDL_StopTextInput();
+		text_input = false;
+	}
 }
 
 SDLInputState::~SDLInputState() {
