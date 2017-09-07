@@ -63,6 +63,7 @@ public:
 
 	GLuint texture;
 	GLuint normalTexture;
+	GLuint aoTexture;
 	int w;
 	int h;
 };
@@ -110,6 +111,7 @@ private:
 
 	struct {
 		GLint texture;
+		GLint aotexture;
 		GLint normals;
 		GLint light;
 		GLint screenWidth;

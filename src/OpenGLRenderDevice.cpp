@@ -130,6 +130,7 @@ OpenGLImage::OpenGLImage(RenderDevice *_device)
 	: Image(_device)
 	, texture(-1)
 	, normalTexture(-1)
+	, aoTexture(-1)
 	, w(0)
 	, h(0) {
 }
@@ -140,6 +141,9 @@ OpenGLImage::~OpenGLImage() {
 
 	if ((int)normalTexture != -1)
 		glDeleteTextures(1, &normalTexture);
+
+	if ((int)aoTexture != -1)
+		glDeleteTextures(1, &aoTexture);
 }
 
 int OpenGLImage::getWidth() const {
@@ -408,6 +412,7 @@ int OpenGLRenderDevice::render(Renderable& r, Rect& dest) {
 
 	GLuint texture = static_cast<OpenGLImage *>(r.image)->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r.image)->normalTexture;
+	GLuint aoTexture = static_cast<OpenGLImage *>(r.image)->aoTexture;
 
 	if (texture == 0)
 		return 1;
@@ -415,14 +420,17 @@ int OpenGLRenderDevice::render(Renderable& r, Rect& dest) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	bool normals = ((int)normalTexture != -1);
-	if (normals)
+	bool bLightEnabled = ((int)normalTexture != -1) && ((int)aoTexture != -1);
+	if (bLightEnabled)
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, normalTexture);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, aoTexture);
 	}
 
-	composeFrame(m_offset, m_texelOffset, normals);
+	composeFrame(m_offset, m_texelOffset, bLightEnabled);
 
 	return 0;
 }
@@ -534,6 +542,7 @@ int OpenGLRenderDevice::buildResources()
 	uniforms.texelOffset = glGetUniformLocation(m_program, "texelOffset");
 
 	uniforms.normals = glGetUniformLocation(m_program, "normals");
+	uniforms.aotexture = glGetUniformLocation(m_program, "aotexture");
 	uniforms.light = glGetUniformLocation(m_program, "lightEnabled");
 
 	uniforms.screenWidth = glGetUniformLocation(m_program, "screenWidth");
@@ -592,6 +601,7 @@ int OpenGLRenderDevice::render(Sprite *r) {
 
 	GLuint texture = static_cast<OpenGLImage *>(r->getGraphics())->texture;
 	GLuint normalTexture = static_cast<OpenGLImage *>(r->getGraphics())->normalTexture;
+	GLuint aoTexture = static_cast<OpenGLImage *>(r->getGraphics())->aoTexture;
 
 	if (texture == 0)
 		return 1;
@@ -599,14 +609,17 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	bool normals = ((int)normalTexture != -1);
-	if (normals)
+	bool bLightEnabled = ((int)normalTexture != -1) && ((int)aoTexture != -1);
+	if (bLightEnabled)
 	{
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, normalTexture);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, aoTexture);
 	}
 
-	composeFrame(m_offset, m_texelOffset , normals);
+	composeFrame(m_offset, m_texelOffset , bLightEnabled);
 
 	return 0;
 }
@@ -621,6 +634,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	{
 		glUniform1i(uniforms.light, 1);
 		glUniform1i(uniforms.normals, 1);
+		glUniform1i(uniforms.aotexture, 2);
 	}
 	else
 	{
@@ -1016,6 +1030,7 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 		SDL_FreeSurface(cleanup);
 	}
 
+	// load normal texture
 	std::string normalFileName = filename.substr(0, filename.size() - 4) + "_N.png";
 	normalFileName = mods->locate(normalFileName);
 
@@ -1043,6 +1058,36 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 	else if (cleanupN) {
 		logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
 		SDL_FreeSurface(cleanupN);
+	}
+
+	// load ambient occlusion texture
+	std::string aoFileName = filename.substr(0, filename.size() - 4) + "_AO.png";
+	aoFileName = mods->locate(aoFileName);
+
+	SDL_Surface *cleanupAO = IMG_Load(aoFileName.c_str());
+	if(cleanupAO && cleanupAO->w == image->w && cleanupAO->h == image->h) {
+		SDL_Surface *surfaceAO = SDL_ConvertSurfaceFormat(cleanupAO, SDL_PIXELFORMAT_ABGR8888, 0);
+
+		glGenTextures(1, &(image->aoTexture));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, image->aoTexture);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surfaceAO->w, surfaceAO->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceAO->pixels);
+		int error = glGetError();
+		if (error != GL_NO_ERROR)
+			logInfo("Error while calling glTexImage2D(): %d", error);
+
+		SDL_FreeSurface(surfaceAO);
+		SDL_FreeSurface(cleanupAO);
+	}
+	else if (cleanupAO) {
+		logInfo("Skip loading image %s, it has wrong size", aoFileName.c_str());
+		SDL_FreeSurface(cleanupAO);
 	}
 
 	// store image to cache
