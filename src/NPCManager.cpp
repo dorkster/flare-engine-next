@@ -186,6 +186,60 @@ int NPCManager::getID(const std::string& npcName) {
 	return -1;
 }
 
+Enemy* NPCManager::npcFocus(const Point& mouse, const FPoint& cam, bool alive_only) {
+	Point p;
+	Rect r;
+	for(unsigned int i = 0; i < npcs.size(); i++) {
+		if(alive_only && (npcs[i]->stats.cur_state == ENEMY_DEAD || npcs[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+			continue;
+		}
+		if (!npcs[i]->stats.hero_ally) {
+			continue;
+		}
+
+		p = map_to_screen(npcs[i]->stats.pos.x, npcs[i]->stats.pos.y, cam.x, cam.y);
+
+		Renderable ren = npcs[i]->getRender();
+		r.w = ren.src.w;
+		r.h = ren.src.h;
+		r.x = p.x - ren.offset.x;
+		r.y = p.y - ren.offset.y;
+
+		if (isWithinRect(r, mouse)) {
+			return npcs[i];
+		}
+	}
+	return NULL;
+}
+
+Enemy* NPCManager::getNearestNPC(const FPoint& pos, bool get_corpse) {
+	Enemy* nearest = NULL;
+	float best_distance = std::numeric_limits<float>::max();
+
+	for (unsigned i=0; i<npcs.size(); i++) {
+		if(!get_corpse && (npcs[i]->stats.cur_state == ENEMY_DEAD || npcs[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+			continue;
+		}
+		if (get_corpse && !npcs[i]->stats.corpse) {
+			continue;
+		}
+		if (!npcs[i]->stats.hero_ally) {
+			continue;
+		}
+
+		float distance = calcDist(pos, npcs[i]->stats.pos);
+		if (distance < best_distance) {
+			best_distance = distance;
+			nearest = npcs[i];
+		}
+	}
+
+	if (best_distance > INTERACT_RANGE)
+		nearest = NULL;
+
+	return nearest;
+}
+
 NPCManager::~NPCManager() {
 	for (unsigned i=0; i<npcs.size(); i++) {
 		delete npcs[i];
