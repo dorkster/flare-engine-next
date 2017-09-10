@@ -46,7 +46,7 @@ public:
 
 	std::vector<NPC*> npcs;
 	void handleNewMap();
-	void createMapEvent(const NPC& npc, size_t npcs);
+	void createMapEvent(const NPC& npc, size_t _npcs);
 	void logic();
 	void addRenders(std::vector<Renderable> &r);
 	int getID(const std::string& npcName);

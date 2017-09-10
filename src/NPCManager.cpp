@@ -123,7 +123,7 @@ void NPCManager::handleNewMap() {
 
 }
 
-void NPCManager::createMapEvent(const NPC& npc, size_t npcs) {
+void NPCManager::createMapEvent(const NPC& npc, size_t _npcs) {
 	// create a map event for provided npc
 	Event ev;
 	Event_Component ec;
@@ -140,7 +140,7 @@ void NPCManager::createMapEvent(const NPC& npc, size_t npcs) {
 	ev.center.y = static_cast<float>(ev.hotspot.y) + static_cast<float>(ev.hotspot.h)/2;
 
 	ec.type = EC_NPC_ID;
-	ec.x = static_cast<int>(npcs)-1;
+	ec.x = static_cast<int>(_npcs)-1;
 	ev.components.push_back(ec);
 
 	ec.type = EC_TOOLTIP;
