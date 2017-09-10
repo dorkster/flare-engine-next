@@ -75,7 +75,11 @@ void NPC::load(const std::string& npc_id) {
 		bool clear_random_table = true;
 
 		while (infile.next()) {
-			if (infile.section == "dialog") {
+			if (infile.section == "stats") {
+				// handled by StatBlock::load()
+				continue;
+			}
+			else if (infile.section == "dialog") {
 				if (infile.new_section) {
 					dialog.push_back(std::vector<Event_Component>());
 				}
@@ -145,7 +149,7 @@ void NPC::load(const std::string& npc_id) {
 					dialog.back().push_back(e);
 				}
 			}
-			else {
+			else if (infile.section.empty() || infile.section == "npc") {
 				filename = npc_id;
 
 				if (infile.new_section) {
@@ -156,6 +160,10 @@ void NPC::load(const std::string& npc_id) {
 				if (infile.key == "name") {
 					// @ATTR name|string|NPC's name.
 					name = msg->get(infile.val);
+				}
+				else if (infile.key == "gfx") {
+					// TODO deprecate this!
+					// Currently handled in StatBlock::isNPCStat()
 				}
 				else if (infile.key == "direction") {
 					// @ATTR direction|direction|The direction to use for this NPC's stance animation.
@@ -323,6 +331,7 @@ void NPC::logic() {
 	else
 	{
 		// TODO: check logic
+		activeAnimation->advanceFrame();
 		mapr->collider.block(stats.pos.x, stats.pos.y, true);
 	}
 }
