@@ -19,6 +19,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <assert.h>
 #include <stdio.h>
 #include "RenderDevice.h"
+#include "Settings.h"
 
 
 /*
@@ -292,3 +293,30 @@ void RenderDevice::freeImage(Image *image) {
 	cacheRemove(image);
 }
 
+void RenderDevice::windowResizeInternal() {
+	getWindowSize(&SCREEN_W, &SCREEN_H);
+
+	if (!VIRTUAL_HEIGHTS.empty()) {
+		// default to the smallest VIRTUAL_HEIGHT
+		VIEW_H = VIRTUAL_HEIGHTS.front();
+	}
+
+	for (size_t i = 0; i < VIRTUAL_HEIGHTS.size(); ++i) {
+		if (SCREEN_H >= VIRTUAL_HEIGHTS[i]) {
+			VIEW_H = VIRTUAL_HEIGHTS[i];
+		}
+	}
+
+	VIEW_H_HALF = VIEW_H / 2;
+
+	VIEW_SCALING = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
+	VIEW_W = static_cast<unsigned short>(static_cast<float>(SCREEN_W) * VIEW_SCALING);
+
+	// letterbox if too tall
+	if (VIEW_W < MIN_SCREEN_W) {
+		VIEW_W = MIN_SCREEN_W;
+		VIEW_SCALING = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
+	}
+
+	VIEW_W_HALF = VIEW_W/2;
+}
