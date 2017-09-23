@@ -1096,30 +1096,15 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 	return image;
 }
 
-void OpenGLRenderDevice::windowResize() {
+void OpenGLRenderDevice::getWindowSize(short unsigned *screen_w, short unsigned *screen_h) {
 	int w,h;
 	SDL_GetWindowSize(window, &w, &h);
-	SCREEN_W = static_cast<short unsigned int>(w);
-	SCREEN_H = static_cast<short unsigned int>(h);
+	*screen_w = static_cast<unsigned short>(w);
+	*screen_h = static_cast<unsigned short>(h);
+}
 
-	for (size_t i = 0; i < VIRTUAL_HEIGHTS.size(); ++i) {
-		if (SCREEN_H >= VIRTUAL_HEIGHTS[i]) {
-			VIEW_H = VIRTUAL_HEIGHTS[i];
-		}
-	}
-
-	VIEW_H_HALF = VIEW_H / 2;
-
-	VIEW_SCALING = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
-	VIEW_W = static_cast<short unsigned int>(static_cast<float>(SCREEN_W) * VIEW_SCALING);
-
-	// letterbox if too tall
-	if (VIEW_W < MIN_SCREEN_W) {
-		VIEW_W = MIN_SCREEN_W;
-		VIEW_SCALING = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
-	}
-
-	VIEW_W_HALF = VIEW_W/2;
+void OpenGLRenderDevice::windowResize() {
+	windowResizeInternal();
 
 	int offsetY = static_cast<int>(SCREEN_H - VIEW_H / VIEW_SCALING) / 2;
 	glViewport(0, offsetY, static_cast<GLint>(VIEW_W / VIEW_SCALING), static_cast<GLint>(VIEW_H / VIEW_SCALING));
