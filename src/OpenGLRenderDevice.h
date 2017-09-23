@@ -97,6 +97,7 @@ public:
 								bool IfNotFoundExit = false);
 private:
 	void drawLine(int x0, int y0, int x1, int y1, const Color& color);
+	void getWindowSize(short unsigned *screen_w, short unsigned *screen_h);
 
 	int buildResources();
 	void composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight = false);
