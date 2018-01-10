@@ -35,11 +35,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedGameResources.h"
 #include "UtilsMath.h"
 
-NPC::NPC()
-	: Entity()
+NPC::NPC(const Enemy& e)
+	: Enemy(e)
 	, name("")
-	, gfx("")
-	, pos()
 	, direction(0)
 	, npc_portrait(NULL)
 	, hero_portrait(NULL)
@@ -50,6 +48,8 @@ NPC::NPC()
 	, vox_intro()
 	, vox_quests()
 	, dialog() {
+
+	eb = new BehaviorAlly(this);
 	stock.init(NPC_VENDOR_MAX_STOCK);
 }
 
@@ -70,7 +70,11 @@ void NPC::load(const std::string& npc_id) {
 		bool clear_random_table = true;
 
 		while (infile.next()) {
-			if (infile.section == "dialog") {
+			if (infile.section == "stats") {
+				// handled by StatBlock::load()
+				continue;
+			}
+			else if (infile.section == "dialog") {
 				if (infile.new_section) {
 					dialog.push_back(std::vector<Event_Component>());
 				}
@@ -120,6 +124,11 @@ void NPC::load(const std::string& npc_id) {
 					e.s = infile.val;
 					portrait_filenames.push_back(e.s);
 				}
+				else if (infile.key == "take_a_party") {
+					// @ATTR dialog.take_a_party|bool|Start/stop taking a party with player.
+					e.type = EC_NPC_TAKE_A_PARTY;
+					e.x = toBool(infile.val);
+				}
 				else {
 					Event ev;
 					EventManager::loadEventComponent(infile, &ev, NULL);
@@ -135,7 +144,7 @@ void NPC::load(const std::string& npc_id) {
 					dialog.back().push_back(e);
 				}
 			}
-			else {
+			else if (infile.section.empty() || infile.section == "npc") {
 				filename = npc_id;
 
 				if (infile.new_section) {
@@ -148,8 +157,8 @@ void NPC::load(const std::string& npc_id) {
 					name = msg->get(infile.val);
 				}
 				else if (infile.key == "gfx") {
-					// @ATTR gfx|filename|Filename of an animation definition.
-					gfx = infile.val;
+					// TODO deprecate this!
+					// Currently handled in StatBlock::isNPCStat()
 				}
 				else if (infile.key == "direction") {
 					// @ATTR direction|direction|The direction to use for this NPC's stance animation.
@@ -234,6 +243,7 @@ void NPC::load(const std::string& npc_id) {
 		}
 		infile.close();
 	}
+
 	loadGraphics();
 
 	// fill inventory with items from random stock table
@@ -251,9 +261,9 @@ void NPC::load(const std::string& npc_id) {
 
 void NPC::loadGraphics() {
 
-	if (gfx != "") {
-		anim->increaseCount(gfx);
-		animationSet = anim->getAnimationSet(gfx);
+	if (stats.animations != "") {
+		anim->increaseCount(stats.animations);
+		animationSet = anim->getAnimationSet(stats.animations);
 		activeAnimation = animationSet->getAnimation("");
 	}
 
@@ -297,7 +307,20 @@ int NPC::loadSound(const std::string& fname, int vox_type) {
 }
 
 void NPC::logic() {
-	activeAnimation->advanceFrame();
+
+	if (stats.hero_ally) {
+		// TODO: check logic
+		mapr->collider.unblock(stats.pos.x, stats.pos.y);
+
+		Enemy::logic();
+		moveMapEvents();
+	}
+	else
+	{
+		// TODO: check logic
+		activeAnimation->advanceFrame();
+		mapr->collider.block(stats.pos.x, stats.pos.y, true);
+	}
 }
 
 /**
@@ -405,6 +428,36 @@ bool NPC::checkMovement(unsigned int dialog_node) {
 	return true;
 }
 
+void NPC::moveMapEvents() {
+
+	// Update event position after NPC has moved
+	for (size_t i = 0; i < mapr->events.size(); i++)
+	{
+		if (mapr->events[i].id == filename)
+		{
+			mapr->events[i].location.x = static_cast<int>(stats.pos.x);
+			mapr->events[i].location.y = static_cast<int>(stats.pos.y);
+
+			mapr->events[i].hotspot.x = static_cast<int>(stats.pos.x);
+			mapr->events[i].hotspot.y = static_cast<int>(stats.pos.y);
+
+			mapr->events[i].center.x =
+				static_cast<float>(stats.pos.x) + static_cast<float>(mapr->events[i].hotspot.w)/2;
+			mapr->events[i].center.y =
+				static_cast<float>(stats.pos.y) + static_cast<float>(mapr->events[i].hotspot.h)/2;
+
+			for (size_t ci = 0; ci < mapr->events[i].components.size(); ci++)
+			{
+				if (mapr->events[i].components[ci].type == EC_NPC_HOTSPOT)
+				{
+					mapr->events[i].components[ci].x = static_cast<int>(stats.pos.x);
+					mapr->events[i].components[ci].y = static_cast<int>(stats.pos.y);
+				}
+			}
+		}
+	}
+}
+
 bool NPC::checkVendor() {
 	if (!vendor)
 		return false;
@@ -494,6 +547,9 @@ bool NPC::processDialog(unsigned int dialog_node, unsigned int &event_cursor) {
 				}
 			}
 		}
+		else if (dialog[dialog_node][event_cursor].type == EC_NPC_TAKE_A_PARTY) {
+			stats.hero_ally = dialog[dialog_node][event_cursor].x == 0 ? false : true;
+		}
 		else if (dialog[dialog_node][event_cursor].type == EC_NONE) {
 			// conversation ends
 			return false;
@@ -522,14 +578,6 @@ void NPC::processEvent(unsigned int dialog_node, unsigned int cursor) {
 	EventManager::executeEvent(ev);
 }
 
-Renderable NPC::getRender() {
-	Renderable r = activeAnimation->getCurrentFrame(direction);
-	r.map_pos.x = pos.x;
-	r.map_pos.y = pos.y;
-
-	return r;
-}
-
 bool NPC::isDialogType(const EVENT_COMPONENT_TYPE &event_type) {
 	return event_type == EC_NPC_DIALOG_THEM || event_type == EC_NPC_DIALOG_YOU;
 }
@@ -540,8 +588,8 @@ NPC::~NPC() {
 		delete portraits[i];
 	}
 
-	if (gfx != "") {
-		anim->decreaseCount(gfx);
+	if (stats.animations != "") {
+		anim->decreaseCount(stats.animations);
 	}
 
 	while (!vox_intro.empty()) {

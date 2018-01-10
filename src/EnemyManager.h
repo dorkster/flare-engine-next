@@ -39,6 +39,7 @@ private:
 	std::vector<std::string> anim_prefixes;
 	std::vector<std::vector<Animation*> > anim_entities;
 
+protected:
 	/**
 	 * callee is responsible for deleting returned enemy object
 	 */
@@ -50,6 +51,9 @@ private:
 public:
 	EnemyManager();
 	~EnemyManager();
+
+	Enemy *getEnemyPrototypeWithoutAnimationChanges(const std::string& type_id);
+
 	void handleNewMap();
 	void handleSpawn();
 	bool checkPartyMembers();

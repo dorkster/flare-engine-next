@@ -52,9 +52,17 @@ void NPCManager::handleNewMap() {
 	Map_NPC mn;
 	ItemStack item_roll;
 
+	std::map<std::string, NPC *> allies;
+
 	// remove existing NPCs
-	for (unsigned i=0; i<npcs.size(); i++)
-		delete(npcs[i]);
+	for (unsigned i=0; i<npcs.size(); i++) {
+		if (npcs[i]->stats.hero_ally) {
+			allies[npcs[i]->filename] = npcs[i];
+		}
+		else {
+			delete(npcs[i]);
+		}
+	}
 
 	npcs.clear();
 
@@ -75,53 +83,80 @@ void NPCManager::handleNewMap() {
 		if(!status_reqs_met)
 			continue;
 
-		NPC *npc = new NPC();
+		// ally npc that was moved from another map should not be loaded once again
+		if (allies.find(mn.id) != allies.end()) {
+			continue;
+		}
+
+		NPC *npc = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(mn.id));
+
 		npc->load(mn.id);
-		npc->pos.x = mn.pos.x;
-		npc->pos.y = mn.pos.y;
+
+		npc->stats.pos.x = mn.pos.x;
+		npc->stats.pos.y = mn.pos.y;
+		npc->stats.hero_ally = false;
 
 		// npc->stock.sort();
 		npcs.push_back(npc);
-
-		// create a map event for this npc
-		Event ev;
-		Event_Component ec;
-
-		// the event hotspot is a 1x1 tile at the npc's feet
-		ev.activate_type = EVENT_ON_TRIGGER;
-		ev.keep_after_trigger = true;
-		Rect location;
-		location.x = static_cast<int>(npc->pos.x);
-		location.y = static_cast<int>(npc->pos.y);
-		location.w = location.h = 1;
-		ev.location = ev.hotspot = location;
-		ev.center.x = static_cast<float>(ev.hotspot.x) + static_cast<float>(ev.hotspot.w)/2;
-		ev.center.y = static_cast<float>(ev.hotspot.y) + static_cast<float>(ev.hotspot.h)/2;
-
-		ec.type = EC_NPC_ID;
-		ec.x = static_cast<int>(npcs.size())-1;
-		ev.components.push_back(ec);
-
-		ec.type = EC_TOOLTIP;
-		ec.s = npc->name;
-		ev.components.push_back(ec);
-
-		// The hitbox for hovering/clicking on an npc is based on their first frame of animation
-		// This might cause some undesired behavior for npcs that have packed animations and a lot of variation
-		// However, it is sufficient for all of our current game data (fantasycore, no-name mod, polymorphable)
-		Renderable ren = npc->activeAnimation->getCurrentFrame(npc->direction);
-		ec.type = EC_NPC_HOTSPOT;
-		ec.x = static_cast<int>(npc->pos.x);
-		ec.y = static_cast<int>(npc->pos.y);
-		ec.z = ren.offset.x;
-		ec.a = ren.offset.y;
-		ec.b = ren.src.w;
-		ec.c = ren.src.h;
-		ev.components.push_back(ec);
-
-		mapr->events.push_back(ev);
+		createMapEvent(*npc, npcs.size());
 	}
 
+	FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
+	while (!allies.empty()) {
+
+		NPC *npc = allies.begin()->second;
+		allies.erase(allies.begin());
+
+		npc->stats.pos = spawn_pos;
+		npc->stats.direction = pc->stats.direction;
+
+		npcs.push_back(npc);
+		createMapEvent(*npc, npcs.size());
+
+		mapr->collider.block(npc->stats.pos.x, npc->stats.pos.y, true);
+	}
+
+}
+
+void NPCManager::createMapEvent(const NPC& npc, size_t _npcs) {
+	// create a map event for provided npc
+	Event ev;
+	Event_Component ec;
+
+	// the event hotspot is a 1x1 tile at the npc's feet
+	ev.activate_type = EVENT_ON_TRIGGER;
+	ev.keep_after_trigger = true;
+	Rect location;
+	location.x = static_cast<int>(npc.stats.pos.x);
+	location.y = static_cast<int>(npc.stats.pos.y);
+	location.w = location.h = 1;
+	ev.location = ev.hotspot = location;
+	ev.center.x = static_cast<float>(ev.hotspot.x) + static_cast<float>(ev.hotspot.w)/2;
+	ev.center.y = static_cast<float>(ev.hotspot.y) + static_cast<float>(ev.hotspot.h)/2;
+
+	ec.type = EC_NPC_ID;
+	ec.x = static_cast<int>(_npcs)-1;
+	ev.components.push_back(ec);
+
+	ec.type = EC_TOOLTIP;
+	ec.s = npc.name;
+	ev.components.push_back(ec);
+
+	// The hitbox for hovering/clicking on an npc is based on their first frame of animation
+	// This might cause some undesired behavior for npcs that have packed animations and a lot of variation
+	// However, it is sufficient for all of our current game data (fantasycore, no-name mod, polymorphable)
+	Renderable ren = npc.activeAnimation->getCurrentFrame(npc.direction);
+	ec.type = EC_NPC_HOTSPOT;
+	ec.x = static_cast<int>(npc.stats.pos.x);
+	ec.y = static_cast<int>(npc.stats.pos.y);
+	ec.z = ren.offset.x;
+	ec.a = ren.offset.y;
+	ec.b = ren.src.w;
+	ec.c = ren.src.h;
+	ev.components.push_back(ec);
+	ev.id = npc.filename;
+
+	mapr->events.push_back(ev);
 }
 
 void NPCManager::logic() {
@@ -136,7 +171,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC();
+	NPC *n = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(npcName));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);
@@ -144,6 +179,60 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	return -1;
+}
+
+Enemy* NPCManager::npcFocus(const Point& mouse, const FPoint& cam, bool alive_only) {
+	Point p;
+	Rect r;
+	for(unsigned int i = 0; i < npcs.size(); i++) {
+		if(alive_only && (npcs[i]->stats.cur_state == ENEMY_DEAD || npcs[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+			continue;
+		}
+		if (!npcs[i]->stats.hero_ally) {
+			continue;
+		}
+
+		p = map_to_screen(npcs[i]->stats.pos.x, npcs[i]->stats.pos.y, cam.x, cam.y);
+
+		Renderable ren = npcs[i]->getRender();
+		r.w = ren.src.w;
+		r.h = ren.src.h;
+		r.x = p.x - ren.offset.x;
+		r.y = p.y - ren.offset.y;
+
+		if (isWithinRect(r, mouse)) {
+			return npcs[i];
+		}
+	}
+	return NULL;
+}
+
+Enemy* NPCManager::getNearestNPC(const FPoint& pos, bool get_corpse) {
+	Enemy* nearest = NULL;
+	float best_distance = std::numeric_limits<float>::max();
+
+	for (unsigned i=0; i<npcs.size(); i++) {
+		if(!get_corpse && (npcs[i]->stats.cur_state == ENEMY_DEAD || npcs[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+			continue;
+		}
+		if (get_corpse && !npcs[i]->stats.corpse) {
+			continue;
+		}
+		if (!npcs[i]->stats.hero_ally) {
+			continue;
+		}
+
+		float distance = calcDist(pos, npcs[i]->stats.pos);
+		if (distance < best_distance) {
+			best_distance = distance;
+			nearest = npcs[i];
+		}
+	}
+
+	if (best_distance > INTERACT_RANGE)
+		nearest = NULL;
+
+	return nearest;
 }
 
 NPCManager::~NPCManager() {

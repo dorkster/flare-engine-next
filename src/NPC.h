@@ -24,16 +24,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef NPC_H
 #define NPC_H
 
-#include "CommonIncludes.h"
-#include "Entity.h"
+#include "BehaviorAlly.h"
 #include "ItemStorage.h"
-#include "Utils.h"
 
 const int NPC_VENDOR_MAX_STOCK = 80;
 const int NPC_VOX_INTRO = 0;
 const int NPC_VOX_QUEST = 1;
 
-class NPC : public Entity {
+class NPC : public Enemy {
 private:
 	bool isDialogType(const EVENT_COMPONENT_TYPE &event_type);
 
@@ -43,7 +41,7 @@ private:
 	std::vector<std::string> portrait_filenames;
 
 public:
-	NPC();
+	NPC(const Enemy& e);
 	~NPC();
 	void load(const std::string& npc_id);
 	void loadGraphics();
@@ -53,16 +51,14 @@ public:
 	void getDialogNodes(std::vector<int> &result);
 	std::string getDialogTopic(unsigned int dialog_node);
 	bool checkMovement(unsigned int dialog_node);
+	void moveMapEvents();
 	bool checkVendor();
 	bool processDialog(unsigned int dialog_node, unsigned int& event_cursor);
 	void processEvent(unsigned int dialog_node, unsigned int cursor);
-	virtual Renderable getRender();
 
 	// general info
 	std::string name;
 	std::string filename;
-	std::string gfx; // filename of sprite.
-	FPoint pos; // map position
 
 	int direction;
 

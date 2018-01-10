@@ -351,8 +351,11 @@ void Map::loadNPC(FileParser &infile) {
 				short unsigned int& tile = layers[collision_layer][tile_x][tile_y];
 				if (tile == BLOCKS_NONE) {
 					logError("Map: NPC at (%d, %d) does not have a collision tile. Creating one now.", tile_x, tile_y);
-					tile = BLOCKS_MOVEMENT_HIDDEN;
+					//tile = BLOCKS_MOVEMENT_HIDDEN;
+					// FIXME: should not lock or unlock when NPC wants to move
 				}
+				// TODO: For now unlock in case map defines locked tile
+				tile = BLOCKS_NONE;
 			}
 		}
 	}
