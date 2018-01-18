@@ -32,6 +32,7 @@ Scene::Scene(const CutsceneSettings& _settings, short _cutscene_type)
 	, caption("")
 	, art(NULL)
 	, art_scaled(NULL)
+	, art_scale_type(CUTSCENE_SCALE_NONE)
 	, sid(-1)
 	, caption_box(NULL)
 	, button_next(new WidgetButton("images/menus/buttons/right.png"))
@@ -121,6 +122,8 @@ bool Scene::logic() {
 					art_size.y = art->getGraphicsHeight();
 					graphics->unref();
 				}
+
+				art_scale_type = components.front().x;
 			}
 			else if (components.front().type == "soundfx") {
 				if (sid != 0)
@@ -221,20 +224,25 @@ void Scene::refreshWidgets() {
 		if (!caption.empty()) {
 			int caption_width = VIEW_W - static_cast<int>(VIEW_W * (settings.caption_margins.x * 2.0f));
 			font->setFont("font_captions");
+			int padding = font->getLineHeight()/4;
 			Point caption_size = font->calc_size(caption, caption_width);
+			Point caption_size_padded(caption_size.x + padding*2, caption_size.y + padding*2);
 
 			if (!caption_box) {
-				caption_box = new WidgetScrollBox(VIEW_W, caption_size.y);
+				caption_box = new WidgetScrollBox(caption_size_padded.x, caption_size_padded.y);
 				caption_box->setBasePos(0, 0, ALIGN_BOTTOM);
+				caption_box->bg = settings.caption_background;
+				caption_box->transparent = false;
+				caption_box->resize(caption_size_padded.x, caption_size_padded.y);
 			}
 			else {
-				caption_box->pos.h = caption_size.y;
-				caption_box->resize(VIEW_W, caption_size.y);
+				caption_box->pos.h = caption_size_padded.y;
+				caption_box->resize(caption_size_padded.x, caption_size_padded.y);
 			}
 
 			caption_box->setPos(0, static_cast<int>(static_cast<float>(VIEW_H) * settings.caption_margins.y) * (-1));
 
-			font->renderShadowed(caption, VIEW_W / 2, 0,
+			font->renderShadowed(caption, (padding / 2) + (caption_size_padded.x / 2), padding,
 								 JUSTIFY_CENTER,
 								 caption_box->contents->getGraphics(),
 								 caption_width,
@@ -243,8 +251,11 @@ void Scene::refreshWidgets() {
 
 		if (art) {
 			Rect art_dest;
-			if (settings.scale_graphics) {
-				art_dest = resizeToScreen(art_size.x, art_size.y, false, ALIGN_CENTER);
+			if (art_scale_type != CUTSCENE_SCALE_NONE) {
+				if (art_scale_type == CUTSCENE_SCALE_SCREEN)
+					art_dest = resizeToScreen(art_size.x, art_size.y, false, ALIGN_CENTER);
+				else if (art_scale_type == CUTSCENE_SCALE_HEIGHT)
+					art_dest = resizeToScreen(art_size.x, art_size.y, true, ALIGN_CENTER);
 
 				art->getGraphics()->ref(); // resize unref's our image (which we want to keep), so counter that here
 				Image *resized = art->getGraphics()->resize(art_dest.w, art_dest.h);
@@ -330,15 +341,32 @@ void Scene::render() {
 
 GameStateCutscene::GameStateCutscene(GameState *game_state)
 	: previous_gamestate(game_state)
+	, initialized(false)
 	, game_slot(-1)
 {
 	has_background = false;
 }
 
 GameStateCutscene::~GameStateCutscene() {
+	if (!music.empty())
+		snd->stopMusic();
+}
+
+void GameStateCutscene::init() {
+	if (initialized)
+		return;
+
+	if (MUSIC_VOLUME > 0 && !music.empty()) {
+		// restart music so that game devs can sync with cutscene playback
+		snd->stopMusic();
+		snd->loadMusic(music);
+	}
+
+	initialized = true;
 }
 
 void GameStateCutscene::logic() {
+	init();
 
 	if (scenes.empty()) {
 		if (game_slot != -1) {
@@ -387,21 +415,21 @@ bool GameStateCutscene::load(const std::string& filename) {
 			else if (infile.section == "vscroll") {
 				// if the previous scene was also a vertical scroller, don't create a new scene
 				// instead, the previous scene will be extended
-				if (scenes.empty() || scenes.front()->cutscene_type != CUTSCENE_VSCROLL) {
+				if (scenes.empty() || scenes.back()->cutscene_type != CUTSCENE_VSCROLL) {
 					scenes.push(new Scene(settings, CUTSCENE_VSCROLL));
 				}
 			}
 		}
 
 		if (infile.section.empty()) {
-			if (infile.key == "scale_gfx") {
-				// @ATTR scale_gfx|bool|The graphics will be scaled to fit screen width
-				settings.scale_graphics = toBool(infile.val);
-			}
-			else if (infile.key == "caption_margins") {
+			if (infile.key == "caption_margins") {
 				// @ATTR caption_margins|float, float : X margin, Y margin|Percentage-based margins for the caption text based on screen size
 				settings.caption_margins.x = toFloat(popFirstString(infile.val))/100.0f;
 				settings.caption_margins.y = toFloat(popFirstString(infile.val))/100.0f;
+			}
+			else if (infile.key == "caption_background") {
+				// @ATTR caption_background|color, int : Color, Alpha|Color (RGBA) of the caption area background.
+				settings.caption_background = toRGBA(infile.val);
 			}
 			else if (infile.key == "vscroll_speed") {
 				// @ATTR vscroll_speed|float|The speed at which elements will scroll in 'vscroll' scenes.
@@ -410,6 +438,11 @@ bool GameStateCutscene::load(const std::string& filename) {
 			else if (infile.key == "menu_backgrounds") {
 				// @ATTR menu_backgrounds|bool|This cutscene will use a random fullscreen background image, like the title screen does
 				has_background = true;
+			}
+			else if (infile.key == "music") {
+				// @ATTR music|filename|The music file that will play during this cutscene.
+				music = infile.val;
+				hasMusic = true;
 			}
 			else {
 				infile.error("GameStateCutscene: '%s' is not a valid key.", infile.key.c_str());
@@ -424,9 +457,14 @@ bool GameStateCutscene::load(const std::string& filename) {
 				sc.s = msg->get(infile.val);
 			}
 			else if (infile.key == "image") {
-				// @ATTR scene.image|filename|Filename of an image that will be shown.
+				// @ATTR scene.image|filename, int : Filename, Scaling type|Filename of an image that will be shown. The scaling type is a value between 0-2, corresponding to: none, fit height, fit screen.
 				sc.type = infile.key;
-				sc.s = infile.val;
+				sc.s = popFirstString(infile.val);
+				sc.x = popFirstInt(infile.val);
+				if (sc.x < CUTSCENE_SCALE_NONE || sc.x > CUTSCENE_SCALE_SCREEN) {
+					infile.error("GameStateCutscene: '%d' is not a valid scaling type.", sc.x);
+					sc.x = CUTSCENE_SCALE_NONE;
+				}
 			}
 			else if (infile.key == "pause") {
 				// @ATTR scene.pause|duration|Pause before next component in 'ms' or 's'.
