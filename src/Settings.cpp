@@ -317,6 +317,7 @@ void loadTilesetSettings() {
 	}
 	if (UNITS_PER_PIXEL_X == 0 || UNITS_PER_PIXEL_Y == 0) {
 		logError("Settings: One of UNITS_PER_PIXEL values is zero! %dx%d", static_cast<int>(UNITS_PER_PIXEL_X), static_cast<int>(UNITS_PER_PIXEL_Y));
+		logErrorDialog("Settings: One of UNITS_PER_PIXEL values is zero! %dx%d", static_cast<int>(UNITS_PER_PIXEL_X), static_cast<int>(UNITS_PER_PIXEL_Y));
 		mods->resetModConfig();
 		Exit(1);
 	}
@@ -846,7 +847,7 @@ void loadMiscSettings() {
 	}
 }
 
-bool loadSettings() {
+void loadSettings() {
 
 	// init defaults
 	for (int i = 0; i < config_size; i++) {
@@ -860,7 +861,7 @@ bool loadSettings() {
 		loadMobileDefaults();
 		if (!infile.open("engine/default_settings.txt", true, "")) {
 			saveSettings();
-			return true;
+			return;
 		}
 		else saveSettings();
 	}
@@ -875,8 +876,6 @@ bool loadSettings() {
 	infile.close();
 
 	loadMobileDefaults();
-
-	return true;
 }
 
 /**
@@ -938,6 +937,9 @@ std::string getVersionString() {
 		ss << VERSION_NAME << " v" << VERSION_MAJOR << "." << VERSION_MINOR/10;
 	else
 		ss << VERSION_NAME << " v" << VERSION_MAJOR << "." << std::setfill('0') << std::setw(2) << VERSION_MINOR;
+
+	ss << " (" << SDL_GetPlatform() << ")";
+
 	return ss.str();
 }
 
