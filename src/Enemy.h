@@ -30,13 +30,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Utils.h"
 
 class EnemyBehavior;
-class Hazard;
 
 class Enemy : public Entity {
 
 public:
 	Enemy();
 	Enemy(const Enemy& e);
+	Enemy& operator=(const Enemy& e);
 	~Enemy();
 	void logic();
 	unsigned char faceNextBest(float mapx, float mapy);
@@ -46,7 +46,6 @@ public:
 
 	Renderable getRender();
 
-	Hazard *haz;
 	EnemyBehavior *eb;
 
 	// other flags
