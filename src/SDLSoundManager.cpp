@@ -145,7 +145,7 @@ void SDLSoundManager::reset() {
 
 		++it;
 	}
-	logic(Point(0,0));
+	logic(FPoint(0,0));
 }
 
 SoundManager::SoundID SDLSoundManager::load(const std::string& filename, const std::string& errormessage) {
@@ -202,7 +202,7 @@ void SDLSoundManager::unload(SoundManager::SoundID sid) {
 
 
 
-void SDLSoundManager::play(SoundManager::SoundID sid, std::string channel, const FPoint& pos, bool loop) {
+void SDLSoundManager::play(SoundManager::SoundID sid, const std::string& channel, const FPoint& pos, bool loop) {
 
 	SoundMapIterator it;
 	VirtualChannelMapIterator vcit = channels.end();
