@@ -38,6 +38,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Stats.h"
 #include "UtilsFileSystem.h"
 #include "UtilsParsing.h"
+#include "Version.h"
 #include "WidgetButton.h"
 #include "WidgetCheckBox.h"
 #include "WidgetListBox.h"
@@ -897,51 +898,54 @@ bool GameStateConfigBase::setMods() {
 		return false;
 }
 
+std::string GameStateConfigBase::createVersionReqString(Version& v1, Version& v2) {
+	std::string min_version = (v1 == Version(0, 0, 0)) ? "" : versionToString(v1);
+	std::string max_version = (v2 == Version(USHRT_MAX, USHRT_MAX, USHRT_MAX)) ? "" : versionToString(v2);
+	std::string ret;
+
+	if (min_version != "" || max_version != "") {
+		if (min_version == max_version) {
+			ret += min_version;
+		}
+		else if (min_version != "" && max_version != "") {
+			ret += min_version + " - " + max_version;
+		}
+		else if (min_version != "") {
+			ret += min_version + ' ' + msg->get("or newer");
+		}
+		else if (max_version != "") {
+			ret += max_version + ' ' + msg->get("or older");
+		}
+	}
+
+	return ret;
+}
+
 std::string GameStateConfigBase::createModTooltip(Mod *mod) {
 	std::string ret = "";
 	if (mod) {
-		std::string min_version = "";
-		std::string max_version = "";
-		std::stringstream ss;
+		std::string mod_ver = (*mod->version == Version(0, 0, 0)) ? "" : versionToString(*mod->version);
+		std::string engine_ver = createVersionReqString(*mod->engine_min_version, *mod->engine_max_version);
 
 		ret = mod->name + "\n\n";
 
-		if (mod->min_version_major > 0 || mod->min_version_minor > 0) {
-			ss << mod->min_version_major << "." << std::setfill('0') << std::setw(2) << mod->min_version_minor;
-			min_version = ss.str();
-			ss.str("");
-		}
-
-
-		if (mod->max_version_major < INT_MAX || mod->max_version_minor < INT_MAX) {
-			ss << mod->max_version_major << "." << std::setfill('0') << std::setw(2) << mod->max_version_minor;
-			max_version = ss.str();
-			ss.str("");
-		}
-
 		ret += mod->description;
+		if (mod_ver != "") {
+			if (ret != "") ret += '\n';
+			ret += msg->get("Version:") + ' ' + mod_ver;
+		}
 		if (mod->game != "" && mod->game != FALLBACK_GAME) {
 			if (ret != "") ret += '\n';
-			ret += msg->get("Game: ");
+			ret += msg->get("Game:") + ' ';
 			ret += mod->game;
 		}
-		if (min_version != "" || max_version != "") {
+		if (engine_ver != "") {
 			if (ret != "") ret += '\n';
-			ret += msg->get("Requires version: ");
-			if (min_version != "" && min_version != max_version) {
-				ret += min_version;
-				if (max_version != "") {
-					ret += " - ";
-					ret += max_version;
-				}
-			}
-			else if (max_version != "") {
-				ret += max_version;
-			}
+			ret += msg->get("Engine version:") + ' ' + engine_ver;
 		}
 		if (!mod->depends.empty()) {
 			if (ret != "") ret += '\n';
-			ret += msg->get("Requires mods: ");
+			ret += msg->get("Requires mods:") + ' ';
 			for (unsigned i=0; i<mod->depends.size(); ++i) {
 				ret += mod->depends[i];
 				if (i < mod->depends.size()-1)
