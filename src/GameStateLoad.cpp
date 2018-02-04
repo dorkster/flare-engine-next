@@ -214,6 +214,11 @@ GameStateLoad::GameStateLoad() : GameState()
 			loading_requested = true;
 		}
 	}
+	else if (PREV_SAVE_SLOT >= 0) {
+		setSelectedSlot(PREV_SAVE_SLOT);
+		scroll_offset = std::max(0, selected_slot-visible_slots+1);
+		updateButtons();
+	}
 
 	render_device->setBackgroundColor(Color(0,0,0,0));
 }
@@ -273,6 +278,13 @@ void GameStateLoad::readGameSlots() {
 
 	getDirList(PATH_USER + "saves/" + SAVE_PREFIX, save_dirs);
 	std::sort(save_dirs.begin(), save_dirs.end(), compareSaveDirs);
+
+	// save dirs can only be >= 1
+	for (size_t i=save_dirs.size(); i>0; --i) {
+		if (toInt(save_dirs[i-1]) < 1)
+			save_dirs.erase(save_dirs.begin() + (i-1));
+	}
+
 	game_slots.resize(save_dirs.size(), NULL);
 
 	visible_slots = (game_slot_max > static_cast<int>(game_slots.size()) ? static_cast<int>(game_slots.size()) : game_slot_max);

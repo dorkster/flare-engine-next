@@ -157,6 +157,7 @@ extern bool SAVE_ONLOAD;
 extern bool SAVE_ONEXIT;
 extern float ENCOUNTER_DIST;
 extern float CAMERA_SPEED;
+extern bool SAVE_BUYBACK;
 
 // Tile Settings
 extern float UNITS_PER_PIXEL_X;
@@ -221,6 +222,9 @@ extern int TOOLTIP_BACKGROUND_BORDER;
 // Command-line settings
 extern std::string LOAD_SLOT;
 extern std::string LOAD_SCRIPT;
+
+// Misc
+extern int PREV_SAVE_SLOT;
 
 void loadTilesetSettings();
 void loadMiscSettings();
