@@ -106,6 +106,8 @@ private:
 
 	int second_ticks;
 
+	bool is_first_map_load;
+
 public:
 	GameStatePlay();
 	~GameStatePlay();
