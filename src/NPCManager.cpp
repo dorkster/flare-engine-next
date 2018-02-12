@@ -80,6 +80,7 @@ void NPCManager::handleNewMap() {
 		for (unsigned i = 0; i < mn.requires_not_status.size(); ++i)
 			if (camp->checkStatus(mn.requires_not_status[i]))
 				status_reqs_met = false;
+
 		if(!status_reqs_met)
 			continue;
 
