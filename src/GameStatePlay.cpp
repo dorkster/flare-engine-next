@@ -906,6 +906,7 @@ void GameStatePlay::logic() {
 	}
 
 	// these actions occur whether the game is paused or not.
+	// TODO Why? Some of these probably don't need to be executed when paused
 	checkTeleport();
 	checkLootDrop();
 	checkLog();
@@ -917,7 +918,7 @@ void GameStatePlay::logic() {
 	checkNotifications();
 	checkCancel();
 
-	mapr->logic();
+	mapr->logic(isPaused());
 	mapr->enemies_cleared = enemym->isCleared();
 	quests->logic();
 
