@@ -196,11 +196,9 @@ GameStateNew::GameStateNew()
 	loadGraphics();
 	loadOptions("hero_options.txt");
 
-	if (portrait.empty()) portrait.push_back("");
-	if (name.empty()) name.push_back("");
-
-	loadPortrait(portrait[0]);
-	setName(name[0]);
+	loadPortrait(hero_options[0].portrait);
+	setName(hero_options[0].name);
+	setHeroOption(0);
 
 	// Set up tab list
 	tablist.add(button_exit);
@@ -253,16 +251,60 @@ void GameStateNew::loadOptions(const std::string& filename) {
 	// @CLASS GameStateNew: Hero options|Description of engine/hero_options.txt
 	if (!fin.open("engine/" + filename)) return;
 
+	int cur_index = -1;
 	while (fin.next()) {
-		// @ATTR option|string, string, filename, string : Base, Head, Portrait, Name|A default body, head, portrait, and name for a hero.
+		// @ATTR option|int, string, string, filename, string : Index, Base, Head, Portrait, Name|A default body, head, portrait, and name for a hero.
 		if (fin.key == "option") {
-			base.push_back(popFirstString(fin.val));
-			head.push_back(popFirstString(fin.val));
-			portrait.push_back(popFirstString(fin.val));
-			name.push_back(msg->get(popFirstString(fin.val)));
+			std::string test_first = popFirstString(fin.val);
+			int first_index = toInt(test_first, -1);
+			bool first_is_index = false;
+
+			// TODO we're temporarily remaining forwards-compatible here, allowing the omission of the index
+			// this compatibility will be deprecated before release! So fix your mods
+			if (first_index == -1) {
+				if (test_first == "-1") {
+					fin.error("GameStateNew: Hero option index is negative. Setting to 0.");
+					cur_index = 0;
+					first_is_index = true;
+				}
+				else {
+					cur_index++;
+					fin.error("GameStateNew: Hero option does not have index. Automatically setting to %d.", cur_index);
+				}
+			}
+			else if (first_index < -1) {
+				fin.error("GameStateNew: Hero option index is negative. Setting to 0.");
+				cur_index = 0;
+				first_is_index = true;
+			}
+			else {
+				cur_index = first_index;
+				first_is_index = true;
+			}
+
+			if (static_cast<size_t>(cur_index + 1) > hero_options.size()) {
+				hero_options.resize(cur_index + 1);
+			}
+
+			if (first_is_index)
+				hero_options[cur_index].base = popFirstString(fin.val);
+			else
+				hero_options[cur_index].base = test_first;
+
+			hero_options[cur_index].head = popFirstString(fin.val);
+			hero_options[cur_index].portrait = popFirstString(fin.val);
+			hero_options[cur_index].name = msg->get(popFirstString(fin.val));
+
+			all_options.push_back(cur_index);
 		}
 	}
 	fin.close();
+
+	if (hero_options.empty()) {
+		hero_options.resize(1);
+	}
+
+	std::sort(all_options.begin(), all_options.end());
 }
 
 /**
@@ -277,6 +319,52 @@ void GameStateNew:: setName(const std::string& default_name) {
 	}
 }
 
+void GameStateNew::setHeroOption(int dir) {
+	std::vector<int> *available_options = &all_options;
+
+	// get the available options from the currently selected class
+	int class_index;
+	if ( (class_index = class_list->getSelected()) != -1) {
+		if (static_cast<size_t>(class_index) < HERO_CLASSES.size() && !HERO_CLASSES[class_index].options.empty()) {
+			available_options = &(HERO_CLASSES[class_index].options);
+		}
+	}
+
+	if (dir == 0) {
+		// don't change current_option unless required
+		if (std::find(available_options->begin(), available_options->end(), current_option) == available_options->end())
+			current_option = available_options->front();
+	}
+	else if (dir == 1) {
+		// increment current_option
+		std::vector<int>::iterator it = std::find(available_options->begin(), available_options->end(), current_option);
+		if (it == available_options->end()) {
+			current_option = available_options->front();
+		}
+		else {
+			++it;
+			if (it != available_options->end())
+				current_option = (*it);
+			else
+				current_option = available_options->front();
+		}
+	}
+	else if (dir == -1) {
+		// decrement current_option
+		std::vector<int>::iterator it = std::find(available_options->begin(), available_options->end(), current_option);
+		if (it == available_options->begin()) {
+			current_option = available_options->back();
+		}
+		else {
+			--it;
+			current_option = (*it);
+		}
+	}
+
+	loadPortrait(hero_options[current_option].portrait);
+	setName(hero_options[current_option].name);
+}
+
 void GameStateNew::logic() {
 
 	if (inpt->window_resized)
@@ -288,7 +376,9 @@ void GameStateNew::logic() {
 	input_name->logic();
 
 	button_permadeath->checkClick();
-	if (show_classlist) class_list->checkClick();
+	if (show_classlist && class_list->checkClick()) {
+		setHeroOption(0);
+	}
 
 	// require character name
 	if (input_name->getText() == "") {
@@ -319,9 +409,9 @@ void GameStateNew::logic() {
 		showLoading();
 		GameStatePlay* play = new GameStatePlay();
 		Avatar *avatar = pc;
-		avatar->stats.gfx_base = base[current_option];
-		avatar->stats.gfx_head = head[current_option];
-		avatar->stats.gfx_portrait = portrait[current_option];
+		avatar->stats.gfx_base = hero_options[current_option].base;
+		avatar->stats.gfx_head = hero_options[current_option].head;
+		avatar->stats.gfx_portrait = hero_options[current_option].portrait;
 		avatar->stats.name = input_name->getText();
 		avatar->stats.permadeath = button_permadeath->isChecked();
 		save_load->setGameSlot(game_slot);
@@ -332,19 +422,14 @@ void GameStateNew::logic() {
 
 	// scroll through portrait options
 	if (button_next->checkClick()) {
-		current_option++;
-		if (static_cast<unsigned>(current_option) == portrait.size()) current_option = 0;
-		loadPortrait(portrait[current_option]);
-		setName(name[current_option]);
+		setHeroOption(1);
 	}
 	else if (button_prev->checkClick()) {
-		current_option--;
-		if (current_option == -1) current_option = static_cast<int>(portrait.size())-1;
-		loadPortrait(portrait[current_option]);
-		setName(name[current_option]);
+		setHeroOption(-1);
 	}
 
-	if (input_name->getText() != name[current_option]) modified_name = true;
+	if (input_name->getText() != hero_options[current_option].name)
+		modified_name = true;
 }
 
 void GameStateNew::refreshWidgets() {

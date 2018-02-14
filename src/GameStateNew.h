@@ -39,6 +39,17 @@ class WidgetLabel;
 class WidgetListBox;
 class WidgetTooltip;
 
+class HeroOption {
+public:
+	HeroOption() {}
+	~HeroOption() {}
+
+	std::string base;
+	std::string head;
+	std::string portrait;
+	std::string name;
+};
+
 class GameStateNew : public GameState {
 private:
 
@@ -47,12 +58,10 @@ private:
 	void loadOptions(const std::string& option_filename);
 	std::string getClassTooltip(int index);
 	void setName(const std::string& default_name);
+	void setHeroOption(int dir);
 	void refreshWidgets();
 
-	std::vector<std::string> base;
-	std::vector<std::string> head;
-	std::vector<std::string> portrait;
-	std::vector<std::string> name;
+	std::vector<HeroOption> hero_options;
 	int current_option;
 
 	Sprite *portrait_image;
@@ -83,6 +92,8 @@ private:
 	bool delete_items;
 
 	Color color_normal;
+
+	std::vector<int> all_options;
 
 public:
 	GameStateNew();
