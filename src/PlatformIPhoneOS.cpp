@@ -53,7 +53,7 @@ int IPhoneOSIsExitEvent(void* userdata, SDL_Event* event) {
 	return 1;
 }
 
-// TODO This was copied from the Linux platform
+// NOTE This was copied from the Linux platform
 // That probably isn't right, but its what the codepath was before in Settings.cpp
 void PlatformSetPaths() {
 
@@ -193,6 +193,7 @@ bool PlatformDirRemove(const std::string& path) {
 void PlatformFSInit() {}
 bool PlatformFSCheckReady() { return true; }
 void PlatformFSCommit() {}
+void PlatformSetScreenSize() {}
 
 #endif // PLATFORM_CPP
 #endif // PLATFORM_CPP_INCLUDE

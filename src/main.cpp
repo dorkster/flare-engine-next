@@ -115,12 +115,8 @@ static void init(const CmdLineArgs& cmd_line_args) {
 	loadMiscSettings();
 	setStatNames();
 
-#ifdef __EMSCRIPTEN__
-	// can't change window size dynamically with Emscripten, so default to 16:9 aspect ratio
-	// TODO should something like this be part of the Platform files?
-	SCREEN_W = 854;
-	SCREEN_H = 480;
-#endif
+	// platform-specific default screen size
+	PlatformSetScreenSize();
 
 	// Create render Device and Rendering Context.
 	if (platform_options.default_renderer != "")
@@ -377,7 +373,6 @@ int main(int argc, char *argv[]) {
 	if (!done) {
 		srand(static_cast<unsigned int>(time(NULL)));
 #ifdef __EMSCRIPTEN__
-		// TODO handle debug_event for Emscripten?
 		PlatformFSInit();
 		emscripten_set_main_loop(EmscriptenMainLoop, 0, 1);
 #else
