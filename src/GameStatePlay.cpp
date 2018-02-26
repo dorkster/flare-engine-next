@@ -984,6 +984,7 @@ void GameStatePlay::logic() {
 		menu->inv->applyEquipment();
 		menu->inv->changed_equipment = true;
 		checkEquipmentChange();
+		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
 		pc->stats.logic();
 		pc->stats.recalc();
 		powers->activatePassives(&pc->stats);
