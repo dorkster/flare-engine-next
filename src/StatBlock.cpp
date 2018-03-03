@@ -877,19 +877,19 @@ void StatBlock::logic() {
 	}
 
 	// check for bleeding to death
-	for (size_t i = 0; i < effects.effect_list.size(); ++i) {
-		if (effects.effect_list[i].type == EFFECT_DAMAGE || effects.effect_list[i].type == EFFECT_DAMAGE_PERCENT) {
-			if (hp <= 0 && !hero && cur_state != ENEMY_DEAD && cur_state != ENEMY_CRITDEAD) {
+	if (hp <= 0 && !hero && cur_state != ENEMY_DEAD && cur_state != ENEMY_CRITDEAD) {
+		for (size_t i = 0; i < effects.effect_list.size(); ++i) {
+			if (effects.effect_list[i].type == EFFECT_DAMAGE || effects.effect_list[i].type == EFFECT_DAMAGE_PERCENT) {
 				bleed_source_type = effects.effect_list[i].source_type;
-				effects.triggered_death = true;
-				cur_state = ENEMY_DEAD;
+				break;
 			}
-			else if (hp <= 0 && hero && cur_state != AVATAR_DEAD) {
-				effects.triggered_death = true;
-				cur_state = AVATAR_DEAD;
-			}
-			break;
 		}
+		effects.triggered_death = true;
+		cur_state = ENEMY_DEAD;
+	}
+	else if (hp <= 0 && hero && cur_state != AVATAR_DEAD) {
+		effects.triggered_death = true;
+		cur_state = AVATAR_DEAD;
 	}
 }
 
@@ -913,10 +913,10 @@ bool StatBlock::canUsePower(const Power &power, int powerid) const {
 			&& !power.meta_power
 			&& !effects.stun
 			&& (power.sacrifice || hp > power.requires_hp)
-			&& (!power.requires_max_hp || hp == current[STAT_HP_MAX])
-			&& (!power.requires_not_max_hp || hp < current[STAT_HP_MAX])
-			&& (!power.requires_max_mp || mp == current[STAT_MP_MAX])
-			&& (!power.requires_not_max_mp || mp < current[STAT_MP_MAX])
+			&& (power.requires_max_hp == -1 || (power.requires_max_hp >= 0 && hp >= (current[STAT_HP_MAX] * power.requires_max_hp) / 100))
+			&& (power.requires_not_max_hp == -1 || (power.requires_not_max_hp >= 0 && hp < (current[STAT_HP_MAX] * power.requires_not_max_hp) / 100))
+			&& (power.requires_max_mp  == -1 || (power.requires_max_mp >= 0 && mp >= (current[STAT_MP_MAX] * power.requires_max_mp) / 100))
+			&& (power.requires_not_max_mp == -1 || (power.requires_not_max_mp >= 0 && mp < (current[STAT_MP_MAX]) * power.requires_not_max_mp / 100))
 			&& (!power.requires_corpse || (target_corpse && target_corpse->corpse_ticks > 0) || (target_nearest_corpse && powers->checkNearestTargeting(power, this, true) && target_nearest_corpse->corpse_ticks > 0))
 			&& (checkRequiredSpawns(power.requires_spawns))
 			&& (menu_powers && menu_powers->meetsUsageStats(powerid))

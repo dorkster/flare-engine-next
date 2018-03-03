@@ -999,6 +999,8 @@ body {
 
 <p><strong>text_pos</strong> | <code>label</code> | Position of the text label with the map name.</p>
 
+<p><strong>background</strong> | <code>filename</code> | Optional background image.</p>
+
 <hr />
 
 <h4>MenuNPCActions</h4>
@@ -1329,7 +1331,7 @@ body {
 
 <p><strong>power.cooldown</strong> | <code>duration</code> | Specify the duration for cooldown of the power in &lsquo;ms&rsquo; or &rsquo;s'.</p>
 
-<p><strong>power.requires_hpmp_state</strong> | <code>["hp", "mp"], ["full", "not_full", "ignore"] : Stat, Current state</code> | Power can only be used when HP/MP matches the specified state</p>
+<p><strong>power.requires_hpmp_state</strong> | <code>["hp", "mp"], ["percent", "not_percent", "ignore"], int : Stat, Current state, Percentage value</code> | Power can only be used when HP/MP matches the specified state</p>
 
 <p><strong>power.animation</strong> | <code>filename</code> | The filename of the power animation.</p>
 

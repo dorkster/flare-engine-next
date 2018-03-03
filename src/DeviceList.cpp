@@ -39,11 +39,11 @@ RenderDevice* getRenderDevice(const std::string& name) {
 #endif
 		else {
 			logError("DeviceList: Render device '%s' not found. Falling back to the default.", name.c_str());
-			return new SDLSoftwareRenderDevice();
+			return new SDLHardwareRenderDevice();
 		}
 	}
 	else {
-		return new SDLSoftwareRenderDevice();
+		return new SDLHardwareRenderDevice();
 	}
 }
 
