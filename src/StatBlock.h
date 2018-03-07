@@ -319,8 +319,8 @@ public:
 	// preserve state before calcs
 	int prev_maxhp;
 	int prev_maxmp;
-	int pres_hp;
-	int pres_mp;
+	int prev_hp;
+	int prev_mp;
 
 	// links to summoned creatures and the entity which summoned this
 	std::vector<StatBlock*> summons;
