@@ -19,6 +19,7 @@ separator=32
 
 text=Programmers
 separator=16
+text=Andrew Engelbrecht
 text=Anton Golov
 text=Artur Rojek
 text=blazindragon
@@ -58,7 +59,7 @@ text=Christoph J. Thompson
 text=Evgen Pavlov
 text=Gianfranco Del Borrello
 text=Giovanni Dalla Torre
-text=gunchleoc
+text=GunChleoc
 text=Hans Joachim Desserud
 text=Igor Paliychuk
 text=Janet Hunt
