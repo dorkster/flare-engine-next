@@ -53,14 +53,24 @@ void createRenderDeviceList(MessageEngine* msg, std::vector<std::string> &rd_nam
 	rd_name.clear();
 	rd_desc.clear();
 
+#ifdef SUPPORT_OPENGL_RENDERER
+	rd_name.resize(3);
+	rd_desc.resize(3);
+#else
 	rd_name.resize(2);
 	rd_desc.resize(2);
+#endif
 
 	rd_name[0] = "sdl";
 	rd_desc[0] = msg->get("SDL software renderer\n\nOften slower, but less likely to have issues.");
 
 	rd_name[1] = "sdl_hardware";
 	rd_desc[1] = msg->get("SDL hardware renderer\n\nThe default renderer that is often faster than the SDL software renderer.");
+
+#ifdef SUPPORT_OPENGL_RENDERER
+	rd_name[2] = "opengl";
+	rd_desc[2] = msg->get("OpenGL renderer\n\nAn experimental renderer using only OpenGL. A mod must provide the correct shaders.");
+#endif
 }
 
 FontEngine* getFontEngine() {
