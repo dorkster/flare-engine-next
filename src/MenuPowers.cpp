@@ -49,6 +49,7 @@ MenuPowers::MenuPowers(StatBlock *_stats, MenuActionBar *_action_bar)
 	, tab_control(NULL)
 	, tree_loaded(false)
 	, prev_powers_list_size(0)
+	, default_power_tab(-1)
 	, newPowerNotification(false)
 {
 
@@ -117,8 +118,7 @@ void MenuPowers::align() {
 	stat_up.set(window_area.x+unspent_points.x, window_area.y+unspent_points.y, unspent_points.justify, unspent_points.valign, "", font->getColor("menu_bonus"), unspent_points.font_style);
 
 	if (tab_control) {
-		tab_control->setMainArea(window_area.x+tab_area.x, window_area.y+tab_area.y, tab_area.w, tab_area.h);
-		tab_control->updateHeader();
+		tab_control->setMainArea(window_area.x+tab_area.x, window_area.y+tab_area.y);
 	}
 
 	for (size_t i=0; i<slots.size(); i++) {
@@ -260,7 +260,7 @@ void MenuPowers::loadPowerTree(const std::string &filename) {
 
 		if (tab_control) {
 			// Initialize the tab control.
-			tab_control->setMainArea(window_area.x+tab_area.x, window_area.y+tab_area.y, tab_area.w, tab_area.h);
+			tab_control->setMainArea(window_area.x+tab_area.x, window_area.y+tab_area.y);
 
 			// Define the header.
 			for (size_t i=0; i<tabs.size(); i++)
@@ -295,6 +295,12 @@ void MenuPowers::loadPowerTree(const std::string &filename) {
 	}
 
 	applyPowerUpgrades();
+
+	// set the default tab from character class setting
+	HeroClass* pc_class = getHeroClassByName(pc->stats.character_class);
+	if (pc_class) {
+		default_power_tab = pc_class->default_power_tab;
+	}
 
 	tree_loaded = true;
 
@@ -1126,6 +1132,10 @@ void MenuPowers::renderPowers(int tab_num) {
 }
 
 void MenuPowers::logic() {
+	if (!visible && tab_control && default_power_tab > -1) {
+		tab_control->setActiveTab(static_cast<unsigned>(default_power_tab));
+	}
+
 	setUnlockedPowers();
 
 	for (size_t i=0; i<power_cell_unlocked.size(); i++) {

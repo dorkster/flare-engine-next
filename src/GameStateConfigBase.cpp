@@ -89,6 +89,9 @@ GameStateConfigBase::GameStateConfigBase (bool do_init)
 	, tip(new WidgetTooltip())
 	, tip_buf()
 	, active_tab(0)
+	, frame(0,0)
+	, frame_offset(11,8)
+	, tab_offset(3,0)
 	, new_render_device(RENDER_DEVICE)
 {
 
@@ -233,6 +236,16 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 		inactivemods_lstb->scrollbar_offset = x1;
 		language_lstb->scrollbar_offset = x1;
 	}
+	else if (infile.key == "frame_offset") {
+		// @ATTR frame_offset|point|Offset for all the widgets contained under each tab.
+		frame_offset.x = x1;
+		frame_offset.y = y1;
+	}
+	else if (infile.key == "tab_offset") {
+		// @ATTR tab_offset|point|Offset for the row of tabs.
+		tab_offset.x = x1;
+		tab_offset.y = y1;
+	}
 	else if (infile.key == "music_volume") {
 		// @ATTR music_volume|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Music Volume" slider relative to the frame.
 		placeLabeledWidget(music_volume_lb, music_volume_sl, x1, y1, x2, y2, msg->get("Music Volume"), JUSTIFY_RIGHT);
@@ -245,6 +258,10 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 		// @ATTR language|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Language" list box relative to the frame.
 		placeLabeledWidget(language_lb, language_lstb, x1, y1, x2, y2, msg->get("Language"));
 		language_lb->setJustify(JUSTIFY_CENTER);
+	}
+	else if (infile.key == "language_height") {
+		// @ATTR language_height|int|Number of visible rows for the "Language" list box.
+		language_lstb->setHeight(x1);
 	}
 	else if (infile.key == "combat_text") {
 		// @ATTR combat_text|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Show combat text" checkbox relative to the frame.
@@ -287,10 +304,18 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 		placeLabeledWidget(activemods_lb, activemods_lstb, x1, y1, x2, y2, msg->get("Active Mods"));
 		activemods_lb->setJustify(JUSTIFY_CENTER);
 	}
+	else if (infile.key == "activemods_height") {
+		// @ATTR activemods_height|int|Number of visible rows for the "Active Mods" list box.
+		activemods_lstb->setHeight(x1);
+	}
 	else if (infile.key == "inactivemods") {
 		// @ATTR inactivemods|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Available Mods" list box relative to the frame.
 		placeLabeledWidget(inactivemods_lb, inactivemods_lstb, x1, y1, x2, y2, msg->get("Available Mods"));
 		inactivemods_lb->setJustify(JUSTIFY_CENTER);
+	}
+	else if (infile.key == "inactivemods_height") {
+		// @ATTR inactivemods_height|int|Number of visible rows for the "Available Mods" list box.
+		inactivemods_lstb->setHeight(x1);
 	}
 	else if (infile.key == "activemods_shiftup") {
 		// @ATTR activemods_shiftup|point|Position of the button to shift mods up in "Active Mods" relative to the frame.
@@ -324,7 +349,9 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 bool GameStateConfigBase::parseStub(FileParser &infile) {
 	// not used for base configuration
 	// checking them here prevents getting an "invalid key" warning
-	if (infile.key == "fullscreen");
+	if (infile.key == "renderer");
+	else if (infile.key == "renderer_height");
+	else if (infile.key == "fullscreen");
 	else if (infile.key == "mouse_move");
 	else if (infile.key == "hwsurface");
 	else if (infile.key == "vsync");
@@ -337,12 +364,14 @@ bool GameStateConfigBase::parseStub(FileParser &infile) {
 	else if (infile.key == "joystick_deadzone");
 	else if (infile.key == "resolution");
 	else if (infile.key == "joystick_device");
+	else if (infile.key == "joystick_device_height");
 	else if (infile.key == "hws_note");
 	else if (infile.key == "dbuf_note");
 	else if (infile.key == "test_note");
 	else if (infile.key == "handheld_note");
 	else if (infile.key == "secondary_offset");
 	else if (infile.key == "keybinds_bg_color");
+	else if (infile.key == "keybinds_bg_alpha");
 	else if (infile.key == "scrollpane");
 	else if (infile.key == "scrollpane_contents");
 	else if (infile.key == "cancel");
@@ -814,9 +843,10 @@ void GameStateConfigBase::placeLabeledWidget(WidgetLabel *lb, Widget *w, int x1,
 }
 
 void GameStateConfigBase::refreshWidgets() {
-	tab_control->setMainArea(((VIEW_W - FRAME_W)/2)+3, (VIEW_H - FRAME_H)/2, FRAME_W, FRAME_H);
-	tab_control->updateHeader();
-	frame = tab_control->getContentArea();
+	tab_control->setMainArea(((VIEW_W - FRAME_W)/2) + tab_offset.x, ((VIEW_H - FRAME_H)/2) + tab_offset.y);
+
+	frame.x = ((VIEW_W - FRAME_W)/2) + frame_offset.x;
+	frame.y = ((VIEW_H - FRAME_H)/2) + tab_control->getTabHeight() + frame_offset.y;
 
 	for (unsigned i=0; i<child_widget.size(); ++i) {
 		child_widget[i]->setPos(frame.x, frame.y);

@@ -271,6 +271,8 @@ body {
 
 <p><strong>event.chance_exec</strong> | <code>int</code> | Percentage chance that this event will execute when triggered.</p>
 
+<p><strong>event.respec</strong> | <code>["xp", "stats", "powers"], bool : Respec mode, Ignore class defaults</code> | Resets various aspects of the character&rsquo;s progression. Resetting &ldquo;xp&rdquo; also resets &ldquo;stats&rdquo;. Resetting &ldquo;stats&rdquo; also resets &ldquo;powers&rdquo;.</p>
+
 <hr />
 
 <h4>EventManager: Random Map List</h4>
@@ -293,11 +295,17 @@ body {
 
 <p><strong>listbox_scrollbar_offset</strong> | <code>int</code> | Horizontal offset from the right of listboxes (mods, languages, etc) to place the scrollbar.</p>
 
+<p><strong>frame_offset</strong> | <code>point</code> | Offset for all the widgets contained under each tab.</p>
+
+<p><strong>tab_offset</strong> | <code>point</code> | Offset for the row of tabs.</p>
+
 <p><strong>music_volume</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Music Volume&rdquo; slider relative to the frame.</p>
 
 <p><strong>sound_volume</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Sound Volume&rdquo; slider relative to the frame.</p>
 
 <p><strong>language</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Language&rdquo; list box relative to the frame.</p>
+
+<p><strong>language_height</strong> | <code>int</code> | Number of visible rows for the &ldquo;Language&rdquo; list box.</p>
 
 <p><strong>combat_text</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Show combat text&rdquo; checkbox relative to the frame.</p>
 
@@ -319,7 +327,11 @@ body {
 
 <p><strong>activemods</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Active Mods&rdquo; list box relative to the frame.</p>
 
+<p><strong>activemods_height</strong> | <code>int</code> | Number of visible rows for the &ldquo;Active Mods&rdquo; list box.</p>
+
 <p><strong>inactivemods</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Available Mods&rdquo; list box relative to the frame.</p>
+
+<p><strong>inactivemods_height</strong> | <code>int</code> | Number of visible rows for the &ldquo;Available Mods&rdquo; list box.</p>
 
 <p><strong>activemods_shiftup</strong> | <code>point</code> | Position of the button to shift mods up in &ldquo;Active Mods&rdquo; relative to the frame.</p>
 
@@ -336,6 +348,8 @@ body {
 <p>Description of menus/config.txt</p>
 
 <p><strong>renderer</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Renderer&rdquo; list box relative to the frame.</p>
+
+<p><strong>renderer_height</strong> | <code>int</code> | Number of visible rows for the &ldquo;Renderer&rdquo; list box.</p>
 
 <p><strong>fullscreen</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Full Screen Mode&rdquo; checkbox relative to the frame.</p>
 
@@ -355,6 +369,8 @@ body {
 
 <p><strong>joystick_device</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Joystick&rdquo; list box relative to the frame.</p>
 
+<p><strong>joystick_device_height</strong> | <code>int</code> | Number of visible rows for the &ldquo;Joystick&rdquo; list box.</p>
+
 <p><strong>mouse_aim</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Mouse aim&rdquo; checkbox relative to the frame.</p>
 
 <p><strong>no_mouse</strong> | <code>int, int, int, int : Label X, Label Y, Widget X, Widget Y</code> | Position of the &ldquo;Do not use mouse&rdquo; checkbox relative to the frame.</p>
@@ -364,6 +380,8 @@ body {
 <p><strong>secondary_offset</strong> | <code>point</code> | Offset of the second (and third) columns of keybinds.</p>
 
 <p><strong>keybinds_bg_color</strong> | <code>color</code> | Background color for the keybindings scrollbox.</p>
+
+<p><strong>keybinds_bg_alpha</strong> | <code>int</code> | Alpha value for the keybindings scrollbox background color.</p>
 
 <p><strong>scrollpane</strong> | <code>rectangle</code> | Position of the keybinding scrollbox relative to the frame.</p>
 
@@ -721,7 +739,9 @@ body {
 
 <p><strong>autopickup_range</strong> | <code>float</code> | Minimum distance the player must be from loot to trigger autopickup.</p>
 
-<p><strong>vendor_ratio</strong> | <code>int</code> | Prices ratio for vendors</p>
+<p><strong>vendor_ratio</strong> | <code>int</code> | Percentage of item buying price to use as selling price. Also used as the buyback price until the player leaves the map.</p>
+
+<p><strong>vendor_ratio_buyback</strong> | <code>int</code> | Percentage of item buying price to use as the buying price for previously sold items.</p>
 
 <p><strong>sfx_loot</strong> | <code>filename</code> | Filename of a sound effect to play for dropping loot.</p>
 
@@ -1689,6 +1709,8 @@ body {
 
 <p><strong>hero_options</strong> | <code>list(int)</code> | A list of indicies of the hero options this class can use.</p>
 
+<p><strong>default_power_tab</strong> | <code>int</code> | Index of the tab to switch to when opening the Powers menu</p>
+
 <hr />
 
 <h4>Settings: Damage Types</h4>
@@ -1906,6 +1928,16 @@ body {
 <p><strong>transparency</strong> | <code>color</code> | An RGB color to key out and treat as transparent.</p>
 
 <p><strong>animation</strong> | <code>list(int, int, int, duration) : Tile index, X, Y, duration</code> | An animation for a tile. Durations are in &lsquo;ms&rsquo; or &rsquo;s'.</p>
+
+<hr />
+
+<h4>WidgetSettings</h4>
+
+<p>Description of engine/widget_settings.txt</p>
+
+<p><strong>misc.selection_rect_color</strong> | <code>color, int : Color, Alpha</code> | Color of the selection rectangle when navigating widgets without a mouse.</p>
+
+<p><strong>tab.padding</strong> | <code>int, int : Left/right padding, Top padding</code> | The pixel padding around tabs. Controls how the left and right edges are drawn.</p>
 
 <hr />
 

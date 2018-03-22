@@ -36,6 +36,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsFileSystem.h"
 #include "SharedResources.h"
 #include "Version.h"
+#include "WidgetSettings.h"
 
 
 HeroClass::HeroClass()
@@ -46,7 +47,8 @@ HeroClass::HeroClass()
 	, carried("")
 	, primary(PRIMARY_STATS.size(), 0)
 	, hotkeys(std::vector<int>(ACTIONBAR_MAX, 0))
-	, power_tree("") {
+	, power_tree("")
+	, default_power_tab(-1) {
 }
 
 class ConfigEntry {
@@ -202,6 +204,7 @@ size_t DAMAGE_TYPES_COUNT;
 // Currency settings
 std::string CURRENCY;
 float VENDOR_RATIO;
+float VENDOR_RATIO_BUYBACK;
 
 // Death penalty settings
 bool DEATH_PENALTY;
@@ -357,6 +360,7 @@ void loadMiscSettings() {
 	MAX_OVERHIT_DAMAGE = 100;
 	CURRENCY = "Gold";
 	VENDOR_RATIO = 0.25;
+	VENDOR_RATIO_BUYBACK = 0;
 	DEATH_PENALTY = true;
 	DEATH_PENALTY_PERMADEATH = false;
 	DEATH_PENALTY_CURRENCY = 50;
@@ -741,9 +745,10 @@ void loadMiscSettings() {
 						HERO_CLASSES.back().statuses.push_back(status);
 					}
 				}
-				// @ATTR power_tree|string|Power tree that will be loaded by MenuPowers
-				else if (infile.key == "power_tree") HERO_CLASSES.back().power_tree = infile.val;
-
+				else if (infile.key == "power_tree") {
+					// @ATTR power_tree|string|Power tree that will be loaded by MenuPowers
+					HERO_CLASSES.back().power_tree = infile.val;
+				}
 				else if (infile.key == "hero_options") {
 					// @ATTR hero_options|list(int)|A list of indicies of the hero options this class can use.
 					std::string hero_option;
@@ -752,6 +757,10 @@ void loadMiscSettings() {
 					}
 
 					std::sort(HERO_CLASSES.back().options.begin(), HERO_CLASSES.back().options.end());
+				}
+				else if (infile.key == "default_power_tab") {
+					// @ATTR default_power_tab|int|Index of the tab to switch to when opening the Powers menu
+					HERO_CLASSES.back().default_power_tab = toInt(infile.val);
 				}
 
 				else infile.error("Settings: '%s' is not a valid key.", infile.key.c_str());
@@ -864,6 +873,8 @@ void loadMiscSettings() {
 		}
 		infile.close();
 	}
+
+	widget_settings.load();
 }
 
 void loadSettings() {
@@ -991,4 +1002,17 @@ size_t getPrimaryStatIndex(const std::string& id_str) {
 	}
 
 	return PRIMARY_STATS.size();
+}
+
+HeroClass* getHeroClassByName(const std::string& name) {
+	if (name.empty())
+		return NULL;
+
+	for (size_t i = 0; i < HERO_CLASSES.size(); ++i) {
+		if (name == HERO_CLASSES[i].name) {
+			return &HERO_CLASSES[i];
+		}
+	}
+
+	return NULL;
 }

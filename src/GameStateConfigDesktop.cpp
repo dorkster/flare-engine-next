@@ -43,6 +43,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <limits.h>
 #include <iomanip>
 
+#define GAMMA_MIN 5
+#define GAMMA_MAX 15
+
 GameStateConfigDesktop::GameStateConfigDesktop(bool _enable_video_tab)
 	: GameStateConfigBase(false)
 	, renderer_lstb(new WidgetListBox(4))
@@ -78,6 +81,8 @@ GameStateConfigDesktop::GameStateConfigDesktop(bool _enable_video_tab)
 	, key_count(0)
 	, scrollpane_contents(0)
 	, enable_video_tab(_enable_video_tab)
+	, keybind_tip_ticks(0)
+	, keybind_tip(new WidgetTooltip())
 {
 	// Allocate KeyBindings
 	for (int i = 0; i < inpt->key_count; i++) {
@@ -129,10 +134,7 @@ void GameStateConfigDesktop::init() {
 	// Allocate KeyBindings ScrollBox
 	input_scrollbox = new WidgetScrollBox(scrollpane.w, scrollpane.h);
 	input_scrollbox->setBasePos(scrollpane.x, scrollpane.y);
-	input_scrollbox->bg.r = scrollpane_color.r;
-	input_scrollbox->bg.g = scrollpane_color.g;
-	input_scrollbox->bg.b = scrollpane_color.b;
-	input_scrollbox->transparent = false;
+	input_scrollbox->bg = scrollpane_color;
 	input_scrollbox->resize(scrollpane.w, scrollpane_contents);
 
 	// Set positions of secondary key bindings
@@ -210,6 +212,10 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 
 		renderer_lb->setJustify(JUSTIFY_CENTER);
 	}
+	else if (infile.key == "renderer_height") {
+		// @ATTR renderer_height|int|Number of visible rows for the "Renderer" list box.
+		renderer_lstb->setHeight(x1);
+	}
 	else if (infile.key == "fullscreen") {
 		// @ATTR fullscreen|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Full Screen Mode" checkbox relative to the frame.
 		placeLabeledWidget(fullscreen_lb, fullscreen_cb, x1, y1, x2, y2, msg->get("Full Screen Mode"), JUSTIFY_RIGHT);
@@ -254,6 +260,10 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 
 		joystick_device_lb->setJustify(JUSTIFY_CENTER);
 	}
+	else if (infile.key == "joystick_device_height") {
+		// @ATTR joystick_device_height|int|Number of visible rows for the "Joystick" list box.
+		joystick_device_lstb->setHeight(x1);
+	}
 	else if (infile.key == "mouse_aim") {
 		// @ATTR mouse_aim|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Mouse aim" checkbox relative to the frame.
 		placeLabeledWidget(mouse_aim_lb, mouse_aim_cb, x1, y1, x2, y2, msg->get("Mouse aim"), JUSTIFY_RIGHT);
@@ -276,6 +286,10 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 		scrollpane_color.r = static_cast<Uint8>(x1);
 		scrollpane_color.g = static_cast<Uint8>(y1);
 		scrollpane_color.b = static_cast<Uint8>(x2);
+	}
+	else if (infile.key == "keybinds_bg_alpha") {
+		// @ATTR keybinds_bg_alpha|int|Alpha value for the keybindings scrollbox background color.
+		scrollpane_color.a = static_cast<Uint8>(x1);
 	}
 	else if (infile.key == "scrollpane") {
 		// @ATTR scrollpane|rectangle|Position of the keybinding scrollbox relative to the frame.
@@ -497,7 +511,7 @@ void GameStateConfigDesktop::updateVideo() {
 		gamma_sl->enabled = false;
 		render_device->resetGamma();
 	}
-	gamma_sl->set(5, 20, static_cast<int>(GAMMA*10.0));
+	gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(GAMMA*10.0));
 
 	refreshRenderers();
 }
@@ -628,7 +642,7 @@ void GameStateConfigDesktop::logicVideo() {
 			CHANGE_GAMMA = false;
 			GAMMA = 1.0;
 			gamma_sl->enabled = false;
-			gamma_sl->set(5, 20, static_cast<int>(GAMMA*10.0));
+			gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(GAMMA*10.0));
 			render_device->resetGamma();
 		}
 	}
@@ -715,6 +729,9 @@ void GameStateConfigDesktop::logicInput() {
 void GameStateConfigDesktop::logicKeybinds() {
 	input_scrollbox->logic();
 	for (unsigned int i = 0; i < keybinds_btn.size(); i++) {
+		if (i >= static_cast<unsigned int>(inpt->key_count * 2)) {
+			keybinds_btn[i]->enabled = ENABLE_JOYSTICK;
+		}
 		Point mouse = input_scrollbox->input_assist(inpt->mouse);
 		if (keybinds_btn[i]->checkClick(mouse.x,mouse.y)) {
 			std::string confirm_msg;
@@ -754,6 +771,27 @@ void GameStateConfigDesktop::renderDialogs() {
 
 	if (input_confirm->visible)
 		input_confirm->render();
+
+	if (active_tab == KEYBINDS_TAB && !keybind_msg.empty()) {
+		TooltipData keybind_tip_data;
+		keybind_tip_data.addText(keybind_msg);
+
+		if (keybind_tip_ticks == 0)
+			keybind_tip_ticks = MAX_FRAMES_PER_SEC * 5;
+
+		if (keybind_tip_ticks > 0) {
+			keybind_tip->render(keybind_tip_data, Point(VIEW_W, 0), STYLE_FLOAT);
+			keybind_tip_ticks--;
+		}
+
+		if (keybind_tip_ticks == 0) {
+			keybind_msg.clear();
+		}
+	}
+	else {
+		keybind_msg.clear();
+		keybind_tip_ticks = 0;
+	}
 }
 
 void GameStateConfigDesktop::renderTooltips(TooltipData& tip_new) {
@@ -775,73 +813,49 @@ void GameStateConfigDesktop::refreshWidgets() {
 	input_confirm->align();
 }
 
+void GameStateConfigDesktop::confirmKey(int button) {
+	inpt->pressing[button] = false;
+	inpt->lock[button] = false;
+
+	input_confirm->visible = false;
+	input_confirm_ticks = 0;
+
+	updateKeybinds();
+}
+
 void GameStateConfigDesktop::scanKey(int button) {
-	// clear the keybind if the user presses CTRL+Delete
+	int column = button / key_count;
+	int real_button = button % key_count;
+
+	// clear the keybind if the user clicks "Clear" in the dialog
 	if (input_confirm->visible && input_confirm->confirmClicked) {
-		if (static_cast<unsigned>(button) < key_count) inpt->binding[button] = -1;
-		else if (static_cast<unsigned>(button) < key_count*2) inpt->binding_alt[button%key_count] = -1;
-		else if (static_cast<unsigned>(button) < key_count*3) inpt->binding_joy[button%key_count] = -1;
-
-		inpt->pressing[button%key_count] = false;
-		inpt->lock[button%key_count] = false;
-
-		keybinds_btn[button]->label = msg->get("(none)");
-		input_confirm->visible = false;
-		input_confirm_ticks = 0;
-		keybinds_btn[button]->refresh();
+		inpt->setKeybind(-1, real_button, column, keybind_msg);
+		confirmKey(real_button);
 		return;
 	}
 
 	if (input_confirm->visible && !input_confirm->isWithinButtons) {
 		// keyboard & mouse
-		if (static_cast<unsigned>(button) < key_count*2) {
+		if (column == INPUT_BINDING_DEFAULT || column == INPUT_BINDING_ALT) {
 			if (inpt->last_button != -1) {
-				if (static_cast<unsigned>(button) < key_count) inpt->binding[button] = inpt->last_button;
-				else inpt->binding_alt[button-key_count] = inpt->last_button;
-
-				inpt->pressing[button%key_count] = false;
-				inpt->lock[button%key_count] = false;
-
-				if (static_cast<unsigned>(button) < key_count)
-					keybinds_btn[button]->label = inpt->getBindingString(button%key_count, INPUT_BINDING_DEFAULT);
-				else if (static_cast<unsigned>(button) < key_count*2)
-					keybinds_btn[button]->label = inpt->getBindingString(button%key_count, INPUT_BINDING_ALT);
-
-				input_confirm->visible = false;
-				input_confirm_ticks = 0;
-				keybinds_btn[button]->refresh();
-				return;
+				// mouse
+				inpt->setKeybind(inpt->last_button, real_button, column, keybind_msg);
+				confirmKey(real_button);
 			}
-			if (inpt->last_key != -1) {
-				if (static_cast<unsigned>(button) < key_count) inpt->binding[button] = inpt->last_key;
-				else inpt->binding_alt[button-key_count] = inpt->last_key;
-
-				inpt->pressing[button%key_count] = false;
-				inpt->lock[button%key_count] = false;
-
-				keybinds_btn[button]->label = inpt->getKeyName(inpt->last_key);
-				input_confirm->visible = false;
-				input_confirm_ticks = 0;
-				keybinds_btn[button]->refresh();
-				return;
+			else if (inpt->last_key != -1) {
+				// keyboard
+				inpt->setKeybind(inpt->last_key, real_button, column, keybind_msg);
+				confirmKey(real_button);
 			}
 		}
 		// joystick
-		else if (static_cast<unsigned>(button) >= key_count*2 && inpt->last_joybutton != -1) {
-			inpt->binding_joy[button-(key_count*2)] = inpt->last_joybutton;
-
-			keybinds_btn[button]->label = msg->get("Button %d", inpt->binding_joy[button-(key_count*2)]);
-			input_confirm->visible = false;
-			input_confirm_ticks = 0;
-			keybinds_btn[button]->refresh();
+		else if (column == INPUT_BINDING_JOYSTICK && inpt->last_joybutton != -1) {
+			inpt->setKeybind(inpt->last_joybutton, real_button, column, keybind_msg);
+			confirmKey(real_button);
 		}
-		else if (static_cast<unsigned>(button) >= key_count*2 && inpt->last_joyaxis != -1) {
-			inpt->binding_joy[button-(key_count*2)] = inpt->last_joyaxis;
-
-			keybinds_btn[button]->label = inpt->getBindingString(button%key_count, INPUT_BINDING_JOYSTICK);
-			input_confirm->visible = false;
-			input_confirm_ticks = 0;
-			keybinds_btn[button]->refresh();
+		else if (column == INPUT_BINDING_JOYSTICK && inpt->last_joyaxis != -1) {
+			inpt->setKeybind(inpt->last_joyaxis, real_button, column, keybind_msg);
+			confirmKey(real_button);
 		}
 	}
 }
@@ -882,6 +896,10 @@ void GameStateConfigDesktop::cleanupDialogs() {
 	if (input_confirm != NULL) {
 		delete input_confirm;
 		input_confirm = NULL;
+	}
+	if (keybind_tip != NULL) {
+		delete keybind_tip;
+		keybind_tip = NULL;
 	}
 }
 

@@ -59,6 +59,7 @@ public:
 	std::vector<int> powers;
 	std::vector<std::string> statuses;
 	std::string power_tree;
+	int default_power_tab;
 	std::vector<int> options;
 
 	HeroClass();
@@ -204,6 +205,7 @@ extern size_t DAMAGE_TYPES_COUNT; // DAMAGE_TYPES.size() * 2, to account for min
 // Currency settings
 extern std::string CURRENCY;
 extern float VENDOR_RATIO;
+extern float VENDOR_RATIO_BUYBACK;
 
 // Death penalty settings
 extern bool DEATH_PENALTY;
@@ -236,6 +238,7 @@ bool loadDefaults();
 void loadMobileDefaults();
 void updateScreenVars();
 size_t getPrimaryStatIndex(const std::string& id_str);
+HeroClass* getHeroClassByName(const std::string& name);
 
 // version information
 std::string getVersionString();

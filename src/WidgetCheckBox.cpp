@@ -28,6 +28,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "TooltipData.h"
 #include "Widget.h"
 #include "WidgetCheckBox.h"
+#include "WidgetSettings.h"
 
 WidgetCheckBox::WidgetCheckBox (const std::string &fname)
 	: enabled(true)
@@ -35,6 +36,7 @@ WidgetCheckBox::WidgetCheckBox (const std::string &fname)
 	, cb(NULL)
 	, checked(false)
 	, pressed(false)
+	, activated(false)
 {
 	focusable = true;
 
@@ -52,6 +54,7 @@ WidgetCheckBox::WidgetCheckBox (const std::string &fname)
 
 void WidgetCheckBox::activate() {
 	pressed = true;
+	activated = true;
 }
 
 WidgetCheckBox::~WidgetCheckBox () {
@@ -86,7 +89,8 @@ bool WidgetCheckBox::checkClick (int x, int y) {
 	if (inpt->lock[MAIN1]) return false;
 	if (inpt->lock[ACCEPT]) return false;
 
-	if (pressed && !inpt->lock[MAIN1] && !inpt->lock[ACCEPT] && isWithinRect(pos, mouse)) { // this is a button release
+	if (pressed && !inpt->lock[MAIN1] && !inpt->lock[ACCEPT] && (isWithinRect(pos, mouse) || activated)) { // this is a button release
+		activated = false;
 		pressed = false;
 		toggleCheck();
 		return true;
@@ -124,7 +128,6 @@ void WidgetCheckBox::render() {
 		topLeft.y = pos.y + local_frame.y - local_offset.y;
 		bottomRight.x = topLeft.x + pos.w;
 		bottomRight.y = topLeft.y + pos.h;
-		Color color = Color(255,248,220,255);
 
 		// Only draw rectangle if it fits in local frame
 		bool draw = true;
@@ -137,7 +140,7 @@ void WidgetCheckBox::render() {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, color);
+			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
 		}
 	}
 }
