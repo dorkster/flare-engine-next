@@ -160,8 +160,10 @@ void PowerManager::loadPowers() {
 			skippingEntry = input_id < 1;
 			if (skippingEntry)
 				infile.error("PowerManager: Power index out of bounds 1-%d, skipping power.", INT_MAX);
-			if (static_cast<int>(powers.size()) < input_id + 1)
+			if (static_cast<int>(powers.size()) < input_id + 1) {
 				powers.resize(input_id + 1);
+				power_animations.resize(powers.size());
+			}
 
 			clear_post_effects = true;
 			powers[input_id].is_empty = false;
@@ -337,7 +339,6 @@ void PowerManager::loadPowers() {
 			if (!infile.val.empty()) {
 				powers[input_id].animation_name = infile.val;
 				anim->increaseCount(powers[input_id].animation_name);
-				power_animations.resize(powers.size());
 				power_animations[input_id] = anim->getAnimationSet(powers[input_id].animation_name)->getAnimation("");
 			}
 		}
@@ -1593,9 +1594,14 @@ PowerManager::~PowerManager() {
 			delete effect_animations[i];
 	}
 
-	for (unsigned i=0; i<sfx.size(); i++) {
+	for (size_t i = 0; i < sfx.size(); i++) {
 		snd->unload(sfx[i]);
 	}
 	sfx.clear();
+
+	while (!hazards.empty()) {
+		delete hazards.front();
+		hazards.pop();
+	}
 }
 
