@@ -25,6 +25,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define NPC_H
 
 #include "BehaviorAlly.h"
+#include "Enemy.h"
 #include "ItemStorage.h"
 
 const int NPC_VENDOR_MAX_STOCK = 80;

@@ -23,6 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * class MenuTalker
  */
 
+#include "Enemy.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "InputState.h"

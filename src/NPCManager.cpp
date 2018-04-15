@@ -25,7 +25,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "Animation.h"
+#include "Avatar.h"
 #include "CampaignManager.h"
+#include "EnemyManager.h"
 #include "EventManager.h"
 #include "ItemManager.h"
 #include "MapRenderer.h"

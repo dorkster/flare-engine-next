@@ -30,6 +30,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "FileParser.h"
 #include "ItemManager.h"
 #include "LootManager.h"
+#include "MapRenderer.h"
 #include "MessageEngine.h"
 #include "NPC.h"
 #include "RenderDevice.h"
