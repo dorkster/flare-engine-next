@@ -22,11 +22,16 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "CommonIncludes.h"
+#include "DeviceList.h"
 #include "FileParser.h"
+#include "FontEngine.h"
 #include "GameStateConfigBase.h"
 #include "GameStateConfigDesktop.h"
 #include "GameStateTitle.h"
+#include "InputState.h"
 #include "MenuConfirm.h"
+#include "MessageEngine.h"
+#include "RenderDevice.h"
 #include "Settings.h"
 #include "SharedResources.h"
 #include "Stats.h"
@@ -731,6 +736,7 @@ void GameStateConfigDesktop::logicKeybinds() {
 	for (unsigned int i = 0; i < keybinds_btn.size(); i++) {
 		if (i >= static_cast<unsigned int>(inpt->key_count * 2)) {
 			keybinds_btn[i]->enabled = ENABLE_JOYSTICK;
+			keybinds_btn[i]->refresh();
 		}
 		Point mouse = input_scrollbox->input_assist(inpt->mouse);
 		if (keybinds_btn[i]->checkClick(mouse.x,mouse.y)) {
