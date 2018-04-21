@@ -62,14 +62,13 @@ public:
 
 class TileSet {
 private:
-	void loadGraphics(const std::string& filename);
+	void loadGraphics(const std::string& filename, Sprite** sprite);
 	void reset();
 
-	Uint8 trans_r;
-	Uint8 trans_g;
-	Uint8 trans_b;
-	bool alpha_background;
-	std::string current_map;
+	std::string current_filename;
+
+	std::vector<Sprite*> sprites;
+	std::vector<Tile_Anim> anim;
 
 public:
 	// functions
@@ -79,8 +78,6 @@ public:
 	void logic();
 
 	std::vector<Tile_Def> tiles;
-	std::vector<Tile_Anim> anim;
-	Sprite *sprites;
 
 	// oversize of the largest tile available, in number of tiles.
 	int max_size_x;
