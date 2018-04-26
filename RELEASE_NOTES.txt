@@ -8,8 +8,16 @@ Engine features:
 
 Engine fixes:
 
+* Fixed incorrect render order for some objects; aka "character partly hidden by front of tent". (Justin Jacobs)
 * Removed unused color key attribute parsing from tileset definitions. (Justin Jacobs)
 * Fixed building on FreeBSD. (Justin Jacobs)
+
+Translation updates:
+
+* Scottish Gaelic (gd) update (GunChleoc)
+* Polish (pl) update (Pawonashi)
+* Portuguese (pt) update (Rui)
+* Ukrainian (uk) update (Sergiy Borodych)
 
 
 
