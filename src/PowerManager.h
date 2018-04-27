@@ -98,6 +98,19 @@ public:
 	std::string effect_id;
 };
 
+class PowerRequiredItem {
+public:
+	int id;
+	int quantity;
+	bool equipped;
+
+	PowerRequiredItem()
+		: id(0)
+		, quantity(0)
+		, equipped(false)
+	{}
+};
+
 class Power {
 public:
 	// base info
@@ -117,6 +130,7 @@ public:
 	bool passive; // if unlocked when the user spawns, automatically cast it
 	int passive_trigger; // only activate passive powers under certain conditions (block, hit, death, etc)
 	bool meta_power; // this power can't be used on its own and must be replaced via equipment
+	bool no_actionbar; // prevents this power from being placed on the actionbar
 
 	// power requirements
 	std::set<std::string> requires_flags; // checked against equip_flags granted from items
@@ -126,10 +140,7 @@ public:
 	bool requires_los; // line of sight
 	bool requires_los_default;
 	bool requires_empty_target; // target square must be empty
-	int requires_item;
-	int requires_item_quantity;
-	int requires_equipped_item;
-	int requires_equipped_item_quantity;
+	std::vector<PowerRequiredItem> required_items;
 	bool consumable;
 	bool requires_targeting; // power only makes sense when using click-to-target
 	int requires_spawns;
@@ -270,6 +281,7 @@ public:
 		, passive(false)
 		, passive_trigger(-1)
 		, meta_power(false)
+		, no_actionbar(false)
 
 		, requires_mp(0)
 		, requires_hp(0)
@@ -277,10 +289,6 @@ public:
 		, requires_los(false)
 		, requires_los_default(true)
 		, requires_empty_target(false)
-		, requires_item(-1)
-		, requires_item_quantity(0)
-		, requires_equipped_item(-1)
-		, requires_equipped_item_quantity(0)
 		, consumable(false)
 		, requires_targeting(false)
 		, requires_spawns(0)
@@ -434,6 +442,7 @@ public:
 	void activateSinglePassive(StatBlock *src_stats, int id);
 	int verifyID(int power_id, FileParser* infile = NULL, bool allow_zero = true);
 	bool checkNearestTargeting(const Power &pow, const StatBlock *src_stats, bool check_corpses);
+	bool checkRequiredItems(const Power &pow, const StatBlock *src_stats);
 
 	EffectDef* getEffectDef(const std::string& id);
 

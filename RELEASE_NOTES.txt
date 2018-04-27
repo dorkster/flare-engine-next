@@ -5,10 +5,15 @@ Engine features:
 * Tileset definitions now support multiple images. (Justin Jacobs)
 * Display a message when unable to use a consumable item from the inventory. (Justin Jacobs)
 * Add a hint to consumable/book tooltips to expose their interactable nature. (Justin Jacobs)
+* Add ability to prevent certain powers from being placed on the actionbar. (Justin Jacobs)
+* Multiple entries of "requires_item" and "requires_equipped_item" are now supported for Powers. (Justin Jacobs)
 
 Engine fixes:
 
 * Fixed incorrect render order for some objects; aka "character partly hidden by front of tent". (Justin Jacobs)
+* Fix stats/powers not updating when changing equipment in some cases. (Justin Jacobs)
+* Prevent auto-equipping items if they would cause existing items to be unequipped. (Justin Jacobs)
+* Fix revive effect not being applied when the player has zero HP. (Justin Jacobs)
 * Removed unused color key attribute parsing from tileset definitions. (Justin Jacobs)
 * Fixed building on FreeBSD. (Justin Jacobs)
 

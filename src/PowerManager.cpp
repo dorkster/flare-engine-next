@@ -36,6 +36,9 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "InputState.h"
 #include "MapCollision.h"
 #include "MapRenderer.h"
+#include "Menu.h"
+#include "MenuInventory.h"
+#include "MenuManager.h"
 #include "MessageEngine.h"
 #include "PowerManager.h"
 #include "Settings.h"
@@ -246,6 +249,10 @@ void PowerManager::loadPowers() {
 			// @ATTR power.meta_power|bool|If true, this power can not be used on it's own. Instead, it should be replaced via an item with a replace_power entry.
 			powers[input_id].meta_power = toBool(infile.val);
 		}
+		else if (infile.key == "no_actionbar") {
+			// @ATTR power.no_actionbar|bool|If true, this power is prevented from being placed on the actionbar.
+			powers[input_id].no_actionbar = toBool(infile.val);
+		}
 		// power requirements
 		else if (infile.key == "requires_flags") {
 			// @ATTR power.requires_flags|list(predefined_string)|A comma separated list of equip flags that are required to use this power. See engine/equip_flags.txt
@@ -275,20 +282,27 @@ void PowerManager::loadPowers() {
 			// @ATTR power.requires_empty_target|bool|The power can only be cast when target tile is empty.
 			powers[input_id].requires_empty_target = toBool(infile.val);
 		else if (infile.key == "requires_item") {
-			// @ATTR power.requires_item|item_id, int : Item, Quantity|Requires a specific item of a specific quantity in inventory.
-			powers[input_id].requires_item = popFirstInt(infile.val);
-			powers[input_id].requires_item_quantity = toInt(popFirstString(infile.val), 1);
+			// @ATTR power.requires_item|repeatable(item_id, int) : Item, Quantity|Requires a specific item of a specific quantity in inventory. If quantity > 0, then the item will be removed.
+			PowerRequiredItem pri;
+			pri.id = popFirstInt(infile.val);
+			pri.quantity = toInt(popFirstString(infile.val), 1);
+			pri.equipped = false;
+			powers[input_id].required_items.push_back(pri);
 		}
 		else if (infile.key == "requires_equipped_item") {
-			// @ATTR power.requires_equipped_item|item_id, int : Item, Quantity|Requires a specific item of a specific quantity to be equipped on hero.
-			powers[input_id].requires_equipped_item = popFirstInt(infile.val);
-			powers[input_id].requires_equipped_item_quantity = popFirstInt(infile.val);
+			// @ATTR power.requires_equipped_item|repeatable(item_id, int) : Item, Quantity|Requires a specific item of a specific quantity to be equipped on hero. If quantity > 0, then the item will be removed.
+			PowerRequiredItem pri;
+			pri.id = popFirstInt(infile.val);
+			pri.quantity = popFirstInt(infile.val);
+			pri.equipped = true;
 
 			// a maximum of 1 equipped item can be consumed at a time
-			if (powers[input_id].requires_equipped_item_quantity > 1) {
+			if (pri.quantity > 1) {
 				infile.error("PowerManager: Only 1 equipped item can be consumed at a time.");
-				powers[input_id].requires_equipped_item_quantity = std::min(powers[input_id].requires_equipped_item_quantity, 1);
+				pri.quantity = std::min(pri.quantity, 1);
 			}
+
+			powers[input_id].required_items.push_back(pri);
 		}
 		else if (infile.key == "requires_targeting")
 			// @ATTR power.requires_targeting|bool|Power is only used when targeting using click-to-target.
@@ -1025,7 +1039,7 @@ bool PowerManager::effect(StatBlock *target_stats, StatBlock *caster_stats, int 
 		int duration = pe.duration;
 
 		StatBlock *dest_stats = pe.target_src ? caster_stats : target_stats;
-		if (dest_stats->hp <= 0)
+		if (dest_stats->hp <= 0 && !(effect_data.type == "revive" || (effect_data.type.empty() && pe.id == "revive")))
 			continue;
 
 		if (effect_ptr != NULL) {
@@ -1445,26 +1459,24 @@ void PowerManager::payPowerCost(int power_index, StatBlock *src_stats) {
 		if (src_stats->hero) {
 			src_stats->mp -= powers[power_index].requires_mp;
 
-			// carried items
-			if (powers[power_index].requires_item != -1) {
-				int quantity = powers[power_index].requires_item_quantity;
-				while (quantity > 0) {
-					used_items.push_back(powers[power_index].requires_item);
-					quantity--;
-				}
-			}
+			for (size_t i = 0; i < powers[power_index].required_items.size(); ++i) {
+				const PowerRequiredItem pri = powers[power_index].required_items[i];
+				if (pri.id > 0) {
+					// only allow one instance of duplicate items at a time in the used_equipped_items queue
+					// this is useful for alpha_demo's Ouroboros rings, where we have 2 equipped, but only want to remove one at a time
+					if (pri.equipped && std::find(used_equipped_items.begin(), used_equipped_items.end(), pri.id) != used_equipped_items.end()) {
+						continue;
+					}
 
-			// equipped item
-			// if the item is to be consumed, only one may be consumed at a time
-			// only allow one instance of duplicate items at a time in the used_equipped_items queue
-			// this is useful for Ouroboros rings, where we have 2 equipped, but only want to remove one at a time
-			if (powers[power_index].requires_equipped_item != -1 &&
-					std::find(used_equipped_items.begin(), used_equipped_items.end(), powers[power_index].requires_equipped_item) == used_equipped_items.end()) {
+					int quantity = pri.quantity;
+					while (quantity > 0) {
+						if (pri.equipped)
+							used_equipped_items.push_back(pri.id);
+						else
+							used_items.push_back(pri.id);
 
-				int quantity = powers[power_index].requires_equipped_item_quantity;
-				while (quantity > 0) {
-					used_equipped_items.push_back(powers[power_index].requires_equipped_item);
-					quantity--;
+						quantity--;
+					}
 				}
 			}
 		}
@@ -1577,6 +1589,28 @@ bool PowerManager::checkNearestTargeting(const Power &pow, const StatBlock *src_
 		return true;
 
 	return false;
+}
+
+bool PowerManager::checkRequiredItems(const Power &pow, const StatBlock *src_stats) {
+	for (size_t i = 0; i < pow.required_items.size(); ++i) {
+		if (pow.required_items[i].id > 0) {
+			if (pow.required_items[i].equipped) {
+				if (!menu->inv->inventory[EQUIPMENT].contain(pow.required_items[i].id)) {
+					return false;
+				}
+			}
+			else {
+				if (!items->requirementsMet(src_stats, pow.required_items[i].id)) {
+					return false;
+				}
+				if (!menu->inv->inventory[CARRIED].contain(pow.required_items[i].id, pow.required_items[i].quantity)) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 PowerManager::~PowerManager() {
