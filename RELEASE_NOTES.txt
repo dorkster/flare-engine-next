@@ -11,6 +11,7 @@ Engine features:
 * Add "reward_loot" and "reward_loot_count" to Events for rewarding via loot tables. (Justin Jacobs)
 * Support hidding the developer console title label. (Justin Jacobs)
 * Mod-level default keybinding support added. (Justin Jacobs)
+* Improved developer mode with inspection cursor. (Justin Jacobs)
 
 Engine fixes:
 
@@ -23,9 +24,12 @@ Engine fixes:
 
 Translation updates:
 
+* Spanish (es) update (Eric R)
 * Scottish Gaelic (gd) update (GunChleoc)
+* Italian (it) update (MOB2)
 * Polish (pl) update (Pawonashi)
 * Portuguese (pt) update (Rui)
+* Russian (ru) update (Ademaro)
 * Ukrainian (uk) update (Sergiy Borodych)
 
 

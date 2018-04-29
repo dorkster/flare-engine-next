@@ -33,7 +33,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuBook.h"
 #include "MenuCharacter.h"
 #include "MenuDevConsole.h"
-#include "MenuDevHUD.h"
 #include "MenuEnemy.h"
 #include "MenuExit.h"
 #include "MenuHUDLog.h"
@@ -102,7 +101,6 @@ MenuManager::MenuManager(StatBlock *_stats)
 	, exit(NULL)
 	, effects(NULL)
 	, stash(NULL)
-	, devhud(NULL)
 	, devconsole(NULL)
 	, subtitles(NULL)
 	, pause(false)
@@ -150,7 +148,6 @@ MenuManager::MenuManager(StatBlock *_stats)
 
 	if (DEV_MODE) {
 		devconsole = new MenuDevConsole();
-		devhud = new MenuDevHUD();
 	}
 
 	subtitles = new Subtitles();
@@ -169,7 +166,6 @@ void MenuManager::alignAll() {
 
 	if (DEV_MODE) {
 		devconsole->align();
-		devhud->align();
 	}
 }
 
@@ -384,8 +380,6 @@ void MenuManager::logic() {
 	stash->logic();
 
 	if (DEV_MODE) {
-		devhud->visible = DEV_HUD;
-		devhud->logic();
 		devconsole->logic();
 	}
 
@@ -1174,11 +1168,6 @@ void MenuManager::resetDrag() {
 }
 
 void MenuManager::render() {
-	// render the devhud under other menus
-	if (DEV_MODE && SHOW_HUD) {
-		devhud->render();
-	}
-
 	if (!SHOW_HUD) {
 		// if the hud is disabled, only show a few necessary menus
 
@@ -1489,7 +1478,6 @@ MenuManager::~MenuManager() {
 	delete num_picker;
 
 	if (DEV_MODE) {
-		delete devhud;
 		delete devconsole;
 	}
 
