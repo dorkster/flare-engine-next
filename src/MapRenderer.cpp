@@ -308,8 +308,8 @@ bool priocompare(const Renderable &r1, const Renderable &r2) {
  */
 void calculatePriosIso(std::vector<Renderable> &r) {
 	for (std::vector<Renderable>::iterator it = r.begin(); it != r.end(); ++it) {
-		const unsigned tilex = static_cast<const unsigned>(floor(it->map_pos.x));
-		const unsigned tiley = static_cast<const unsigned>(floor(it->map_pos.y));
+		const unsigned tilex = static_cast<const unsigned>(floorf(it->map_pos.x));
+		const unsigned tiley = static_cast<const unsigned>(floorf(it->map_pos.y));
 		const int commax = static_cast<const int>((it->map_pos.x - static_cast<float>(tilex)) * (2<<16));
 		const int commay = static_cast<const int>((it->map_pos.y - static_cast<float>(tiley)) * (2<<16));
 		it->prio += (static_cast<uint64_t>(tilex + tiley) << 54) + (static_cast<uint64_t>(tilex) << 42) + (static_cast<uint64_t>(commax + commay) << 16);
@@ -318,8 +318,8 @@ void calculatePriosIso(std::vector<Renderable> &r) {
 
 void calculatePriosOrtho(std::vector<Renderable> &r) {
 	for (std::vector<Renderable>::iterator it = r.begin(); it != r.end(); ++it) {
-		const unsigned tilex = static_cast<const unsigned>(floor(it->map_pos.x));
-		const unsigned tiley = static_cast<const unsigned>(floor(it->map_pos.y));
+		const unsigned tilex = static_cast<const unsigned>(floorf(it->map_pos.x));
+		const unsigned tiley = static_cast<const unsigned>(floorf(it->map_pos.y));
 		const int commay = static_cast<const int>(1024 * it->map_pos.y);
 		it->prio += (static_cast<uint64_t>(tiley) << 48) + (static_cast<uint64_t>(tilex) << 32) + (static_cast<uint64_t>(commay) << 16);
 	}
@@ -1113,15 +1113,15 @@ void MapRenderer::drawDevCursor() {
 	Color dev_cursor_color = Color(255,255,0,255);
 	FPoint target = screen_to_map(inpt->mouse.x,  inpt->mouse.y, shakycam.x, shakycam.y);
 
-	if (!collider.is_outside_map(static_cast<float>(floor(target.x)), static_cast<float>(floor(target.y)))) {
+	if (!collider.is_outside_map(floorf(target.x), floorf(target.y))) {
 		if (TILESET_ORIENTATION == TILESET_ORTHOGONAL) {
-			Point p_topleft = map_to_screen(static_cast<float>(floor(target.x)), static_cast<float>(floor(target.y)), shakycam.x, shakycam.y);
+			Point p_topleft = map_to_screen(floorf(target.x), floorf(target.y), shakycam.x, shakycam.y);
 			Point p_bottomright(p_topleft.x + TILE_W, p_topleft.y + TILE_H);
 
 			render_device->drawRectangle(p_topleft, p_bottomright, dev_cursor_color);
 		}
 		else {
-			Point p_left = map_to_screen(static_cast<float>(floor(target.x)), static_cast<float>(floor(target.y+1)), shakycam.x, shakycam.y);
+			Point p_left = map_to_screen(floorf(target.x), floorf(target.y+1), shakycam.x, shakycam.y);
 			Point p_top(p_left.x + TILE_W_HALF, p_left.y - TILE_H_HALF);
 			Point p_right(p_left.x + TILE_W, p_left.y);
 			Point p_bottom(p_left.x + TILE_W_HALF, p_left.y + TILE_H_HALF);
@@ -1171,13 +1171,14 @@ void MapRenderer::drawDevHUD() {
 		if (hazards->h[i]->delay_frames != 0)
 			continue;
 
+		float radius_c = sqrtf(powf(hazards->h[i]->radius, 2) + powf(hazards->h[i]->radius, 2));
 		Point p0 = map_to_screen(hazards->h[i]->pos.x, hazards->h[i]->pos.y, shakycam.x, shakycam.y);
-		Point p1 = map_to_screen(hazards->h[i]->pos.x + hazards->h[i]->radius, hazards->h[i]->pos.y, shakycam.x, shakycam.y);
+		Point p1 = map_to_screen(hazards->h[i]->pos.x + radius_c, hazards->h[i]->pos.y, shakycam.x, shakycam.y);
 		int radius = p1.x - p0.x;
 		render_device->drawLine(p0.x - cross_size, p0.y, p0.x + cross_size, p0.y, color_hazard);
 		render_device->drawLine(p0.x, p0.y - cross_size, p0.x, p0.y + cross_size, color_hazard);
 
-		render_device->drawEllipse(p0.x - radius/2, p0.y - radius/(2*distort), p0.x + radius/2, p0.y + radius/(2*distort), color_hazard, 15);
+		render_device->drawEllipse(p0.x - radius, p0.y - radius/distort, p0.x + radius, p0.y + radius/distort, color_hazard, 15);
 	}
 }
 
