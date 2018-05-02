@@ -28,6 +28,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "InputState.h"
 #include "MessageEngine.h"
 #include "ModManager.h"
+#include "SDLFontEngine.h"
 #include "SharedResources.h"
 #include "Settings.h"
 
@@ -750,7 +751,7 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 }
 
 int OpenGLRenderDevice::renderText(
-	TTF_Font *ttf_font,
+	FontStyle *font_style,
 	const std::string& text,
 	const Color& color,
 	Rect& dest
@@ -803,9 +804,9 @@ Image * OpenGLRenderDevice::renderTextToImage(FontStyle* font_style, const std::
 
 	SDL_Surface* surface = NULL;
 	if (blended)
-		surface = TTF_RenderUTF8_Blended(ttf_font, text.c_str(), _color);
+		surface = TTF_RenderUTF8_Blended(static_cast<SDLFontStyle*>(font_style)->ttfont, text.c_str(), _color);
 	else
-		surface = TTF_RenderUTF8_Solid(ttf_font, text.c_str(), _color);
+		surface = TTF_RenderUTF8_Solid(static_cast<SDLFontStyle*>(font_style)->ttfont, text.c_str(), _color);
 
 	if (surface)
 	{
