@@ -121,11 +121,13 @@ private:
 
     struct {
         GLint position;
-		GLint texScale;
+		GLint texScaleX;
+		GLint texScaleY;
     } attributes;
 
 	GLushort elementBufferData[4];
-	GLfloat positionData[10];
+	GLfloat positionData[8];
+	FPoint scale;
 };
 
 #endif // OPENGL_RENDERDEVICE_H

@@ -424,7 +424,8 @@ int OpenGLRenderDevice::buildResources()
 
     uniforms.texture = glGetUniformLocation(program, "texture");
     attributes.position = glGetAttribLocation(program, "position");
-	attributes.texScale = glGetAttribLocation(program, "texScale");
+	attributes.texScaleX = glGetAttribLocation(program, "texScaleX");
+	attributes.texScaleY = glGetAttribLocation(program, "texScaleY");
 
     return 0;
 }
@@ -467,8 +468,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	positionData[4] = point.x;          positionData[5] = point.y;
 	positionData[6] = point.x + size.x; positionData[7] = point.y;
 
-	// X and Y scales
-	positionData[8] = (float)dest.w/VIEW_W; positionData[9] = (float)dest.h/VIEW_H;
+	scale.x = (float)src.w/VIEW_W;
+	scale.y = (float)src.h/VIEW_H;
 
     texture = getTexturePatch(static_cast<OpenGLImage *>(r->getGraphics()), src);
 
@@ -482,6 +483,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
     glUniform1i(uniforms.texture, 0);
+	glVertexAttrib1f(attributes.texScaleX, scale.x);
+	glVertexAttrib1f(attributes.texScaleY, scale.y);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(
@@ -489,14 +492,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
         2, GL_FLOAT, GL_FALSE,
         sizeof(GLfloat)*2, (void*)0
     );
-    glVertexAttribPointer(
-        attributes.texScale,
-        2, GL_FLOAT, GL_FALSE,
-        sizeof(GLfloat), (void*)(sizeof(GLfloat)*8)
-    );
 
     glEnableVertexAttribArray(attributes.position);
-	glEnableVertexAttribArray(attributes.texScale);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer);
     glDrawElements(
@@ -507,8 +504,8 @@ int OpenGLRenderDevice::render(Sprite *r) {
     );
 
     glDisableVertexAttribArray(attributes.position);
-	glDisableVertexAttribArray(attributes.texScale);
 
+	glDeleteBuffers(1, &vertex_buffer);
 	glDeleteTextures(1, &texture);
 
 	return 0;
