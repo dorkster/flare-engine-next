@@ -408,7 +408,7 @@ void MenuManager::logic() {
 		inv->inv_ctrl = INV_CTRL_NONE;
 	}
 
-	if (!inpt->pressing[INVENTORY] && !inpt->pressing[POWERS] && !inpt->pressing[CHARACTER] && !inpt->pressing[LOG] && !inpt->pressing[DEVELOPER_MENU])
+	if (!inpt->pressing[INVENTORY] && !inpt->pressing[POWERS] && !inpt->pressing[CHARACTER] && !inpt->pressing[LOG])
 		key_lock = false;
 
 	if (DEV_MODE && devconsole->inputFocus())
@@ -450,8 +450,7 @@ void MenuManager::logic() {
 				act->twostep_slot = -1;
 			}
 			else if (DEV_MODE && devconsole->visible) {
-				devconsole->visible = false;
-				devconsole->reset();
+				devconsole->closeWindow();
 			}
 			else if (menus_open) {
 				closeAll();
@@ -543,10 +542,11 @@ void MenuManager::logic() {
 		}
 
 		//developer console
-		if (DEV_MODE && inpt->pressing[DEVELOPER_MENU] && !key_lock && !mouse_dragging && !keyboard_dragging) {
-			key_lock = true;
+		if (DEV_MODE && inpt->pressing[DEVELOPER_MENU] && !inpt->lock[DEVELOPER_MENU] && !mouse_dragging && !keyboard_dragging) {
+			inpt->lock[DEVELOPER_MENU] = true;
 			if (devconsole->visible) {
 				closeAll();
+				key_lock = false;
 			}
 			else {
 				closeAll();
@@ -1414,8 +1414,7 @@ void MenuManager::closeLeft() {
 	vendor->setNPC(NULL);
 
 	if (DEV_MODE && devconsole->visible) {
-		devconsole->visible = false;
-		devconsole->reset();
+		devconsole->closeWindow();
 	}
 }
 
@@ -1432,8 +1431,7 @@ void MenuManager::closeRight() {
 	talker->setNPC(NULL);
 
 	if (DEV_MODE && devconsole->visible) {
-		devconsole->visible = false;
-		devconsole->reset();
+		devconsole->closeWindow();
 	}
 }
 

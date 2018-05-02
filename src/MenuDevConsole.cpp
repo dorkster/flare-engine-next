@@ -44,6 +44,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WidgetLog.h"
 
 #include <limits>
+#include <math.h>
 
 MenuDevConsole::MenuDevConsole()
 	: Menu()
@@ -253,7 +254,7 @@ void MenuDevConsole::getTileInfo() {
 		case BLOCKS_ALL: ss << msg->get("wall"); break;
 		case BLOCKS_MOVEMENT: ss << msg->get("short wall / pit"); break;
 		case BLOCKS_ALL_HIDDEN: ss << msg->get("wall"); break;
-		case BLOCKS_MOVEMENT_HIDDEN: ss << msg->get("pit"); break;
+		case BLOCKS_MOVEMENT_HIDDEN: ss << msg->get("short wall / pit"); break;
 		case BLOCKS_ENTITIES: ss << msg->get("entity"); break;
 		case BLOCKS_ENEMIES: ss << msg->get("entity, ally"); break;
 		default: ss << msg->get("none");
@@ -304,6 +305,13 @@ void MenuDevConsole::reset() {
 	input_box->setText("");
 	input_box->edit_mode = true;
 	// log_history->clear();
+}
+
+void MenuDevConsole::closeWindow() {
+	visible = false;
+	input_box->edit_mode = false;
+	input_box->logic();
+	reset();
 }
 
 void MenuDevConsole::execute() {

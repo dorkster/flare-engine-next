@@ -925,10 +925,16 @@ StatBlock::~StatBlock() {
 	removeFromSummons();
 }
 
-bool StatBlock::canUsePower(const Power &power, int powerid, bool allow_passive) const {
+bool StatBlock::canUsePower(int powerid, bool allow_passive) const {
+	const Power& power = powers->powers[powerid];
+
 	if (!alive) {
 		// can't use powers when dead
 		return false;
+	}
+	else if (!hero) {
+		// AI can always use their powers
+		return true;
 	}
 	else if (transformed) {
 		// needed to unlock shapeshifter powers
