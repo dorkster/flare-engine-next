@@ -110,10 +110,20 @@ Uint32 OpenGLImage::readPixel(int x, int y) {
 }
 
 OpenGLRenderDevice::OpenGLRenderDevice()
-	: screen(NULL)
+	: window(NULL)
 	, renderer(NULL)
-	, titlebar_icon(NULL) {
-	cout << "Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)" << endl;
+	, titlebar_icon(NULL)
+	, title(NULL)
+{
+	logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
+
+	fullscreen = FULLSCREEN;
+	hwsurface = HWSURFACE;
+	vsync = VSYNC;
+	texture_filter = TEXTURE_FILTER;
+
+	min_screen.x = MIN_SCREEN_W;
+	min_screen.y = MIN_SCREEN_H;
 
 	positionData[0] = -1.0f; positionData[1] = -1.0f;
 	positionData[2] =  1.0f; positionData[3] = -1.0f;
@@ -126,66 +136,135 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	elementBufferData[3] = 3;
 }
 
-int OpenGLRenderDevice::createContext(int width, int height) {
-	if (is_initialized) {
-		SDL_GL_DeleteContext(renderer);
-		Uint32 flags = 0;
+int OpenGLRenderDevice::createContext() {
+	bool settings_changed = (fullscreen != FULLSCREEN || hwsurface != HWSURFACE || vsync != VSYNC || texture_filter != TEXTURE_FILTER);
 
-		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN;
-		else flags = SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN;
+	Uint32 w_flags = 0;
+	Uint32 r_flags = 0;
+	int window_w = SCREEN_W;
+	int window_h = SCREEN_H;
 
-		SDL_DestroyWindow(screen);
-		screen = SDL_CreateWindow(msg->get(WINDOW_TITLE).c_str(),
-									SDL_WINDOWPOS_CENTERED,
-									SDL_WINDOWPOS_CENTERED,
-									width, height,
-									flags);
+	if (FULLSCREEN) {
+		w_flags = w_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
 
-		renderer = SDL_GL_CreateContext(screen);
+		// make the window the same size as the desktop resolution
+		SDL_DisplayMode desktop;
+		if (SDL_GetDesktopDisplayMode(0, &desktop) == 0) {
+			window_w = desktop.w;
+			window_h = desktop.h;
+		}
+	}
+	else if (fullscreen && is_initialized) {
+		// if the game was previously in fullscreen, resize the window when returning to windowed mode
+		window_w = MIN_SCREEN_W;
+		window_h = MIN_SCREEN_H;
+		w_flags = w_flags | SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
 	}
 	else {
-		Uint32 flags = 0;
-
-		if (FULLSCREEN) flags = SDL_WINDOW_FULLSCREEN;
-		else flags = SDL_WINDOW_OPENGL|SDL_WINDOW_SHOWN;
-
-		screen = SDL_CreateWindow(msg->get(WINDOW_TITLE).c_str(),
-									SDL_WINDOWPOS_CENTERED,
-									SDL_WINDOWPOS_CENTERED,
-									width, height,
-									flags);
-
-		if (screen != NULL) renderer = SDL_GL_CreateContext(screen);
-
-		init(&renderer);
-
-		//glEnable(GL_CULL_FACE);
-
-		buildResources();
+		w_flags = w_flags | SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
 	}
 
-	if (screen != NULL) {
-		is_initialized = true;
+	w_flags = w_flags | SDL_WINDOW_RESIZABLE;
 
-		// Add Window Titlebar Icon
-		if (titlebar_icon == NULL) {
-			titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
-			SDL_SetWindowIcon(screen, titlebar_icon);
+	if (HWSURFACE) {
+		r_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
+	}
+	else {
+		r_flags = SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE;
+		VSYNC = false; // can't have software mode & vsync at the same time
+	}
+	if (VSYNC) r_flags = r_flags | SDL_RENDERER_PRESENTVSYNC;
+
+	if (settings_changed || !is_initialized) {
+		if (is_initialized) {
+			destroyContext();
 		}
 
-		return 0;
+		window = SDL_CreateWindow(NULL, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, window_w, window_h, w_flags);
+		if (window) {
+			renderer = SDL_GL_CreateContext(window);
+			if (renderer) {
+				if (TEXTURE_FILTER && !IGNORE_TEXTURE_FILTER)
+					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+				else
+					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+
+				windowResize();
+			}
+
+			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+			// setting minimum size might move the window, so set position again
+			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		}
+
+		if (!is_initialized)
+		{
+			init(&renderer);
+			buildResources();
+		}
+
+		bool window_created = window != NULL && renderer != NULL;
+
+		if (!window_created && !is_initialized) {
+			// If this is the first attempt and it failed we are not
+			// getting anywhere.
+			logError("SDLOpenGLRenderDevice: createContext() failed: %s", SDL_GetError());
+			SDL_Quit();
+			exit(1);
+		}
+		else if (!window_created) {
+			// try previous setting first
+			FULLSCREEN = fullscreen;
+			HWSURFACE = hwsurface;
+			VSYNC = vsync;
+			TEXTURE_FILTER = texture_filter;
+			if (createContext() == -1) {
+				// last resort, try turning everything off
+				FULLSCREEN = false;
+				HWSURFACE = false;
+				VSYNC = false;
+				TEXTURE_FILTER = false;
+				return createContext();
+			}
+			else {
+				return 0;
+			}
+		}
+		else {
+			fullscreen = FULLSCREEN;
+			hwsurface = HWSURFACE;
+			vsync = VSYNC;
+			texture_filter = TEXTURE_FILTER;
+			is_initialized = true;
+		}
 	}
-	else {
-		logError("OpenGLRenderDevice: createContext() failed: %s\n", SDL_GetError());
-		SDL_Quit();
-		exit(1);
+
+	if (is_initialized) {
+		// update minimum window size if it has changed
+		if (min_screen.x != MIN_SCREEN_W || min_screen.y != MIN_SCREEN_H) {
+			min_screen.x = MIN_SCREEN_W;
+			min_screen.y = MIN_SCREEN_H;
+			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		}
+
+		windowResize();
+
+		// update title bar text and icon
+		updateTitleBar();
+
+		// load persistent resources
+		SharedResources::loadIcons();
+		curs = new CursorManager();
 	}
+
+	return (is_initialized ? 0 : -1);
 }
 
 Rect OpenGLRenderDevice::getContextSize() {
 	Rect size;
 	size.x = size.y = 0;
-	SDL_GetWindowSize(screen, &size.w, &size.h);
+	SDL_GetWindowSize(window, &size.w, &size.h);
 
 	return size;
 }
@@ -236,7 +315,7 @@ void* OpenGLRenderDevice::openShaderFile(const char *filename, GLint *length)
     void *buffer;
 
     if (!f) {
-        logError("Unable to open shader file %s for reading\n", filename);
+        logError("Unable to open shader file %s for reading", filename);
         return NULL;
     }
 
@@ -270,7 +349,7 @@ GLuint OpenGLRenderDevice::getShader(GLenum type, const char *filename)
     glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
     if (!shader_ok)
 	{
-        logError("Failed to compile %s:\n", filename);
+        logError("Failed to compile %s:", filename);
         glDeleteShader(shader);
         return 1;
     }
@@ -290,7 +369,7 @@ GLuint OpenGLRenderDevice::createProgram(GLuint vertex_shader, GLuint fragment_s
     glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
     if (!program_ok)
 	{
-        logError("Failed to link shader program:\n");
+        logError("Failed to link shader program:");
         glDeleteProgram(program);
         return 1;
     }
@@ -585,21 +664,31 @@ void OpenGLRenderDevice::blankScreen() {
 
 void OpenGLRenderDevice::commitFrame() {
 	glFlush();
-	SDL_GL_SwapWindow(screen);
+	SDL_GL_SwapWindow(window);
 
 	return;
 }
 
 void OpenGLRenderDevice::destroyContext() {
 	SDL_FreeSurface(titlebar_icon);
+	titlebar_icon = NULL;
+
 	SDL_GL_DeleteContext(renderer);
-	SDL_DestroyWindow(screen);
+	renderer = NULL;
+
+	SDL_DestroyWindow(window);
+	window = NULL;
+
+	if (title) {
+		free(title);
+		title = NULL;
+	}
 
 	return;
 }
 
 Uint32 OpenGLRenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
-	Uint32 u_format = SDL_GetWindowPixelFormat(screen);
+	Uint32 u_format = SDL_GetWindowPixelFormat(window);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -613,7 +702,7 @@ Uint32 OpenGLRenderDevice::MapRGB(Uint8 r, Uint8 g, Uint8 b) {
 }
 
 Uint32 OpenGLRenderDevice::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-	Uint32 u_format = SDL_GetWindowPixelFormat(screen);
+	Uint32 u_format = SDL_GetWindowPixelFormat(window);
 	SDL_PixelFormat* format = SDL_AllocFormat(u_format);
 
 	if (format) {
@@ -656,37 +745,22 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 void OpenGLRenderDevice::setGamma(float g) {
 	Uint16 ramp[256];
 	SDL_CalculateGammaRamp(g, ramp);
-	SDL_SetWindowGammaRamp(screen, ramp, ramp, ramp);
+	SDL_SetWindowGammaRamp(window, ramp, ramp, ramp);
 }
 
-void OpenGLRenderDevice::listModes(std::vector<Rect> &modes) {
-	int mode_count = SDL_GetNumDisplayModes(0);
+void OpenGLRenderDevice::updateTitleBar() {
+	if (title) free(title);
+	title = NULL;
+	if (titlebar_icon) SDL_FreeSurface(titlebar_icon);
+	titlebar_icon = NULL;
 
-	for (int i=0; i<mode_count; i++) {
-		SDL_DisplayMode display_mode;
-		SDL_GetDisplayMode(0, i, &display_mode);
+	if (!window) return;
 
-		if (display_mode.w == 0 || display_mode.h == 0) continue;
+	title = strdup(msg->get(WINDOW_TITLE).c_str());
+	titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
 
-		Rect mode_rect;
-		mode_rect.w = display_mode.w;
-		mode_rect.h = display_mode.h;
-		modes.push_back(mode_rect);
-
-		if (display_mode.w < MIN_VIEW_W || display_mode.h < MIN_VIEW_H) {
-			// make sure the resolution fits in the constraints of MIN_VIEW_W and MIN_VIEW_H
-			modes.pop_back();
-		}
-		else {
-			// check previous resolutions for duplicates. If one is found, drop the one we just added
-			for (unsigned j=0; j<modes.size()-1; ++j) {
-				if (modes[j].w == display_mode.w && modes[j].h == display_mode.h) {
-					modes.pop_back();
-					break;
-				}
-			}
-		}
-	}
+	if (title) SDL_SetWindowTitle(window, title);
+	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
 Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormessage, bool IfNotFoundExit) {
@@ -701,7 +775,7 @@ Image *OpenGLRenderDevice::loadImage(std::string filename, std::string errormess
 	SDL_Surface *cleanup = IMG_Load(mods->locate(filename).c_str());
 	if(!cleanup) {
 		if (!errormessage.empty())
-			logError("OpenGLRenderDevice: %s: %s\n", errormessage.c_str(), IMG_GetError());
+			logError("OpenGLRenderDevice: %s: %s", errormessage.c_str(), IMG_GetError());
 		if (IfNotFoundExit) {
 			SDL_Quit();
 			exit(1);
@@ -761,6 +835,25 @@ void OpenGLRenderDevice::freeImage(Image *image) {
 
 	if ((int)static_cast<OpenGLImage *>(image)->normalTexture != -1)
 		glDeleteTextures(1, &(static_cast<OpenGLImage *>(image)->normalTexture));
+}
+
+void OpenGLRenderDevice::windowResize() {
+	int w,h;
+	SDL_GetWindowSize(window, &w, &h);
+	SCREEN_W = w;
+	SCREEN_H = h;
+
+	float scale = (float)VIEW_H / (float)SCREEN_H;
+	VIEW_W = (int)((float)SCREEN_W * scale);
+
+	// letterbox if too tall
+	if (VIEW_W < MIN_SCREEN_W) {
+		VIEW_W = MIN_SCREEN_W;
+	}
+
+	VIEW_W_HALF = VIEW_W/2;
+
+	//SDL_RenderSetLogicalSize(renderer, VIEW_W, VIEW_H);
 }
 
 void OpenGLRenderDevice::setSDL_RGBA(Uint32 *rmask, Uint32 *gmask, Uint32 *bmask, Uint32 *amask) {

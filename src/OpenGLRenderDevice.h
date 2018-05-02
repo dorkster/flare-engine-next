@@ -64,7 +64,7 @@ class OpenGLRenderDevice : public RenderDevice {
 public:
 
 	OpenGLRenderDevice();
-	int createContext(int width, int height);
+	int createContext();
 	Rect getContextSize();
 
 	virtual int render(Renderable& r, Rect dest);
@@ -80,9 +80,10 @@ public:
 	void destroyContext();
 	Uint32 MapRGB(Uint8 r, Uint8 g, Uint8 b);
 	Uint32 MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a);
+	void windowResize();
 	Image *createImage(int width, int height);
 	void setGamma(float g);
-	void listModes(std::vector<Rect> &modes);
+	void updateTitleBar();
 	void freeImage(Image *image);
 
 	Image* loadImage(std::string filename,
@@ -100,9 +101,10 @@ private:
 	void composeFrame(GLfloat* offset, GLfloat* texelOffset, bool withLight = false);
 	SDL_Surface* copyTextureToSurface(GLuint texture);
 
-	SDL_Window *screen;
+	SDL_Window *window;
 	SDL_GLContext renderer;
 	SDL_Surface* titlebar_icon;
+	char* title;
 
     GLuint vertex_buffer, element_buffer;
     GLuint m_vertex_shader, m_fragment_shader, m_program;
