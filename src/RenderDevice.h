@@ -132,6 +132,7 @@ private:
 	virtual ~Image();
 	friend class SDLSoftwareImage;
 	friend class SDLHardwareImage;
+	friend class OpenGLImage;
 
 private:
 	RenderDevice *device;
