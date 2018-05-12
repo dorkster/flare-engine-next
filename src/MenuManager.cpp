@@ -46,6 +46,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuStash.h"
 #include "MenuStatBar.h"
 #include "MenuTalker.h"
+#include "MenuTouchControls.h"
 #include "MenuVendor.h"
 #include "MessageEngine.h"
 #include "ModManager.h"
@@ -102,6 +103,7 @@ MenuManager::MenuManager(StatBlock *_stats)
 	, effects(NULL)
 	, stash(NULL)
 	, devconsole(NULL)
+	, touch_controls(NULL)
 	, subtitles(NULL)
 	, pause(false)
 	, menus_open(false) {
@@ -150,6 +152,8 @@ MenuManager::MenuManager(StatBlock *_stats)
 		devconsole = new MenuDevConsole();
 	}
 
+	touch_controls = new MenuTouchControls();
+
 	subtitles = new Subtitles();
 
 	tip = new WidgetTooltip();
@@ -167,6 +171,8 @@ void MenuManager::alignAll() {
 	if (DEV_MODE) {
 		devconsole->align();
 	}
+
+	touch_controls->align();
 }
 
 void MenuManager::renderIcon(int x, int y) {
@@ -297,13 +303,13 @@ void MenuManager::logic() {
 
 	subtitles->logic(snd->getLastPlayedSID());
 
-	hp->update(stats->hp, stats->get(STAT_HP_MAX), inpt->mouse);
-	mp->update(stats->mp, stats->get(STAT_MP_MAX), inpt->mouse);
+	hp->update(stats->hp, stats->get(STAT_HP_MAX));
+	mp->update(stats->mp, stats->get(STAT_MP_MAX));
 
 	if (stats->level == static_cast<int>(stats->xp_table.size()))
-		xp->update((stats->xp - stats->xp_table[stats->level-1]), (stats->xp - stats->xp_table[stats->level-1]), inpt->mouse, msg->get("XP: %d", stats->xp));
+		xp->update((stats->xp - stats->xp_table[stats->level-1]), (stats->xp - stats->xp_table[stats->level-1]), msg->get("XP: %d", stats->xp));
 	else
-		xp->update((stats->xp - stats->xp_table[stats->level-1]), (stats->xp_table[stats->level] - stats->xp_table[stats->level-1]), inpt->mouse, msg->get("XP: %d/%d", stats->xp, stats->xp_table[stats->level]));
+		xp->update((stats->xp - stats->xp_table[stats->level-1]), (stats->xp_table[stats->level] - stats->xp_table[stats->level-1]), msg->get("XP: %d/%d", stats->xp, stats->xp_table[stats->level]));
 
 	// when selecting item quantities, don't process other menus
 	if (num_picker->visible) {
@@ -382,6 +388,8 @@ void MenuManager::logic() {
 	if (DEV_MODE) {
 		devconsole->logic();
 	}
+
+	touch_controls->logic();
 
 	if (chr->checkUpgrade() || stats->level_up) {
 		// apply equipment and max hp/mp
@@ -558,6 +566,8 @@ void MenuManager::logic() {
 	bool console_open = DEV_MODE && devconsole->visible;
 	menus_open = (inv->visible || pow->visible || chr->visible || questlog->visible || vendor->visible || talker->visible || npc->visible || book->visible || console_open);
 	pause = (MENUS_PAUSE && menus_open) || exit->visible || console_open || book->visible;
+
+	touch_controls->visible = !menus_open;
 
 	if (stats->alive) {
 
@@ -1218,6 +1228,8 @@ void MenuManager::render() {
 
 	subtitles->render();
 
+	touch_controls->render();
+
 	if (!num_picker->visible && !mouse_dragging && !sticky_dragging) {
 		if (!inpt->usingMouse() || TOUCHSCREEN)
 			handleKeyboardTooltips();
@@ -1478,6 +1490,8 @@ MenuManager::~MenuManager() {
 	if (DEV_MODE) {
 		delete devconsole;
 	}
+
+	delete touch_controls;
 
 	delete subtitles;
 

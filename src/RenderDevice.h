@@ -240,6 +240,8 @@ protected:
 	bool is_initialized;
 	bool reload_graphics;
 
+	float ddpi;
+
 	Rect m_clip;
 	Rect m_dest;
 
