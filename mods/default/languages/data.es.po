@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-04-30 13:30+\n"
+"POT-Creation-Date: 2018-05-21 16:45+\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Eric R, 2018\n"
 "Language-Team: Spanish (https://www.transifex.com/flareorg/teams/84925/es/)\n"
@@ -197,7 +197,7 @@ msgstr "Traductores"
 
 #: ../cutscenes/credits.txt:51
 msgid "Ademaro"
-msgstr ""
+msgstr "Ademaro"
 
 #: ../cutscenes/credits.txt:52
 msgid "Adrian Chaves Fernandez"
@@ -233,7 +233,7 @@ msgstr "Diego J. Romero López"
 
 #: ../cutscenes/credits.txt:62
 msgid "Eric R"
-msgstr ""
+msgstr "Eric R"
 
 #: ../cutscenes/credits.txt:63
 msgid "Evgen Pavlov"
@@ -281,7 +281,7 @@ msgstr "Miro Jánošík"
 
 #: ../cutscenes/credits.txt:75
 msgid "Микола Франчук"
-msgstr ""
+msgstr "Микола Франчук"
 
 #: ../cutscenes/credits.txt:76
 msgid "MOB2"
@@ -321,7 +321,7 @@ msgstr "Sergey Basalaev"
 
 #: ../cutscenes/credits.txt:85
 msgid "Sergiy Borodych"
-msgstr ""
+msgstr "Sergiy Borodych"
 
 #: ../cutscenes/credits.txt:87
 msgid "Stefano Peris"
