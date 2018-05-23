@@ -2,7 +2,7 @@ Project (Flare)
 cmake_minimum_required (VERSION 2.6)
 
 Set (PACKAGE "FLARE")
-Set (VERSION "1.05")
+Set (VERSION "1.06")
 
 option(USE_OPENGL "USE_OPENGL" Off)
 
