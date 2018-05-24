@@ -750,52 +750,6 @@ int OpenGLRenderDevice::renderToImage(Image* src_image, Rect& src, Image* dest_i
 	return 0;
 }
 
-int OpenGLRenderDevice::renderText(
-	FontStyle *font_style,
-	const std::string& text,
-	const Color& color,
-	Rect& dest
-) {
-	SDL_Color _color = color;
-
-	SDL_Surface* surface = TTF_RenderUTF8_Blended(static_cast<SDLFontStyle *>(font_style)->ttfont, text.c_str(), _color);
-
-	if (!surface)
-		return -1;
-
-	m_offset[0] = 2.0f * static_cast<float>(dest.x)/VIEW_W;
-	m_offset[1] = 2.0f * static_cast<float>(dest.y)/VIEW_H;
-
-	m_offset[2] = static_cast<float>(surface->w)/VIEW_W;
-	m_offset[3] = static_cast<float>(surface->h)/VIEW_H;
-
-	m_texelOffset[0] = 1.0f; m_texelOffset[1] = 0.0f;
-	m_texelOffset[2] = 1.0f; m_texelOffset[3] = 0.0f;
-
-	GLuint texture;
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,     GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,     GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
-	int error = glGetError();
-	if (error != GL_NO_ERROR)
-		logInfo("Error while calling glTexImage2D(): %d", error);
-	SDL_FreeSurface(surface);
-	if (texture == 0)
-		return 1;
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	composeFrame(m_offset, m_texelOffset, false);
-
-	return 0;
-}
-
 Image * OpenGLRenderDevice::renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended) {
 	OpenGLImage *image = new OpenGLImage(this);
 	if (!image) return NULL;
