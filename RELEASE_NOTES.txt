@@ -4,15 +4,18 @@ Engine fixes:
 
 * Fixed GetText bug where fuzzy state from header wasn't being unset properly.
 * Fixed rendering bug in WidgetTabControl
+* Fixed crashes when using an empty WidgetListBox
+* Fixed GetText bug where strings weren't being sanitized
 
 New translations:
 
-* Brazilian Portuguese (pt_BR) by Vicente Monteiro
+* Brazilian Portuguese (pt_BR) by Vicente Monteiro, Gabriel Iasi
 * Vietnamese (vi) by Nguyễn Gia Phong
 
 Translation updates:
 
 * Czech (cs) update (hark34)
+* German (de) update (Wuzzy2)
 * Spanish (es) update (Diego J. Romero López)
 * Scottish Gaelic (gd) update (GunChleoc)
 * Russian (ru) update (Sam Vo)
