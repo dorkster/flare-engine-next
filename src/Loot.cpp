@@ -33,20 +33,11 @@ Loot::Loot()
 	tip.clear();
 }
 
-Loot::Loot(const Loot &other) {
-	stack.item = other.stack.item;
-	stack.quantity = other.stack.quantity;
-	pos.x = other.pos.x;
-	pos.y = other.pos.y;
-	loadAnimation(other.gfx);
-	if (animation)
-		animation->syncTo(other.animation);
-	tip = other.tip;
-	tip_bounds = other.tip_bounds;
-	tip_visible = other.tip_visible;
-	dropped_by_hero = other.dropped_by_hero;
-	on_ground = other.on_ground;
-	sound_played = other.sound_played;
+Loot::Loot(const Loot &other)
+	: gfx("")
+	, animation(NULL)
+{
+	*this = other;
 }
 
 // The assignment operator mainly used in internal vector managing,
@@ -58,7 +49,7 @@ Loot& Loot::operator= (const Loot &other) {
 	if (gfx != "")
 		anim->decreaseCount(gfx);
 	delete animation;
-	animation = 0;
+	animation = NULL;
 
 	loadAnimation(other.gfx);
 	if (animation)
@@ -74,6 +65,7 @@ Loot& Loot::operator= (const Loot &other) {
 	dropped_by_hero = other.dropped_by_hero;
 	on_ground = other.on_ground;
 	sound_played = other.sound_played;
+
 	return *this;
 }
 

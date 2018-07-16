@@ -41,8 +41,6 @@ class WidgetButton;
 class WidgetLabel;
 class WidgetScrollBar;
 
-#define GAMESLOT_PREVIEW_TURN_DURATION MAX_FRAMES_PER_SEC/2
-
 class GameSlot {
 public:
 	unsigned id;
@@ -53,6 +51,7 @@ public:
 
 	std::vector<int> equipped;
 	GameSlotPreview preview;
+	int preview_turn_duration;
 	int preview_turn_ticks;
 
 	WidgetLabel label_name;
@@ -114,14 +113,11 @@ private:
 	LabelInfo class_pos;
 	LabelInfo map_pos;
 	LabelInfo slot_number_pos;
-	LabelInfo loading_pos;
 	Point sprites_pos;
 
 	Rect portrait_dest;
 
 	Rect gameslot_pos;
-
-	Color color_normal;
 
 	int selected_slot;
 	int visible_slots;

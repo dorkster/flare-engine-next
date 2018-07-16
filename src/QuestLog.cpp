@@ -32,7 +32,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MessageEngine.h"
 #include "ModManager.h"
 #include "QuestLog.h"
-#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "UtilsFileSystem.h"
@@ -53,7 +52,7 @@ QuestLog::~QuestLog() {
  */
 void QuestLog::loadAll() {
 	// load each items.txt file. Individual item IDs can be overwritten with mods.
-	std::vector<std::string> files = mods->list("quests", false);
+	std::vector<std::string> files = mods->list("quests", !ModManager::LIST_FULL_PATHS);
 	std::sort(files.begin(), files.end());
 	for (unsigned int i = 0; i < files.size(); i++)
 		load(files[i]);
@@ -68,7 +67,7 @@ void QuestLog::loadAll() {
 void QuestLog::load(const std::string& filename) {
 	FileParser infile;
 	// @CLASS QuestLog|Description of quest files in quests/
-	if (!infile.open(filename))
+	if (!infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 		return;
 
 	quest_names.resize(quest_names.size()+1);
@@ -77,7 +76,7 @@ void QuestLog::load(const std::string& filename) {
 	while (infile.next()) {
 		if (infile.new_section) {
 			if (infile.section == "quest") {
-				quests.push_back(std::vector<Event_Component>());
+				quests.push_back(std::vector<EventComponent>());
 			}
 		}
 
@@ -136,8 +135,8 @@ void QuestLog::load(const std::string& filename) {
 		}
 		else if (infile.key == "quest_text") {
 			// @ATTR quest.quest_text|string|Text that gets displayed in the Quest log when this quest is active.
-			Event_Component ec;
-			ec.type = EC_QUEST_TEXT;
+			EventComponent ec;
+			ec.type = EventComponent::QUEST_TEXT;
 			ec.s = msg->get(infile.val);
 
 			// quest group id
@@ -146,11 +145,11 @@ void QuestLog::load(const std::string& filename) {
 			ev.components.push_back(ec);
 		}
 		else {
-			logError("QuestLog: %s is not a valid key.", infile.key.c_str());
+			Utils::logError("QuestLog: %s is not a valid key.", infile.key.c_str());
 		}
 
 		for (size_t i=0; i<ev.components.size(); ++i) {
-			if (ev.components[i].type != EC_NONE)
+			if (ev.components[i].type != EventComponent::NONE)
 				quests.back().push_back(ev.components[i]);
 		}
 	}
@@ -172,7 +171,7 @@ void QuestLog::createQuestList() {
 		bool requirements_met = false;
 
 		for (size_t j=0; j<quests[i].size(); j++) {
-			if (quests[i][j].type == EC_QUEST_TEXT) {
+			if (quests[i][j].type == EventComponent::QUEST_TEXT) {
 				continue;
 			}
 			else {
@@ -213,7 +212,7 @@ void QuestLog::createQuestList() {
 		active_quest_ids = temp_quest_ids;
 		newQuestNotification = true;
 
-		log->clear(LOG_TYPE_QUESTS);
+		log->clear(MenuLog::TYPE_QUESTS);
 
 		for (size_t i=active_quest_ids.size(); i>0; i--) {
 			size_t k = active_quest_ids[i-1];
@@ -224,25 +223,29 @@ void QuestLog::createQuestList() {
 			// get the group id of the next active quest
 			int next_quest_id = 0;
 			for (size_t j=0; j<quests[k_next].size(); j++) {
-				if (quests[k_next][j].type == EC_QUEST_TEXT) {
+				if (quests[k_next][j].type == EventComponent::QUEST_TEXT) {
 					next_quest_id = quests[k_next][j].x;
 					break;
 				}
 			}
 
 			for (size_t j=0; j<quests[k].size(); j++) {
-				if (quests[k][j].type == EC_QUEST_TEXT) {
-					log->add(quests[k][j].s, LOG_TYPE_QUESTS, false);
+				if (quests[k][j].type == EventComponent::QUEST_TEXT) {
+					log->add(quests[k][j].s, MenuLog::TYPE_QUESTS, WidgetLog::MSG_UNIQUE);
 
 					if (next_quest_id != quests[k][j].x) {
-						if (quest_names[quests[k][j].x] != "")
-							log->add(quest_names[quests[k][j].x], LOG_TYPE_QUESTS, false, NULL, WIDGETLOG_FONT_BOLD);
+						if (quest_names[quests[k][j].x] != "") {
+							log->setNextStyle(WidgetLog::FONT_BOLD, MenuLog::TYPE_QUESTS);
+							log->add(quest_names[quests[k][j].x], MenuLog::TYPE_QUESTS, WidgetLog::MSG_UNIQUE);
+						}
 
-						log->addSeparator(LOG_TYPE_QUESTS);
+						log->addSeparator(MenuLog::TYPE_QUESTS);
 					}
 					else if (i == 1) {
-						if (quest_names[quests[k][j].x] != "")
-							log->add(quest_names[quests[k][j].x], LOG_TYPE_QUESTS, false, NULL, WIDGETLOG_FONT_BOLD);
+						if (quest_names[quests[k][j].x] != "") {
+							log->setNextStyle(WidgetLog::FONT_BOLD, MenuLog::TYPE_QUESTS);
+							log->add(quest_names[quests[k][j].x], MenuLog::TYPE_QUESTS, WidgetLog::MSG_UNIQUE);
+						}
 					}
 
 					break;

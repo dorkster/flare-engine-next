@@ -28,64 +28,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 #include "EffectManager.h"
-#include "MapCollision.h"
+#include "EventManager.h"
 #include "Stats.h"
 #include "Utils.h"
 
 class FileParser;
-
-typedef enum {
-	AI_POWER_MELEE = 0,
-	AI_POWER_RANGED = 1,
-	AI_POWER_BEACON = 2,
-	AI_POWER_HIT = 3,
-	AI_POWER_DEATH = 4,
-	AI_POWER_HALF_DEAD = 5,
-	AI_POWER_JOIN_COMBAT = 6,
-	AI_POWER_DEBUFF = 7,
-	AI_POWER_PASSIVE_POST = 8
-} AI_POWER;
-
-enum AvatarState {
-	AVATAR_STANCE = 0,
-	AVATAR_RUN = 1,
-	AVATAR_BLOCK = 2,
-	AVATAR_HIT = 3,
-	AVATAR_DEAD = 4,
-	AVATAR_ATTACK = 5
-};
-
-enum EnemyState {
-	ENEMY_STANCE = 0,
-	ENEMY_MOVE = 1,
-	ENEMY_POWER = 2,
-	ENEMY_SPAWN = 3,
-	ENEMY_BLOCK = 4,
-	ENEMY_HIT = 5,
-	ENEMY_DEAD = 6,
-	ENEMY_CRITDEAD = 7
-};
-
-enum CombatStyle {
-	COMBAT_DEFAULT = 0,
-	COMBAT_AGGRESSIVE = 1,
-	COMBAT_PASSIVE = 2
-};
-
-class AIPower {
-public:
-	AI_POWER type;
-	int id;
-	int chance;
-	int ticks;
-
-	AIPower()
-		: type(AI_POWER_MELEE)
-		, id(0)
-		, chance(0)
-		, ticks(0)
-	{}
-};
 
 class StatBlock {
 private:
@@ -97,6 +44,61 @@ private:
 	bool statsLoaded;
 
 public:
+	enum {
+		AI_POWER_MELEE = 0,
+		AI_POWER_RANGED = 1,
+		AI_POWER_BEACON = 2,
+		AI_POWER_HIT = 3,
+		AI_POWER_DEATH = 4,
+		AI_POWER_HALF_DEAD = 5,
+		AI_POWER_JOIN_COMBAT = 6,
+		AI_POWER_DEBUFF = 7,
+		AI_POWER_PASSIVE_POST = 8
+	};
+
+	enum AvatarState {
+		AVATAR_STANCE = 0,
+		AVATAR_RUN = 1,
+		AVATAR_BLOCK = 2,
+		AVATAR_HIT = 3,
+		AVATAR_DEAD = 4,
+		AVATAR_ATTACK = 5
+	};
+
+	enum EnemyState {
+		ENEMY_STANCE = 0,
+		ENEMY_MOVE = 1,
+		ENEMY_POWER = 2,
+		ENEMY_SPAWN = 3,
+		ENEMY_BLOCK = 4,
+		ENEMY_HIT = 5,
+		ENEMY_DEAD = 6,
+		ENEMY_CRITDEAD = 7
+	};
+
+	enum CombatStyle {
+		COMBAT_DEFAULT = 0,
+		COMBAT_AGGRESSIVE = 1,
+		COMBAT_PASSIVE = 2
+	};
+
+	class AIPower {
+	public:
+		int type;
+		int id;
+		int chance;
+		int ticks;
+
+		AIPower()
+			: type(AI_POWER_MELEE)
+			, id(0)
+			, chance(0)
+			, ticks(0)
+		{}
+	};
+
+	static const bool CAN_USE_PASSIVE = true;
+
 	StatBlock();
 	~StatBlock();
 
@@ -114,7 +116,7 @@ public:
 	std::string getShortClass();
 	std::string getLongClass();
 	void addXP(int amount);
-	AIPower* getAIPower(AI_POWER ai_type);
+	AIPower* getAIPower(int ai_type);
 	int getPowerCooldown(int power_id);
 	void setPowerCooldown(int power_id, int power_cooldown);
 
@@ -125,6 +127,7 @@ public:
 	bool hero_ally;
 	bool enemy_ally;
 	bool humanoid; // true for human, sceleton...; false for wyvern, snake...
+	bool lifeform;
 	bool permadeath;
 	bool transformed;
 	bool refresh_stats;
@@ -139,7 +142,7 @@ public:
 	float target_nearest_corpse_dist;
 	int block_power;
 
-	MOVEMENTTYPE movement_type;
+	int movement_type;
 	bool flying;
 	bool intangible;
 	bool facing; // does this creature turn to face the hero
@@ -150,7 +153,6 @@ public:
 
 	int level;
 	unsigned long xp;
-	std::vector<unsigned long> xp_table;
 	bool level_up;
 	bool check_title;
 	int stat_points_per_level;
@@ -167,14 +169,14 @@ public:
 	std::vector<int> per_level; // value increases each level after level 1
 	std::vector< std::vector<int> > per_primary;
 
-	int get(STAT stat) {
+	int get(Stats::STAT stat) {
 		return current[stat];
 	}
 	int getDamageMin(size_t dmg_type) {
-		return current[STAT_COUNT + (dmg_type * 2)];
+		return current[Stats::COUNT + (dmg_type * 2)];
 	}
 	int getDamageMax(size_t dmg_type) {
-		return current[STAT_COUNT + (dmg_type * 2) + 1];
+		return current[Stats::COUNT + (dmg_type * 2) + 1];
 	}
 
 	// additional values to base stats, given by items
@@ -255,7 +257,7 @@ public:
 	std::vector<int> powers_passive;
 	std::vector<AIPower> powers_ai;
 
-	bool canUsePower(int powerid, bool allow_passive = false) const;
+	bool canUsePower(int powerid, bool allow_passive) const;
 
 	float melee_range;
 	float threat_range;
@@ -276,7 +278,7 @@ public:
 	int flee_cooldown;
 	bool perfect_accuracy; // prevents misses & overhits; used for Event powers
 
-	std::vector<Event_Component> loot_table;
+	std::vector<EventComponent> loot_table;
 	Point loot_count;
 
 	// for the teleport spell

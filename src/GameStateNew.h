@@ -29,7 +29,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 #include "GameState.h"
-#include "TooltipData.h"
 #include "WidgetLabel.h"
 
 class WidgetButton;
@@ -37,7 +36,6 @@ class WidgetCheckBox;
 class WidgetInput;
 class WidgetLabel;
 class WidgetListBox;
-class WidgetTooltip;
 
 class HeroOption {
 public:
@@ -77,21 +75,13 @@ private:
 	WidgetLabel *label_permadeath;
 	WidgetLabel *label_classlist;
 	WidgetListBox *class_list;
-	WidgetTooltip *tip;
 
 	TabList tablist;
 
-	LabelInfo portrait_label;
-	LabelInfo name_label;
-	LabelInfo permadeath_label;
-	LabelInfo classlist_label;
 	Rect portrait_pos;
 	bool show_classlist;
-	TooltipData tip_buf;
 	bool modified_name;
 	bool delete_items;
-
-	Color color_normal;
 
 	std::vector<int> all_options;
 

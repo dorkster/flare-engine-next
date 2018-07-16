@@ -23,19 +23,18 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef WIDGET_SLIDER_H
 #define WIDGET_SLIDER_H
 
-#include "TooltipData.h"
-#include "WidgetTooltip.h"
-
 class Widget;
 
 class WidgetSlider : public Widget {
 public:
-	explicit WidgetSlider (const std::string & fname = "images/menus/buttons/slider_default.png");
-	~WidgetSlider ();
-	void setPos(int offset_x = 0, int offset_y = 0);
+	static const std::string DEFAULT_FILE;
 
-	bool checkClick ();
-	bool checkClick (int x, int y);
+	explicit WidgetSlider (const std::string & fname);
+	~WidgetSlider ();
+	void setPos(int offset_x, int offset_y);
+
+	bool checkClick();
+	bool checkClickAt(int x, int y);
 	void set (int min, int max, int val);
 	int getValue () const;
 	void render ();
@@ -53,9 +52,6 @@ private:
 	int minimum;
 	int maximum;
 	int value;
-
-	TooltipData tip_buf;
-	WidgetTooltip *tip;
 };
 
 #endif

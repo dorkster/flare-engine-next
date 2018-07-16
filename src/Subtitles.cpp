@@ -44,7 +44,7 @@ Subtitles::Subtitles()
 {
 	FileParser infile;
 	// @CLASS Subtitles|Description of soundfx/subtitles.txt
-	if (infile.open("soundfx/subtitles.txt")) {
+	if (infile.open("soundfx/subtitles.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.new_section && infile.section == "subtitle") {
 				filename.resize(filename.size()+1);
@@ -53,19 +53,19 @@ Subtitles::Subtitles()
 			else if (infile.section == "style") {
 				if (infile.key == "text_pos") {
 					// @ATTR style.text_pos|label|Position and style of the subtitle text.
-					text_pos = eatLabelInfo(infile.val);
+					label.setFromLabelInfo(Parse::popLabelInfo(infile.val));
 				}
 				else if (infile.key == "pos") {
 					// @ATTR style.pos|point|Position of the subtitle text relative to alignment.
-					label_pos = toPoint(infile.val);
+					label_pos = Parse::toPoint(infile.val);
 				}
 				else if (infile.key == "align") {
 					// @ATTR style.align|alignment|Alignment of the subtitle text.
-					label_alignment = parse_alignment(infile.val);
+					label_alignment = Parse::toAlignment(infile.val);
 				}
 				else if (infile.key == "background_color") {
 					// @ATTR style.background_color|color, int : Color, Alpha|Color and alpha of the subtitle background rectangle.
-					background_color = toRGBA(infile.val);
+					background_color = Parse::toRGBA(infile.val);
 				}
 			}
 
@@ -87,6 +87,8 @@ Subtitles::Subtitles()
 			}
 		}
 	}
+
+	label.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	assert(filename.size() == text.size());
 }
@@ -117,7 +119,7 @@ void Subtitles::setTextByID(unsigned long id) {
 			updateLabelAndBackground();
 
 			// 1 second per 10 letters
-			visible_ticks = static_cast<int>(current_text.length()) * (MAX_FRAMES_PER_SEC/10);
+			visible_ticks = static_cast<int>(current_text.length()) * (settings->max_frames_per_sec / 10);
 
 			return;
 		}
@@ -125,7 +127,7 @@ void Subtitles::setTextByID(unsigned long id) {
 }
 
 void Subtitles::logic(unsigned long id) {
-	if (!SUBTITLES)
+	if (!settings->subtitles)
 		return;
 
 	setTextByID(id);
@@ -160,8 +162,9 @@ void Subtitles::updateLabelAndBackground() {
 	Rect r;
 	r.x = label_pos.x;
 	r.y = label_pos.y;
-	alignToScreenEdge(label_alignment, &r);
-	label.set(r.x + text_pos.x, r.y + text_pos.y, text_pos.justify, text_pos.valign, current_text, font->getColor("menu_normal"), text_pos.font_style);
+	Utils::alignToScreenEdge(label_alignment, &r);
+	label.setPos(r.x, r.y);
+	label.setText(current_text);
 
 	// background is transparent, no need to create a background surface
 	if (background_color.a == 0)
@@ -169,7 +172,7 @@ void Subtitles::updateLabelAndBackground() {
 
 	// create padded background rectangle
 	Rect old_background_rect = background_rect;
-	background_rect = label.bounds;
+	background_rect = *label.getBounds();
 	int padding = font->getLineHeight()/4;
 	background_rect.x -= padding;
 	background_rect.y -= padding;

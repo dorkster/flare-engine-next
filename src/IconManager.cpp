@@ -15,10 +15,10 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "IconManager.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "UtilsParsing.h"
 
@@ -36,12 +36,12 @@ IconManager::IconManager()
 	FileParser infile;
 
 	// @CLASS IconManager|Description of engine/icons.txt
-	if (infile.open("engine/icons.txt", true, "")) {
+	if (infile.open("engine/icons.txt", FileParser::MOD_FILE, FileParser::ERROR_NONE)) {
 		while (infile.next()) {
 			if (infile.key == "icon_set") {
 				// @ATTR icon_set|repeatable(icon_id, filename) : First ID, Image file|Defines an icon graphics file to load, as well as the index of the first icon.
-				int first_id = popFirstInt(infile.val);
-				std::string filename = popFirstString(infile.val);
+				int first_id = Parse::popFirstInt(infile.val);
+				std::string filename = Parse::popFirstString(infile.val);
 
 				icon_sets.resize(icon_sets.size()+1);
 				if (!loadIconSet(icon_sets.back(), filename, first_id)) {
@@ -50,7 +50,7 @@ IconManager::IconManager()
 			}
 			else if (infile.key == "text_offset") {
 				// @ATTR text_offset|point|A pixel offset from the top-left to place item quantity text on icons.
-				text_offset = toPoint(infile.val);
+				text_offset = Parse::toPoint(infile.val);
 			}
 		}
 		infile.close();
@@ -72,18 +72,18 @@ IconManager::~IconManager() {
 }
 
 bool IconManager::loadIconSet(IconSet& iset, const std::string& filename, int first_id) {
-	if (!render_device || ICON_SIZE == 0)
+	if (!render_device || eset->resolutions.icon_size == 0)
 		return false;
 
-	Image *graphics = render_device->loadImage(filename, "Couldn't load icon graphics file", false);
+	Image *graphics = render_device->loadImage(filename, RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		iset.gfx = graphics->createSprite();
 		graphics->unref();
 	}
 
 	if (iset.gfx) {
-		int rows = iset.gfx->getGraphicsHeight() / ICON_SIZE;
-		iset.columns = iset.gfx->getGraphicsWidth() / ICON_SIZE;
+		int rows = iset.gfx->getGraphicsHeight() / eset->resolutions.icon_size;
+		iset.columns = iset.gfx->getGraphicsWidth() / eset->resolutions.icon_size;
 
 		if (iset.columns == 0) {
 			// prevent divide-by-zero
@@ -119,9 +119,9 @@ void IconManager::setIcon(int icon_id, Point dest_pos) {
 	}
 
 	int offset_id = icon_id - current_set->id_begin;
-	current_src.x = (offset_id % current_set->columns) * ICON_SIZE;
-	current_src.y = (offset_id / current_set->columns) * ICON_SIZE;
-	current_src.w = current_src.h = ICON_SIZE;
+	current_src.x = (offset_id % current_set->columns) * eset->resolutions.icon_size;
+	current_src.y = (offset_id / current_set->columns) * eset->resolutions.icon_size;
+	current_src.w = current_src.h = eset->resolutions.icon_size;
 	current_set->gfx->setClip(current_src);
 
 	current_dest.x = dest_pos.x;

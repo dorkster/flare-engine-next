@@ -27,27 +27,27 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 #include "Widget.h"
-#include "TooltipData.h"
 
 class WidgetLabel;
 class WidgetScrollBar;
 
-class ListBoxItem {
-public:
-	ListBoxItem()
-		: selected(false)
-	{}
-	~ListBoxItem() {}
-	bool operator< (const ListBoxItem& other) const {
-		return value < other.value;
-	}
-	std::string value;
-	std::string tooltip;
-	bool selected;
-};
-
 class WidgetListBox : public Widget {
 private:
+	class ListBoxItem {
+	public:
+		ListBoxItem()
+			: selected(false)
+		{}
+		~ListBoxItem() {}
+		bool operator< (const ListBoxItem& other) const {
+			return value < other.value;
+		}
+		std::string value;
+		std::string tooltip;
+		bool selected;
+	};
+
+	void checkTooltip(const Point& mouse);
 
 	std::string fileName; // the path to the ListBoxs background image
 
@@ -60,19 +60,16 @@ private:
 	std::vector<WidgetLabel> vlabels;
 	std::vector<Rect> rows;
 	WidgetScrollBar *scrollbar;
-	Color color_normal;
-	Color color_disabled;
 
 public:
-	WidgetListBox(int height, const std::string& _fileName = "images/menus/buttons/listbox_default.png");
+	WidgetListBox(int height, const std::string& _fileName);
 	~WidgetListBox();
-	void setPos(int offset_x = 0, int offset_y = 0);
+	void setPos(int offset_x, int offset_y);
 
-	static const bool GOTO_SELECTED = true;
+	static const std::string DEFAULT_FILE;
 
 	bool checkClick();
-	bool checkClick(int x, int y);
-	TooltipData checkTooltip(const Point& mouse);
+	bool checkClickAt(int x, int y);
 	void append(const std::string& value, const std::string& tooltip);
 	void set(unsigned index, const std::string& value, const std::string& tooltip);
 	void remove(int index);
@@ -87,7 +84,8 @@ public:
 	void scrollUp();
 	void scrollDown();
 	void render();
-	void refresh(bool go_to_selected = false);
+	void jumpToSelected();
+	void refresh();
 	void sort();
 
 	bool getNext();

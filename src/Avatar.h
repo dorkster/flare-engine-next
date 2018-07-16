@@ -50,24 +50,14 @@ public:
 	}
 };
 
-class Layer_gfx {
-public:
-	std::string gfx;
-	std::string type;
-	Layer_gfx()
-		: gfx("")
-		, type("") {
-	}
-};
-
-class Step_sfx {
-public:
-	std::string id;
-	std::vector<std::string> steps;
-};
-
 class Avatar : public Entity {
 private:
+	class Step_sfx {
+	public:
+		std::string id;
+		std::vector<std::string> steps;
+	};
+
 	void loadLayerDefinitions();
 	bool pressing_move();
 	void set_direction();
@@ -95,6 +85,17 @@ protected:
 	virtual void resetActiveAnimation();
 
 public:
+	class Layer_gfx {
+	public:
+		std::string gfx;
+		std::string type;
+	};
+
+	enum {
+		MSG_NORMAL = 0,
+		MSG_UNIQUE = 1
+	};
+
 	Avatar();
 	~Avatar();
 
@@ -112,12 +113,12 @@ public:
 
 	void addRenders(std::vector<Renderable> &r);
 
-	void logMsg(const std::string& str, bool prevent_spam);
+	void logMsg(const std::string& str, int type);
 
 	std::vector<std::string> layer_reference_order;
 	std::vector<std::vector<unsigned> > layer_def;
 
-	std::queue<std::pair<std::string, bool> > log_msg;
+	std::queue<std::pair<std::string, int> > log_msg;
 
 	std::string attack_anim;
 	bool setPowers;
@@ -142,6 +143,7 @@ public:
 	std::vector<int> power_cast_duration;
 	FPoint enemy_pos; // positon of the highlighted enemy
 	unsigned long time_played;
+	bool questlog_dismissed;
 };
 
 #endif

@@ -59,14 +59,14 @@ ItemStack & ItemStorage::operator [] (int slot) {
 void ItemStorage::setItems(const std::string& s) {
 	std::string item_list = s + ',';
 	for (int i=0; i<slot_number; i++) {
-		storage[i].item = popFirstInt(item_list);
+		storage[i].item = Parse::popFirstInt(item_list);
 		// check if such item exists to avoid crash if savegame was modified manually
 		if (storage[i].item < 0) {
-			logError("ItemStorage: Item on position %d has negative id, skipping", i);
+			Utils::logError("ItemStorage: Item on position %d has negative id, skipping", i);
 			storage[i].clear();
 		}
 		else if ((items->items.empty() && storage[i].item > 0) || static_cast<unsigned>(storage[i].item) > items->items.size()-1) {
-			logError("ItemStorage: Item id (%d) out of bounds 1-%d, marking as unknown", storage[i].item, static_cast<int>(items->items.size()));
+			Utils::logError("ItemStorage: Item id (%d) out of bounds 1-%d, marking as unknown", storage[i].item, static_cast<int>(items->items.size()));
 			items->addUnknownItem(storage[i].item);
 		}
 	}
@@ -78,9 +78,9 @@ void ItemStorage::setItems(const std::string& s) {
 void ItemStorage::setQuantities(const std::string& s) {
 	std::string quantity_list = s + ',';
 	for (int i=0; i<slot_number; i++) {
-		storage[i].quantity = popFirstInt(quantity_list);
+		storage[i].quantity = Parse::popFirstInt(quantity_list);
 		if (storage[i].quantity < 0) {
-			logError("ItemStorage: Items quantity on position %d is negative, setting to zero", i);
+			Utils::logError("ItemStorage: Items quantity on position %d is negative, setting to zero", i);
 			storage[i].quantity = 0;
 		}
 	}
@@ -170,7 +170,7 @@ ItemStack ItemStorage::add( ItemStack stack, int slot) {
 			stack.quantity -= quantity_added;
 			// Add back the remaining, recursivly, until there's no more left to add or we run out of space.
 			if (stack.quantity > 0) {
-				return add(stack);
+				return add(stack, NO_SLOT);
 			}
 			// everything added successfully, so return an empty ItemStack
 			return ItemStack();
@@ -297,11 +297,11 @@ bool ItemStorage::contain(int item, int quantity) {
 void ItemStorage::clean() {
 	for (int i=0; i<slot_number; i++) {
 		if (storage[i].item > 0 && storage[i].quantity < 1) {
-			logInfo("ItemStorage: Removing item with id %d, which has a quantity of 0",storage[i].item);
+			Utils::logInfo("ItemStorage: Removing item with id %d, which has a quantity of 0",storage[i].item);
 			storage[i].clear();
 		}
 		else if (storage[i].item == 0 && storage[i].quantity != 0) {
-			logInfo("ItemStorage: Removing item with id 0, which has a quantity of %d", storage[i].quantity);
+			Utils::logInfo("ItemStorage: Removing item with id 0, which has a quantity of %d", storage[i].quantity);
 			storage[i].clear();
 		}
 	}

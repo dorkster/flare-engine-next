@@ -47,7 +47,7 @@ void MapParallax::load(const std::string& filename) {
 
 	// @CLASS MapParallax|Description of maps/parallax/
 	FileParser infile;
-	if (infile.open(filename)) {
+	if (infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.new_section && infile.section == "layer") {
 				layers.resize(layers.size()+1);
@@ -58,7 +58,7 @@ void MapParallax::load(const std::string& filename) {
 
 			if (infile.key == "image") {
 				// @ATTR layer.image|filename|Image file to use as a scrolling background.
-				Image *graphics = render_device->loadImage(infile.val);
+				Image *graphics = render_device->loadImage(infile.val, RenderDevice::ERROR_NORMAL);
 				if (graphics) {
 					layers.back().sprite = graphics->createSprite();
 					graphics->unref();
@@ -66,12 +66,12 @@ void MapParallax::load(const std::string& filename) {
 			}
 			else if (infile.key == "speed") {
 				// @ATTR layer.speed|float|Speed at which the background will move relative to the camera.
-				layers.back().speed = toFloat(infile.val);
+				layers.back().speed = Parse::toFloat(infile.val);
 			}
 			else if (infile.key == "fixed_speed") {
 				// @ATTR layer.fixed_speed|float, float : X speed, Y speed|Speed at which the background will move independent of the camera movement.
-				layers.back().fixed_speed.x = toFloat(popFirstString(infile.val));
-				layers.back().fixed_speed.y = toFloat(popFirstString(infile.val));
+				layers.back().fixed_speed.x = Parse::toFloat(Parse::popFirstString(infile.val));
+				layers.back().fixed_speed.y = Parse::toFloat(Parse::popFirstString(infile.val));
 			}
 			else if (infile.key == "map_layer") {
 				// @ATTR layer.map_layer|string|The tile map layer that this parallax layer will be rendered on top of.
@@ -116,18 +116,18 @@ void MapParallax::render(const FPoint& cam, const std::string& map_layer) {
 		dp.x = map_center.x - cam.x;
 		dp.y = map_center.y - cam.y;
 
-		Point center_tile = map_to_screen(map_center.x + (dp.x * layers[i].speed) + layers[i].fixed_offset.x, map_center.y + (dp.y * layers[i].speed) + layers[i].fixed_offset.y, cam.x, cam.y);
+		Point center_tile = Utils::mapToScreen(map_center.x + (dp.x * layers[i].speed) + layers[i].fixed_offset.x, map_center.y + (dp.y * layers[i].speed) + layers[i].fixed_offset.y, cam.x, cam.y);
 		center_tile.x -= width/2;
 		center_tile.y -= height/2;
 
 		Point draw_pos;
-		draw_pos.x = center_tile.x - static_cast<int>(ceilf(static_cast<float>(VIEW_W_HALF + center_tile.x) / static_cast<float>(width))) * width;
-		draw_pos.y = center_tile.y - static_cast<int>(ceilf(static_cast<float>(VIEW_H_HALF + center_tile.y) / static_cast<float>(height))) * height;
+		draw_pos.x = center_tile.x - static_cast<int>(ceilf(static_cast<float>(settings->view_w_half + center_tile.x) / static_cast<float>(width))) * width;
+		draw_pos.y = center_tile.y - static_cast<int>(ceilf(static_cast<float>(settings->view_h_half + center_tile.y) / static_cast<float>(height))) * height;
 		Point start_pos = draw_pos;
 
-		while (draw_pos.x < VIEW_W) {
+		while (draw_pos.x < settings->view_w) {
 			draw_pos.y = start_pos.y;
-			while (draw_pos.y < VIEW_H) {
+			while (draw_pos.y < settings->view_h) {
 				layers[i].sprite->setDest(draw_pos.x, draw_pos.y);
 				render_device->render(layers[i].sprite);
 

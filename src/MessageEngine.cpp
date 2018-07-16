@@ -35,13 +35,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Settings.h"
 
 MessageEngine::MessageEngine() {
-	logInfo("MessageEngine: Using language '%s'", LANGUAGE.c_str());
+	Utils::logInfo("MessageEngine: Using language '%s'", settings->language.c_str());
 
 	GetText infile;
 
-	std::vector<std::string> engineFiles = mods->list("languages/engine." + LANGUAGE + ".po");
-	if (engineFiles.empty() && LANGUAGE != "en")
-		logError("MessageEngine: Unable to open basic translation files located in languages/engine.%s.po", LANGUAGE.c_str());
+	std::vector<std::string> engineFiles = mods->list("languages/engine." + settings->language + ".po", ModManager::LIST_FULL_PATHS);
+	if (engineFiles.empty() && settings->language != "en")
+		Utils::logError("MessageEngine: Unable to open basic translation files located in languages/engine.%s.po", settings->language.c_str());
 
 	for (unsigned i = 0; i < engineFiles.size(); ++i) {
 		if (infile.open(engineFiles[i])) {
@@ -53,9 +53,9 @@ MessageEngine::MessageEngine() {
 		}
 	}
 
-	std::vector<std::string> dataFiles = mods->list("languages/data." + LANGUAGE + ".po");
-	if (dataFiles.empty() && LANGUAGE != "en")
-		logError("MessageEngine: Unable to open basic translation files located in languages/data.%s.po", LANGUAGE.c_str());
+	std::vector<std::string> dataFiles = mods->list("languages/data." + settings->language + ".po", ModManager::LIST_FULL_PATHS);
+	if (dataFiles.empty() && settings->language != "en")
+		Utils::logError("MessageEngine: Unable to open basic translation files located in languages/data.%s.po", settings->language.c_str());
 
 	for (unsigned i = 0; i < dataFiles.size(); ++i) {
 		if (infile.open(dataFiles[i])) {
@@ -69,91 +69,45 @@ MessageEngine::MessageEngine() {
 }
 
 /*
- * Each of the get() functions returns the mapped value
- * They differ only on which variables they replace in the string - strings replace %s, integers replace %d
+ * MessageEngine::get() uses a limited C format syntax
+ * - %d is for all integer values
+ * - %s is for C strings (no std::string!)
+ * - %% is a literal percent sign
  */
-std::string MessageEngine::get(const std::string& key) {
+std::string MessageEngine::get(const std::string key, ...) {
 	std::string message = messages[key];
 	if (message == "") message = key;
-	return unescape(message);
+
+	va_list args;
+	va_start(args, key);
+
+	size_t index = message.find('%');
+	while (index < message.size()) {
+		if (index + 1 == message.size())
+			break;
+
+		if (message[index + 1] == 'd') {
+			// all integer values
+			int64_t val = va_arg(args, int64_t);
+			std::stringstream ss;
+			ss << val;
+			message = message.replace(index, 2, ss.str());
+		}
+		else if (message[index + 1] == 's') {
+			// C strings
+			const char* val = va_arg(args, const char*);
+			message = message.replace(index, 2, std::string(val));
+		}
+		else if (message[index + 1] == '%') {
+			// unescape literal percent signs
+			message = message.replace(index, 2, "%");
+		}
+
+		index = message.find('%', index + 1);
+	}
+
+	va_end(args);
+
+	return message;
 }
 
-std::string MessageEngine::get(const std::string& key, int i) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(i));
-	return unescape(message);
-}
-
-std::string MessageEngine::get(const std::string& key, const std::string& s) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%s");
-	if (index != std::string::npos) message = message.replace(index, 2, s);
-	return unescape(message);
-}
-
-std::string MessageEngine::get(const std::string& key, int i, const std::string& s) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(i));
-	index = message.find("%s");
-	if (index != std::string::npos) message = message.replace(index, 2, s);
-	return unescape(message);
-}
-
-std::string MessageEngine::get(const std::string& key, int i, int j) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(i));
-	index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(j));
-	return unescape(message);
-}
-
-std::string MessageEngine::get(const std::string& key, unsigned long i) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(i));
-	return unescape(message);
-}
-
-std::string MessageEngine::get(const std::string& key, unsigned long i, unsigned long j) {
-	std::string message = messages[key];
-	if (message == "") message = key;
-	size_t index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(i));
-	index = message.find("%d");
-	if (index != std::string::npos) message = message.replace(index, 2, str(j));
-	return unescape(message);
-}
-
-// Changes an int into a string
-std::string MessageEngine::str(int i) {
-	std::stringstream ss;
-	ss << i;
-	return ss.str();
-}
-
-// Changes an unsigned long into a string
-std::string MessageEngine::str(unsigned long i) {
-	std::stringstream ss;
-	ss << i;
-	return ss.str();
-}
-
-// unescape c formatted string
-std::string MessageEngine::unescape(const std::string& _val) {
-	std::string val = _val;
-
-	// unescape percentage %% to %
-	size_t pos;
-	while ((pos = val.find("%%")) != std::string::npos)
-		val = val.replace(pos, 2, "%");
-
-	return val;
-}

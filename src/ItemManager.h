@@ -27,12 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define ITEM_MANAGER_H
 
 #include "CommonIncludes.h"
-#include "Settings.h"
 #include "Utils.h"
-
-#define VENDOR_BUY 0
-#define VENDOR_SELL 1
-#define PLAYER_INV 2
 
 class FileParser;
 class StatBlock;
@@ -134,37 +129,9 @@ public:
 	bool quest_item;
 
 	int getPrice();
-	int getSellPrice(bool is_new_buyback = true);
+	int getSellPrice(bool is_new_buyback);
 
-	Item()
-		: name("")
-		, has_name(false)
-		, flavor("")
-		, level(0)
-		, set(0)
-		, quality("")
-		, type("")
-		, icon(0)
-		, dmg_min(DAMAGE_TYPES.size(), 0)
-		, dmg_max(DAMAGE_TYPES.size(), 0)
-		, abs_min(0)
-		, abs_max(0)
-		, requires_level(0)
-		, requires_class("")
-		, sfx("")
-		, sfx_id(0)
-		, gfx("")
-		, power(0)
-		, power_desc("")
-		, price(0)
-		, price_per_level(0)
-		, price_sell(0)
-		, max_quantity(1)
-		, pickup_status("")
-		, stepfx("")
-		, quest_item(false) {
-	}
-
+	Item();
 	~Item() {
 	}
 };
@@ -217,25 +184,24 @@ public:
 
 class ItemManager {
 protected:
-	void loadItems(const std::string& filename, bool locateFileName = true);
-	void loadTypes(const std::string& filename, bool locateFileName = true);
-	void loadSets(const std::string& filename, bool locateFileName = true);
-	void loadQualities(const std::string& filename, bool locateFileName = true);
+	void loadItems(const std::string& filename);
+	void loadTypes(const std::string& filename);
+	void loadSets(const std::string& filename);
+	void loadQualities(const std::string& filename);
 private:
 	void loadAll();
 	void parseBonus(BonusData& bdata, FileParser& infile);
 	void getBonusString(std::stringstream& ss, BonusData* bdata);
 
-	Color color_normal;
-	Color color_low;
-	Color color_high;
-	Color color_epic;
-	Color color_bonus;
-	Color color_penalty;
-	Color color_requirements_not_met;
-	Color color_flavor;
-
 public:
+	enum {
+		VENDOR_BUY = 0,
+		VENDOR_SELL = 1,
+		PLAYER_INV = 2
+	};
+
+	static const bool DEFAULT_SELL_PRICE = true;
+
 	ItemManager();
 	~ItemManager();
 	void playSound(int item, const Point& pos = Point(0,0));

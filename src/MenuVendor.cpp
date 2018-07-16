@@ -23,6 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "Enemy.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "ItemManager.h"
@@ -39,6 +40,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WidgetButton.h"
 #include "WidgetSlot.h"
 #include "WidgetTabControl.h"
+#include "WidgetTooltip.h"
 
 MenuVendor::MenuVendor(StatBlock *_stats)
 	: Menu()
@@ -47,44 +49,44 @@ MenuVendor::MenuVendor(StatBlock *_stats)
 	, tabControl(new WidgetTabControl())
 	, slots_cols(1)
 	, slots_rows(1)
-	, activetab(VENDOR_BUY)
-	, color_normal(font->getColor("menu_normal"))
+	, activetab(ItemManager::VENDOR_BUY)
+	, tip (new WidgetTooltip())
 	, npc(NULL)
 	, buyback_stock() {
 	setBackground("images/menus/vendor.png");
 
-	tabControl->setTabTitle(VENDOR_BUY, msg->get("Inventory"));
-	tabControl->setTabTitle(VENDOR_SELL, msg->get("Buyback"));
+	tabControl->setTabTitle(ItemManager::VENDOR_BUY, msg->get("Inventory"));
+	tabControl->setTabTitle(ItemManager::VENDOR_SELL, msg->get("Buyback"));
 
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuVendor|Description of menus/vendor.txt
-	if(infile.open("menus/vendor.txt")) {
+	if(infile.open("menus/vendor.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR close|point|Position of the close button.
 			if(infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				closeButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				closeButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR slots_area|point|Position of the top-left slot.
 			else if(infile.key == "slots_area") {
-				slots_area.x = popFirstInt(infile.val);
-				slots_area.y = popFirstInt(infile.val);
+				slots_area.x = Parse::popFirstInt(infile.val);
+				slots_area.y = Parse::popFirstInt(infile.val);
 			}
 			// @ATTR vendor_cols|int|The number of columns in the grid of slots.
 			else if (infile.key == "vendor_cols") {
-				slots_cols = std::max(1, toInt(infile.val));
+				slots_cols = std::max(1, Parse::toInt(infile.val));
 			}
 			// @ATTR vendor_rows|int|The number of rows in the grid of slots.
 			else if (infile.key == "vendor_rows") {
-				slots_rows = std::max(1, toInt(infile.val));
+				slots_rows = std::max(1, Parse::toInt(infile.val));
 			}
 			// @ATTR label_title|label|The position of the text that displays the NPC's name.
 			else if (infile.key == "label_title") {
-				title =  eatLabelInfo(infile.val);
+				label_vendor.setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			else {
 				infile.error("MenuVendor: '%s' is not a valid key.", infile.key.c_str());
@@ -93,12 +95,14 @@ MenuVendor::MenuVendor(StatBlock *_stats)
 		infile.close();
 	}
 
-	VENDOR_SLOTS = slots_cols * slots_rows;
-	slots_area.w = slots_cols*ICON_SIZE;
-	slots_area.h = slots_rows*ICON_SIZE;
+	label_vendor.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
-	stock[VENDOR_BUY].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
-	stock[VENDOR_SELL].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
+	VENDOR_SLOTS = slots_cols * slots_rows;
+	slots_area.w = slots_cols * eset->resolutions.icon_size;
+	slots_area.h = slots_rows * eset->resolutions.icon_size;
+
+	stock[ItemManager::VENDOR_BUY].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
+	stock[ItemManager::VENDOR_SELL].initGrid(VENDOR_SLOTS, slots_area, slots_cols);
 
 	tablist.add(tabControl);
 	tablist_buy.setPrevTabList(&tablist);
@@ -108,10 +112,10 @@ MenuVendor::MenuVendor(StatBlock *_stats)
 	tablist_sell.lock();
 
 	for (unsigned i = 0; i < VENDOR_SLOTS; i++) {
-		tablist_buy.add(stock[VENDOR_BUY].slots[i]);
+		tablist_buy.add(stock[ItemManager::VENDOR_BUY].slots[i]);
 	}
 	for (unsigned i = 0; i < VENDOR_SLOTS; i++) {
-		tablist_sell.add(stock[VENDOR_SELL].slots[i]);
+		tablist_sell.add(stock[ItemManager::VENDOR_SELL].slots[i]);
 	}
 
 	align();
@@ -119,6 +123,8 @@ MenuVendor::MenuVendor(StatBlock *_stats)
 
 void MenuVendor::align() {
 	Menu::align();
+
+	label_vendor.setPos(window_area.x, window_area.y);
 
 	Rect tabs_area = slots_area;
 	tabs_area.x += window_area.x;
@@ -128,8 +134,8 @@ void MenuVendor::align() {
 
 	closeButton->setPos(window_area.x, window_area.y);
 
-	stock[VENDOR_BUY].setPos(window_area.x, window_area.y);
-	stock[VENDOR_SELL].setPos(window_area.x, window_area.y);
+	stock[ItemManager::VENDOR_BUY].setPos(window_area.x, window_area.y);
+	stock[ItemManager::VENDOR_SELL].setPos(window_area.x, window_area.y);
 }
 
 void MenuVendor::logic() {
@@ -140,32 +146,32 @@ void MenuVendor::logic() {
 	tablist_sell.logic();
 
 	tabControl->logic();
-	if (TOUCHSCREEN && activetab != tabControl->getActiveTab()) {
+	if (settings->touchscreen && activetab != tabControl->getActiveTab()) {
 		tablist_buy.defocus();
 		tablist_sell.defocus();
 	}
 	activetab = tabControl->getActiveTab();
 
-	if (activetab == VENDOR_BUY)
+	if (activetab == ItemManager::VENDOR_BUY)
 		tablist.setNextTabList(&tablist_buy);
-	else if (activetab == VENDOR_SELL)
+	else if (activetab == ItemManager::VENDOR_SELL)
 		tablist.setNextTabList(&tablist_sell);
 
-	if (TOUCHSCREEN) {
-		if (activetab == VENDOR_BUY && tablist_buy.getCurrent() == -1)
-			stock[VENDOR_BUY].current_slot = NULL;
-		else if (activetab == VENDOR_SELL && tablist_sell.getCurrent() == -1)
-			stock[VENDOR_SELL].current_slot = NULL;
+	if (settings->touchscreen) {
+		if (activetab == ItemManager::VENDOR_BUY && tablist_buy.getCurrent() == -1)
+			stock[ItemManager::VENDOR_BUY].current_slot = NULL;
+		else if (activetab == ItemManager::VENDOR_SELL && tablist_sell.getCurrent() == -1)
+			stock[ItemManager::VENDOR_SELL].current_slot = NULL;
 	}
 
 	if (closeButton->checkClick()) {
 		setNPC(NULL);
-		snd->play(sfx_close);
+		snd->play(sfx_close, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 	}
 }
 
 void MenuVendor::setTab(int tab) {
-	if (TOUCHSCREEN && activetab != tab) {
+	if (settings->touchscreen && activetab != tab) {
 		tablist_buy.defocus();
 		tablist_sell.defocus();
 	}
@@ -183,10 +189,7 @@ void MenuVendor::render() {
 	closeButton->render();
 
 	// text overlay
-	if (!title.hidden) {
-		label_vendor.set(window_area.x+title.x, window_area.y+title.y, title.justify, title.valign, msg->get("Vendor") + " - " + npc->name, color_normal, title.font_style);
-		label_vendor.render();
-	}
+	label_vendor.render();
 
 	// render tabs
 	tabControl->render();
@@ -202,10 +205,10 @@ void MenuVendor::render() {
 ItemStack MenuVendor::click(const Point& position) {
 	ItemStack stack = stock[activetab].click(position);
 	saveInventory();
-	if (TOUCHSCREEN) {
-		if (activetab == VENDOR_BUY)
+	if (settings->touchscreen) {
+		if (activetab == ItemManager::VENDOR_BUY)
 			tablist_buy.setCurrent(stock[activetab].current_slot);
-		else if (activetab == VENDOR_SELL)
+		else if (activetab == ItemManager::VENDOR_SELL)
 			tablist_sell.setCurrent(stock[activetab].current_slot);
 	}
 	return stack;
@@ -224,18 +227,22 @@ void MenuVendor::add(ItemStack stack) {
 	stack.can_buyback = true;
 
 	// Remove the first item stack to make room
-	if (stock[VENDOR_SELL].full(stack)) {
-		stock[VENDOR_SELL][0].clear();
-		sort(VENDOR_SELL);
+	if (stock[ItemManager::VENDOR_SELL].full(stack)) {
+		stock[ItemManager::VENDOR_SELL][0].clear();
+		sort(ItemManager::VENDOR_SELL);
 	}
 	items->playSound(stack.item);
-	stock[VENDOR_SELL].add(stack);
+	stock[ItemManager::VENDOR_SELL].add(stack, ItemStorage::NO_SLOT);
 	saveInventory();
 }
 
-TooltipData MenuVendor::checkTooltip(const Point& position) {
-	int vendor_view = (activetab == VENDOR_BUY) ? VENDOR_BUY : VENDOR_SELL;
-	return stock[activetab].checkTooltip(position, stats, vendor_view);
+void MenuVendor::renderTooltips(const Point& position) {
+	if (!visible || !Utils::isWithinRect(window_area, position))
+		return;
+
+	int vendor_view = (activetab == ItemManager::VENDOR_BUY) ? ItemManager::VENDOR_BUY : ItemManager::VENDOR_SELL;
+	TooltipData tip_data = stock[activetab].checkTooltip(position, stats, vendor_view);
+	tip->render(tip_data, position, TooltipData::STYLE_FLOAT);
 }
 
 /**
@@ -246,8 +253,8 @@ TooltipData MenuVendor::checkTooltip(const Point& position) {
 void MenuVendor::saveInventory() {
 	for (unsigned i=0; i<VENDOR_SLOTS; i++) {
 		if (npc) {
-			npc->stock[i] = stock[VENDOR_BUY][i];
-			buyback_stock[npc->filename][i] = stock[VENDOR_SELL][i];
+			npc->stock[i] = stock[ItemManager::VENDOR_BUY][i];
+			buyback_stock[npc->filename][i] = stock[ItemManager::VENDOR_SELL][i];
 		}
 	}
 
@@ -258,7 +265,7 @@ void MenuVendor::sort(int type) {
 		ItemStack temp = stock[type][i];
 		stock[type][i].clear();
 		if (!temp.empty())
-			stock[type].add(temp);
+			stock[type].add(temp, ItemStorage::NO_SLOT);
 	}
 }
 
@@ -270,30 +277,32 @@ void MenuVendor::setNPC(NPC* _npc) {
 		return;
 	}
 
-	setTab(VENDOR_BUY);
+	label_vendor.setText(msg->get("Vendor") + " - " + npc->name);
 
-	buyback_stock[npc->filename].init(NPC_VENDOR_MAX_STOCK);
+	setTab(ItemManager::VENDOR_BUY);
+
+	buyback_stock[npc->filename].init(NPC::VENDOR_MAX_STOCK);
 
 	for (unsigned i=0; i<VENDOR_SLOTS; i++) {
-		stock[VENDOR_BUY][i] = npc->stock[i];
+		stock[ItemManager::VENDOR_BUY][i] = npc->stock[i];
 		if (npc->reset_buyback) {
 			// this occurs on the first interaction with an NPC after map load
-			if (KEEP_BUYBACK_ON_MAP_CHANGE)
+			if (eset->misc.keep_buyback_on_map_change)
 				buyback_stock[npc->filename][i].can_buyback = false;
 			else
 				buyback_stock[npc->filename][i].clear();
 		}
-		stock[VENDOR_SELL][i] = buyback_stock[npc->filename][i];
+		stock[ItemManager::VENDOR_SELL][i] = buyback_stock[npc->filename][i];
 	}
 	npc->reset_buyback = false;
 
-	sort(VENDOR_BUY);
-	sort(VENDOR_SELL);
+	sort(ItemManager::VENDOR_BUY);
+	sort(ItemManager::VENDOR_SELL);
 
 	if (!visible) {
 		visible = true;
-		snd->play(sfx_open);
-		npc->playSound(NPC_VOX_INTRO);
+		snd->play(sfx_open, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
+		npc->playSoundIntro();
 	}
 }
 
@@ -337,5 +346,6 @@ void MenuVendor::defocusTabLists() {
 MenuVendor::~MenuVendor() {
 	delete closeButton;
 	delete tabControl;
+	delete tip;
 }
 

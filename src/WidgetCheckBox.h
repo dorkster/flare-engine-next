@@ -26,27 +26,27 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef WIDGET_CHECKBOX_H
 #define WIDGET_CHECKBOX_H
 
-#include "TooltipData.h"
-
 class Widget;
-class WidgetTooltip;
 
 class WidgetCheckBox : public Widget {
 public:
-	explicit WidgetCheckBox (const std::string &fname = "images/menus/buttons/checkbox_default.png");
+	static const std::string DEFAULT_FILE;
+
+	explicit WidgetCheckBox (const std::string &fname);
 	~WidgetCheckBox ();
 
 	void activate();
 	void setChecked(const bool status);
 	bool checkClick();
-	bool checkClick(int x, int y);
+	bool checkClickAt(int x, int y);
 	bool isChecked() const;
 	void render();
-	TooltipData checkTooltip(const Point& mouse);
 	bool enabled;
 	std::string tooltip;
 
 private:
+	void checkTooltip(const Point& mouse);
+
 	Sprite *cb;
 	bool checked;
 	bool pressed;

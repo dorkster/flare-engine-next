@@ -26,6 +26,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "Avatar.h"
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "InputState.h"
@@ -50,12 +51,36 @@ bool compareItemStack(const ItemStack &stack1, const ItemStack &stack2) {
 	return stack1.item < stack2.item;
 }
 
+Item::Item()
+	: name("")
+	, has_name(false)
+	, flavor("")
+	, level(0)
+	, set(0)
+	, quality("")
+	, type("")
+	, icon(0)
+	, dmg_min((eset ? eset->damage_types.list.size() : 0), 0)
+	, dmg_max((eset ? eset->damage_types.list.size() : 0), 0)
+	, abs_min(0)
+	, abs_max(0)
+	, requires_level(0)
+	, requires_class("")
+	, sfx("")
+	, sfx_id(0)
+	, gfx("")
+	, power(0)
+	, power_desc("")
+	, price(0)
+	, price_per_level(0)
+	, price_sell(0)
+	, max_quantity(1)
+	, pickup_status("")
+	, stepfx("")
+	, quest_item(false) {
+}
+
 ItemManager::ItemManager()
-	: color_normal(font->getColor("widget_normal"))
-	, color_bonus(font->getColor("item_bonus"))
-	, color_penalty(font->getColor("item_penalty"))
-	, color_requirements_not_met(font->getColor("requirements_not_met"))
-	, color_flavor(font->getColor("item_flavor"))
 {
 	// These values are a bit arbitrary, but they should be a good starting point.
 	items.reserve(1000);
@@ -96,7 +121,7 @@ void ItemManager::loadAll() {
 		std::vector<ItemSet>(item_sets).swap(item_sets);
 
 	if (items.empty())
-		logInfo("ItemManager: No items were found.");
+		Utils::logInfo("ItemManager: No items were found.");
 }
 
 /**
@@ -104,11 +129,11 @@ void ItemManager::loadAll() {
  *
  * @param filename The (full) path and name of the file to load
  */
-void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
+void ItemManager::loadItems(const std::string& filename) {
 	FileParser infile;
 
 	// @CLASS ItemManager: Items|Description about the class and it usage, items/items.txt...
-	if (!infile.open(filename, locateFileName))
+	if (!infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 		return;
 
 	// used to clear vectors when overriding items
@@ -123,7 +148,7 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 		if (infile.key == "id") {
 			// @ATTR id|item_id|An uniq id of the item used as reference from other classes.
 			id_line = true;
-			id = toInt(infile.val);
+			id = Parse::toInt(infile.val);
 			addUnknownItem(id);
 
 			clear_req_stat = true;
@@ -151,10 +176,10 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 			items[id].flavor = msg->get(infile.val);
 		else if (infile.key == "level")
 			// @ATTR level|int|The item's level. Has no gameplay impact. (Deprecated?)
-			items[id].level = toInt(infile.val);
+			items[id].level = Parse::toInt(infile.val);
 		else if (infile.key == "icon") {
 			// @ATTR icon|icon_id|An id for the icon to display for this item.
-			items[id].icon = toInt(infile.val);
+			items[id].icon = Parse::toInt(infile.val);
 		}
 		else if (infile.key == "book") {
 			// @ATTR book|filename|A book file to open when this item is activated.
@@ -171,47 +196,47 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 		else if (infile.key == "equip_flags") {
 			// @ATTR equip_flags|list(predefined_string)|A comma separated list of flags to set when this item is equipped. See engine/equip_flags.txt.
 			items[id].equip_flags.clear();
-			std::string flag = popFirstString(infile.val);
+			std::string flag = Parse::popFirstString(infile.val);
 
 			while (flag != "") {
 				items[id].equip_flags.push_back(flag);
-				flag = popFirstString(infile.val);
+				flag = Parse::popFirstString(infile.val);
 			}
 		}
 		else if (infile.key == "dmg") {
 			// @ATTR dmg|predefined_string, int, int : Damage type, Min, Max|Defines the item's base damage type and range. Max may be ommitted and will default to Min.
-			std::string dmg_type_str = popFirstString(infile.val);
+			std::string dmg_type_str = Parse::popFirstString(infile.val);
 
-			size_t dmg_type = DAMAGE_TYPES.size();
-			for (size_t i = 0; i < DAMAGE_TYPES.size(); ++i) {
-				if (dmg_type_str == DAMAGE_TYPES[i].id) {
+			size_t dmg_type = eset->damage_types.list.size();
+			for (size_t i = 0; i < eset->damage_types.list.size(); ++i) {
+				if (dmg_type_str == eset->damage_types.list[i].id) {
 					dmg_type = i;
 					break;
 				}
 			}
 
-			if (dmg_type == DAMAGE_TYPES.size()) {
+			if (dmg_type == eset->damage_types.list.size()) {
 				infile.error("ItemManager: '%s' is not a known damage type id.", dmg_type_str.c_str());
 			}
 			else {
-				items[id].dmg_min[dmg_type] = popFirstInt(infile.val);
+				items[id].dmg_min[dmg_type] = Parse::popFirstInt(infile.val);
 				if (infile.val.length() > 0)
-					items[id].dmg_max[dmg_type] = popFirstInt(infile.val);
+					items[id].dmg_max[dmg_type] = Parse::popFirstInt(infile.val);
 				else
 					items[id].dmg_max[dmg_type] = items[id].dmg_min[dmg_type];
 			}
 		}
 		else if (infile.key == "abs") {
 			// @ATTR abs|int, int : Min, Max|Defines the item absorb value, if only min is specified the absorb value is fixed.
-			items[id].abs_min = popFirstInt(infile.val);
+			items[id].abs_min = Parse::popFirstInt(infile.val);
 			if (infile.val.length() > 0)
-				items[id].abs_max = popFirstInt(infile.val);
+				items[id].abs_max = Parse::popFirstInt(infile.val);
 			else
 				items[id].abs_max = items[id].abs_min;
 		}
 		else if (infile.key == "requires_level") {
 			// @ATTR requires_level|int|The hero's level must match or exceed this value in order to equip this item.
-			items[id].requires_level = toInt(infile.val);
+			items[id].requires_level = Parse::toInt(infile.val);
 		}
 		else if (infile.key == "requires_stat") {
 			// @ATTR requires_stat|repeatable(predefined_string, int) : Primary stat name, Value|Make item require specific stat level ex. requires_stat=physical,6 will require hero to have level 6 in physical stats
@@ -220,13 +245,13 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 				items[id].req_val.clear();
 				clear_req_stat = false;
 			}
-			std::string s = popFirstString(infile.val);
-			size_t req_stat_index = getPrimaryStatIndex(s);
-			if (req_stat_index != PRIMARY_STATS.size())
+			std::string s = Parse::popFirstString(infile.val);
+			size_t req_stat_index = eset->primary_stats.getIndexByID(s);
+			if (req_stat_index != eset->primary_stats.list.size())
 				items[id].req_stat.push_back(req_stat_index);
 			else
 				infile.error("ItemManager: '%s' is not a valid primary stat.", s.c_str());
-			items[id].req_val.push_back(popFirstInt(infile.val));
+			items[id].req_val.push_back(Parse::popFirstInt(infile.val));
 		}
 		else if (infile.key == "requires_class") {
 			// @ATTR requires_class|predefined_string|The hero's base class (engine/classes.txt) must match for this item to be equipped.
@@ -257,15 +282,15 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 				clear_loot_anim = false;
 			}
 			LootAnimation la;
-			la.name = popFirstString(infile.val);
-			la.low = popFirstInt(infile.val);
-			la.high = popFirstInt(infile.val);
+			la.name = Parse::popFirstString(infile.val);
+			la.low = Parse::popFirstInt(infile.val);
+			la.high = Parse::popFirstInt(infile.val);
 			items[id].loot_animation.push_back(la);
 		}
 		else if (infile.key == "power") {
 			// @ATTR power|power_id|Adds a specific power to the item which makes it usable as a power and can be placed in action bar.
-			if (toInt(infile.val) > 0)
-				items[id].power = toInt(infile.val);
+			if (Parse::toInt(infile.val) > 0)
+				items[id].power = Parse::toInt(infile.val);
 			else
 				infile.error("ItemManager: Power index out of bounds 1-%d, skipping power.", INT_MAX);
 		}
@@ -275,7 +300,7 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 				items[id].replace_power.clear();
 				clear_replace_power = false;
 			}
-			Point power_ids = toPoint(infile.val);
+			Point power_ids = Parse::toPoint(infile.val);
 			items[id].replace_power.push_back(power_ids);
 		}
 		else if (infile.key == "power_desc")
@@ -283,16 +308,16 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 			items[id].power_desc = msg->get(infile.val);
 		else if (infile.key == "price")
 			// @ATTR price|int|The amount of currency the item costs, if set to 0 the item cannot be sold.
-			items[id].price = toInt(infile.val);
+			items[id].price = Parse::toInt(infile.val);
 		else if (infile.key == "price_per_level")
 			// @ATTR price_per_level|int|Additional price for each player level above 1
-			items[id].price_per_level = toInt(infile.val);
+			items[id].price_per_level = Parse::toInt(infile.val);
 		else if (infile.key == "price_sell")
 			// @ATTR price_sell|int|The amount of currency the item is sold for, if set to 0 the sell prices is prices*vendor_ratio.
-			items[id].price_sell = toInt(infile.val);
+			items[id].price_sell = Parse::toInt(infile.val);
 		else if (infile.key == "max_quantity")
 			// @ATTR max_quantity|int|Max item count per stack.
-			items[id].max_quantity = toInt(infile.val);
+			items[id].max_quantity = Parse::toInt(infile.val);
 		else if (infile.key == "pickup_status")
 			// @ATTR pickup_status|string|Set a campaign status when item is picked up, this is used for quest items.
 			items[id].pickup_status = infile.val;
@@ -302,16 +327,16 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
 		else if (infile.key == "disable_slots") {
 			// @ATTR disable_slots|list(predefined_string)|A comma separated list of equip slot types to disable when this item is equipped.
 			items[id].disable_slots.clear();
-			std::string slot_type = popFirstString(infile.val);
+			std::string slot_type = Parse::popFirstString(infile.val);
 
 			while (slot_type != "") {
 				items[id].disable_slots.push_back(slot_type);
-				slot_type = popFirstString(infile.val);
+				slot_type = Parse::popFirstString(infile.val);
 			}
 		}
 		else if (infile.key == "quest_item") {
 			// @ATTR quest_item|bool|If true, this item is a quest item and can not be dropped, stashed, or sold.
-			items[id].quest_item = toBool(infile.val);
+			items[id].quest_item = Parse::toBool(infile.val);
 		}
 		else {
 			infile.error("ItemManager: '%s' is not a valid key.", infile.key.c_str());
@@ -326,11 +351,11 @@ void ItemManager::loadItems(const std::string& filename, bool locateFileName) {
  *
  * @param filename The (full) path and name of the file to load
  */
-void ItemManager::loadTypes(const std::string& filename, bool locateFileName) {
+void ItemManager::loadTypes(const std::string& filename) {
 	FileParser infile;
 
 	// @CLASS ItemManager: Types|Definition of a item types, items/types.txt...
-	if (infile.open(filename, locateFileName)) {
+	if (infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.new_section) {
 				if (infile.section == "type") {
@@ -368,11 +393,11 @@ void ItemManager::loadTypes(const std::string& filename, bool locateFileName) {
  *
  * @param filename The (full) path and name of the file to load
  */
-void ItemManager::loadQualities(const std::string& filename, bool locateFileName) {
+void ItemManager::loadQualities(const std::string& filename) {
 	FileParser infile;
 
 	// @CLASS ItemManager: Qualities|Definition of a item qualities, items/types.txt...
-	if (infile.open(filename, locateFileName)) {
+	if (infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.new_section) {
 				if (infile.section == "quality") {
@@ -395,7 +420,7 @@ void ItemManager::loadQualities(const std::string& filename, bool locateFileName
 				item_qualities.back().name = infile.val;
 			// @ATTR quality.color|color|Item quality color.
 			else if (infile.key == "color")
-				item_qualities.back().color = toRGB(infile.val);
+				item_qualities.back().color = Parse::toRGB(infile.val);
 			else
 				infile.error("ItemManager: '%s' is not a valid key.", infile.key.c_str());
 		}
@@ -427,7 +452,8 @@ std::string ItemManager::getItemType(const std::string& _type) {
 }
 
 Color ItemManager::getItemColor(unsigned id) {
-	if (id < 1 || id > items.size()) return color_normal;
+	if (id < 1 || id > items.size())
+		return font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
 
 	if (items[id].set > 0) {
 		return item_sets[items[id].set].color;
@@ -440,7 +466,7 @@ Color ItemManager::getItemColor(unsigned id) {
 		}
 	}
 
-	return color_normal;
+	return font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
 }
 
 void ItemManager::addUnknownItem(unsigned id) {
@@ -456,11 +482,11 @@ void ItemManager::addUnknownItem(unsigned id) {
  *
  * @param filename The (full) path and name of the file to load
  */
-void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
+void ItemManager::loadSets(const std::string& filename) {
 	FileParser infile;
 
 	// @CLASS ItemManager: Sets|Definition of a item sets, items/sets.txt...
-	if (!infile.open(filename, locateFileName))
+	if (!infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 		return;
 
 	bool clear_bonus = true;
@@ -471,7 +497,7 @@ void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
 		if (infile.key == "id") {
 			// @ATTR id|int|A uniq id for the item set.
 			id_line = true;
-			id = toInt(infile.val);
+			id = Parse::toInt(infile.val);
 
 			if (id > 0) {
 				size_t new_size = id+1;
@@ -498,9 +524,9 @@ void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
 		else if (infile.key == "items") {
 			// @ATTR items|list(item_id)|List of item id's that is part of the set.
 			item_sets[id].items.clear();
-			std::string item_id = popFirstString(infile.val);
+			std::string item_id = Parse::popFirstString(infile.val);
 			while (item_id != "") {
-				int temp_id = toInt(item_id);
+				int temp_id = Parse::toInt(item_id);
 				if (temp_id > 0 && temp_id < static_cast<int>(items.size())) {
 					items[temp_id].set = id;
 					item_sets[id].items.push_back(temp_id);
@@ -509,12 +535,12 @@ void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
 					const int maxsize = static_cast<int>(items.size()-1);
 					infile.error("ItemManager: Item index out of bounds 1-%d, skipping item.", maxsize);
 				}
-				item_id = popFirstString(infile.val);
+				item_id = Parse::popFirstString(infile.val);
 			}
 		}
 		else if (infile.key == "color") {
 			// @ATTR color|color|A specific of color for the set.
-			item_sets[id].color = toRGB(infile.val);
+			item_sets[id].color = Parse::toRGB(infile.val);
 		}
 		else if (infile.key == "bonus") {
 			// @ATTR bonus|repeatable(int, string, int) : Required set item count, Stat name, Value|Bonus to append to items in the set.
@@ -523,7 +549,7 @@ void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
 				clear_bonus = false;
 			}
 			Set_bonus bonus;
-			bonus.requirement = popFirstInt(infile.val);
+			bonus.requirement = Parse::popFirstInt(infile.val);
 			parseBonus(bonus, infile);
 			item_sets[id].bonus.push_back(bonus);
 		}
@@ -535,8 +561,8 @@ void ItemManager::loadSets(const std::string& filename, bool locateFileName) {
 }
 
 void ItemManager::parseBonus(BonusData& bdata, FileParser& infile) {
-	std::string bonus_str = popFirstString(infile.val);
-	bdata.value = popFirstInt(infile.val);
+	std::string bonus_str = Parse::popFirstString(infile.val);
+	bdata.value = Parse::popFirstInt(infile.val);
 
 	if (bonus_str == "speed") {
 		bdata.is_speed = true;
@@ -547,33 +573,33 @@ void ItemManager::parseBonus(BonusData& bdata, FileParser& infile) {
 		return;
 	}
 
-	for (unsigned i=0; i<STAT_COUNT; ++i) {
-		if (bonus_str == STAT_KEY[i]) {
-			bdata.stat_index = (STAT)i;
+	for (unsigned i=0; i<Stats::COUNT; ++i) {
+		if (bonus_str == Stats::KEY[i]) {
+			bdata.stat_index = static_cast<Stats::STAT>(i);
 			return;
 		}
 	}
 
-	for (size_t i = 0; i < DAMAGE_TYPES.size(); ++i) {
-		if (bonus_str == DAMAGE_TYPES[i].min) {
+	for (size_t i = 0; i < eset->damage_types.list.size(); ++i) {
+		if (bonus_str == eset->damage_types.list[i].min) {
 			bdata.damage_index_min = static_cast<int>(i);
 			return;
 		}
-		else if (bonus_str == DAMAGE_TYPES[i].max) {
+		else if (bonus_str == eset->damage_types.list[i].max) {
 			bdata.damage_index_max = static_cast<int>(i);
 			return;
 		}
 	}
 
-	for (unsigned i=0; i<ELEMENTS.size(); ++i) {
-		if (bonus_str == ELEMENTS[i].id + "_resist") {
+	for (unsigned i=0; i<eset->elements.list.size(); ++i) {
+		if (bonus_str == eset->elements.list[i].id + "_resist") {
 			bdata.resist_index = i;
 			return;
 		}
 	}
 
-	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
-		if (bonus_str == PRIMARY_STATS[i].id) {
+	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
+		if (bonus_str == eset->primary_stats.list[i].id) {
 			bdata.base_index = static_cast<int>(i);
 			return;
 		}
@@ -598,22 +624,22 @@ void ItemManager::getBonusString(std::stringstream& ss, BonusData* bdata) {
 		ss << bdata->value;
 
 	if (bdata->stat_index != -1) {
-		if (STAT_PERCENT[bdata->stat_index])
+		if (Stats::PERCENT[bdata->stat_index])
 			ss << "%";
 
-		ss << " " << STAT_NAME[bdata->stat_index];
+		ss << " " << Stats::NAME[bdata->stat_index];
 	}
 	else if (bdata->damage_index_min != -1) {
-		ss << " " << DAMAGE_TYPES[bdata->damage_index_min].name_min;
+		ss << " " << eset->damage_types.list[bdata->damage_index_min].name_min;
 	}
 	else if (bdata->damage_index_max != -1) {
-		ss << " " << DAMAGE_TYPES[bdata->damage_index_max].name_max;
+		ss << " " << eset->damage_types.list[bdata->damage_index_max].name_max;
 	}
 	else if (bdata->resist_index != -1) {
-		ss << "% " << msg->get("%s Resistance", ELEMENTS[bdata->resist_index].name.c_str());
+		ss << "% " << msg->get("%s Resistance", eset->elements.list[bdata->resist_index].name.c_str());
 	}
-	else if (bdata->base_index > -1 && static_cast<size_t>(bdata->base_index) < PRIMARY_STATS.size()) {
-		ss << " " << PRIMARY_STATS[bdata->base_index].name;
+	else if (bdata->base_index > -1 && static_cast<size_t>(bdata->base_index) < eset->primary_stats.list.size()) {
+		ss << " " << eset->primary_stats.list[bdata->base_index].name;
 	}
 }
 
@@ -661,16 +687,16 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 
 	// quest item
 	if (items[stack.item].quest_item) {
-		tip.addColoredText(msg->get("Quest Item"), color_bonus);
+		tip.addColoredText(msg->get("Quest Item"), font->getColor(FontEngine::COLOR_ITEM_BONUS));
 	}
 
 	// only show the name of the currency item
-	if (stack.item == CURRENCY_ID)
+	if (stack.item == eset->misc.currency_id)
 		return tip;
 
 	// flavor text
 	if (items[stack.item].flavor != "") {
-		tip.addColoredText(substituteVarsInString(items[stack.item].flavor, pc), color_flavor);
+		tip.addColoredText(Utils::substituteVarsInString(items[stack.item].flavor, pc), font->getColor(FontEngine::COLOR_ITEM_FLAVOR));
 	}
 
 	// level
@@ -684,21 +710,21 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 	}
 
 	// item quality text for colorblind users
-	if (COLORBLIND && items[stack.item].quality != "") {
-		color = color_normal;
+	if (settings->colorblind && items[stack.item].quality != "") {
+		color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
 		for (size_t i=0; i<item_qualities.size(); ++i) {
 			if (item_qualities[i].id == items[stack.item].quality) {
-				tip.addColoredText(msg->get("Quality: %s", msg->get(item_qualities[i].name)), color);
+				tip.addColoredText(msg->get("Quality: %s", msg->get(item_qualities[i].name).c_str()), color);
 				break;
 			}
 		}
 	}
 
 	// damage
-	for (size_t i = 0; i < DAMAGE_TYPES.size(); ++i) {
+	for (size_t i = 0; i < eset->damage_types.list.size(); ++i) {
 		if (items[stack.item].dmg_max[i] > 0) {
 			std::stringstream dmg_str;
-			dmg_str << DAMAGE_TYPES[i].name;
+			dmg_str << eset->damage_types.list[i].name;
 			if (items[stack.item].dmg_min[i] < items[stack.item].dmg_max[i]) {
 				dmg_str << ": " << items[stack.item].dmg_min[i] << "-" << items[stack.item].dmg_max[i];
 				tip.addText(dmg_str.str());
@@ -726,16 +752,16 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 		BonusData* bdata = &items[stack.item].bonus[bonus_counter];
 
 		if (bdata->is_speed || bdata->is_attack_speed) {
-			if (bdata->value >= 100) color = color_bonus;
-			else color = color_penalty;
+			if (bdata->value >= 100)
+				color = font->getColor(FontEngine::COLOR_ITEM_BONUS);
+			else
+				color = font->getColor(FontEngine::COLOR_ITEM_PENALTY);
 		}
 		else {
-			if (bdata->value > 0) {
-				color = color_bonus;
-			}
-			else {
-				color = color_penalty;
-			}
+			if (bdata->value > 0)
+				color = font->getColor(FontEngine::COLOR_ITEM_BONUS);
+			else
+				color = font->getColor(FontEngine::COLOR_ITEM_PENALTY);
 		}
 
 		getBonusString(ss, bdata);
@@ -745,13 +771,16 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 
 	// power
 	if (items[stack.item].power_desc != "") {
-		tip.addColoredText(items[stack.item].power_desc, color_bonus);
+		tip.addColoredText(items[stack.item].power_desc, font->getColor(FontEngine::COLOR_ITEM_BONUS));
 	}
 
 	// level requirement
 	if (items[stack.item].requires_level > 0) {
-		if (stats->level < items[stack.item].requires_level) color = color_requirements_not_met;
-		else color = color_normal;
+		if (stats->level < items[stack.item].requires_level)
+			color = font->getColor(FontEngine::COLOR_REQUIREMENTS_NOT_MET);
+		else
+			color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
+
 		tip.addColoredText(msg->get("Requires Level %d", items[stack.item].requires_level), color);
 	}
 
@@ -759,50 +788,61 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 	for (unsigned i=0; i<items[stack.item].req_stat.size(); ++i) {
 		if (items[stack.item].req_val[i] > 0) {
 			if (stats->get_primary(items[stack.item].req_stat[i]) < items[stack.item].req_val[i])
-				color = color_requirements_not_met;
+				color = font->getColor(FontEngine::COLOR_REQUIREMENTS_NOT_MET);
 			else
-				color = color_normal;
+				color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
 
-			tip.addColoredText(msg->get("Requires %s %d", items[stack.item].req_val[i], PRIMARY_STATS[items[stack.item].req_stat[i]].name.c_str()), color);
+			tip.addColoredText(msg->get("Requires %s %d", eset->primary_stats.list[items[stack.item].req_stat[i]].name.c_str(), items[stack.item].req_val[i]), color);
 		}
 	}
 
 	// requires class
 	if (items[stack.item].requires_class != "") {
-		if (items[stack.item].requires_class != stats->character_class) color = color_requirements_not_met;
-		else color = color_normal;
-		tip.addColoredText(msg->get("Requires Class: %s", msg->get(items[stack.item].requires_class)), color);
+		if (items[stack.item].requires_class != stats->character_class)
+			color = font->getColor(FontEngine::COLOR_REQUIREMENTS_NOT_MET);
+		else
+			color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
+
+		tip.addColoredText(msg->get("Requires Class: %s", msg->get(items[stack.item].requires_class).c_str()), color);
 	}
 
 	// buy or sell price
-	if (items[stack.item].getPrice() > 0 && stack.item != CURRENCY_ID) {
+	if (items[stack.item].getPrice() > 0 && stack.item != eset->misc.currency_id) {
 
 		int price_per_unit;
 		if (context == VENDOR_BUY) {
 			price_per_unit = items[stack.item].getPrice();
-			if (stats->currency < price_per_unit) color = color_requirements_not_met;
-			else color = color_normal;
-			if (items[stack.item].max_quantity <= 1)
-				tip.addColoredText(msg->get("Buy Price: %d %s", price_per_unit, CURRENCY), color);
+			if (stats->currency < price_per_unit)
+				color = font->getColor(FontEngine::COLOR_REQUIREMENTS_NOT_MET);
 			else
-				tip.addColoredText(msg->get("Buy Price: %d %s each", price_per_unit, CURRENCY), color);
+				color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
+
+			if (items[stack.item].max_quantity <= 1)
+				tip.addColoredText(msg->get("Buy Price: %d %s", price_per_unit, eset->loot.currency.c_str()), color);
+			else
+				tip.addColoredText(msg->get("Buy Price: %d %s each", price_per_unit, eset->loot.currency.c_str()), color);
 		}
 		else if (context == VENDOR_SELL) {
 			price_per_unit = items[stack.item].getSellPrice(stack.can_buyback);
-			if (stats->currency < price_per_unit) color = color_requirements_not_met;
-			else color = color_normal;
-			if (items[stack.item].max_quantity <= 1)
-				tip.addColoredText(msg->get("Buy Price: %d %s", price_per_unit, CURRENCY), color);
+			if (stats->currency < price_per_unit)
+				color = font->getColor(FontEngine::COLOR_REQUIREMENTS_NOT_MET);
 			else
-				tip.addColoredText(msg->get("Buy Price: %d %s each", price_per_unit, CURRENCY), color);
+				color = font->getColor(FontEngine::COLOR_WIDGET_NORMAL);
+
+			if (items[stack.item].max_quantity <= 1)
+				tip.addColoredText(msg->get("Buy Price: %d %s", price_per_unit, eset->loot.currency.c_str()), color);
+			else
+				tip.addColoredText(msg->get("Buy Price: %d %s each", price_per_unit, eset->loot.currency.c_str()), color);
 		}
 		else if (context == PLAYER_INV) {
-			price_per_unit = items[stack.item].getSellPrice();
-			if (price_per_unit == 0) price_per_unit = 1;
+			price_per_unit = items[stack.item].getSellPrice(DEFAULT_SELL_PRICE);
+			if (price_per_unit == 0)
+				price_per_unit = 1;
+
 			if (items[stack.item].max_quantity <= 1)
-				tip.addText(msg->get("Sell Price: %d %s", price_per_unit, CURRENCY));
+				tip.addText(msg->get("Sell Price: %d %s", price_per_unit, eset->loot.currency.c_str()));
 			else
-				tip.addText(msg->get("Sell Price: %d %s each", price_per_unit, CURRENCY));
+				tip.addText(msg->get("Sell Price: %d %s each", price_per_unit, eset->loot.currency.c_str()));
 		}
 	}
 
@@ -828,13 +868,13 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 
 	// input hint for consumables/books
 	// TODO hint when not using mouse control. The action for using an item there is hard to describe
-	if (context == PLAYER_INV && !NO_MOUSE) {
+	if (context == PLAYER_INV && !settings->no_mouse) {
 		int power_id = items[stack.item].power;
 		if (power_id > 0 && items[stack.item].type == "consumable") {
-			tip.addColoredText('\n' + msg->get("Press [%s] to use", inpt->getBindingString(MAIN2).c_str()), color_bonus);
+			tip.addColoredText('\n' + msg->get("Press [%s] to use", inpt->getBindingString(Input::MAIN2).c_str()), font->getColor(FontEngine::COLOR_ITEM_BONUS));
 		}
 		else if (!items[stack.item].book.empty()) {
-			tip.addColoredText('\n' + msg->get("Press [%s] to read", inpt->getBindingString(MAIN2).c_str()), color_bonus);
+			tip.addColoredText('\n' + msg->get("Press [%s] to read", inpt->getBindingString(Input::MAIN2).c_str()), font->getColor(FontEngine::COLOR_ITEM_BONUS));
 		}
 	}
 
@@ -895,11 +935,11 @@ bool ItemStack::empty() {
 		return false;
 	}
 	else if (item == 0 && quantity != 0) {
-		logError("ItemStack: Item id is zero, but quantity is %d.", quantity);
+		Utils::logError("ItemStack: Item id is zero, but quantity is %d.", quantity);
 		clear();
 	}
 	else if (item != 0 && quantity == 0) {
-		logError("ItemStack: Item id is %d, but quantity is zero.", item);
+		Utils::logError("ItemStack: Item id is %d, but quantity is zero.", item);
 		clear();
 	}
 	return true;
@@ -917,14 +957,16 @@ int Item::getPrice() {
 
 int Item::getSellPrice(bool is_new_buyback) {
 	int new_price = 0;
-	if (is_new_buyback || VENDOR_RATIO_BUYBACK == 0) {
+	if (is_new_buyback || eset->loot.vendor_ratio_buyback == 0) {
+		// default sell price
 		if (price_sell != 0)
 			new_price = price_sell;
 		else
-			new_price = static_cast<int>(static_cast<float>(getPrice()) * VENDOR_RATIO);
+			new_price = static_cast<int>(static_cast<float>(getPrice()) * eset->loot.vendor_ratio);
 	}
 	else {
-		new_price = static_cast<int>(static_cast<float>(getPrice()) * VENDOR_RATIO_BUYBACK);
+		// sell price adjusted because the player can no longer buyback the item at the original sell price
+		new_price = static_cast<int>(static_cast<float>(getPrice()) * eset->loot.vendor_ratio_buyback);
 	}
 	if (new_price == 0) new_price = 1;
 

@@ -22,15 +22,18 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "InputState.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
+#include "TooltipManager.h"
 #include "UtilsDebug.h"
 #include "Widget.h"
-#include "WidgetSettings.h"
 #include "WidgetSlider.h"
 
 #include <assert.h>
+
+const std::string WidgetSlider::DEFAULT_FILE = "images/menus/buttons/slider_default.png";
 
 WidgetSlider::WidgetSlider (const std::string& fname)
 	: enabled(true)
@@ -39,12 +42,10 @@ WidgetSlider::WidgetSlider (const std::string& fname)
 	, changed_without_mouse(false)
 	, minimum(0)
 	, maximum(0)
-	, value(0)
-	, tip_buf()
-	, tip(new WidgetTooltip()) {
+	, value(0) {
 
 	Image *graphics;
-	graphics = render_device->loadImage(fname, "loading slider graphics", true);
+	graphics = render_device->loadImage(fname, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		sl = graphics->createSprite();
 		pos.w = sl->getGraphicsWidth();
@@ -56,12 +57,11 @@ WidgetSlider::WidgetSlider (const std::string& fname)
 
 	render_to_alpha = false;
 
-	scroll_type = HORIZONTAL;
+	scroll_type = SCROLL_HORIZONTAL;
 }
 
 WidgetSlider::~WidgetSlider () {
 	if (sl) delete sl;
-	delete tip;
 }
 
 void WidgetSlider::setPos(int offset_x, int offset_y) {
@@ -70,21 +70,20 @@ void WidgetSlider::setPos(int offset_x, int offset_y) {
 }
 
 bool WidgetSlider::checkClick() {
-	if (!enabled) return false;
-	return checkClick(inpt->mouse.x,inpt->mouse.y);
+	return checkClickAt(inpt->mouse.x,inpt->mouse.y);
 }
 
 
-bool WidgetSlider::checkClick (int x, int y) {
+bool WidgetSlider::checkClickAt(int x, int y) {
 	if (!enabled) return false;
 	Point mouse(x, y);
 	//
 	//	We are just grabbing the knob
 	//
-	if (!pressed && inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) {
-		if (isWithinRect(pos_knob, mouse)) {
+	if (!pressed && inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos_knob, mouse)) {
 			pressed = true;
-			inpt->lock[MAIN1] = true;
+			inpt->lock[Input::MAIN1] = true;
 			return true;
 		}
 		return false;
@@ -97,8 +96,8 @@ bool WidgetSlider::checkClick (int x, int y) {
 	}
 
 	// buttons already in use, new click not allowed
-	if (inpt->lock[UP]) return false;
-	if (inpt->lock[DOWN]) return false;
+	if (inpt->lock[Input::UP]) return false;
+	if (inpt->lock[Input::DOWN]) return false;
 
 	if (pressed) {
 		//
@@ -111,16 +110,16 @@ bool WidgetSlider::checkClick (int x, int y) {
 		tmp_pos.w = pos.w + (pos_knob.w*4);
 		tmp_pos.h = pos.h;
 
-		if (!isWithinRect(tmp_pos, mouse)) {
+		if (!Utils::isWithinRect(tmp_pos, mouse)) {
 			pressed = false;
 			return false;
 		}
-		if (!inpt->lock[MAIN1]) {
+		if (!inpt->lock[Input::MAIN1]) {
 			pressed = false;
 		}
 
 		// set the value of the slider
-		int tmp = std::max(0, std::min(mouse.x - pos.x, static_cast<int>(pos.w)));
+		int tmp = std::max(0, std::min(mouse.x - pos.x, pos.w));
 
 		pos_knob.x = pos.x + tmp - (pos_knob.w/2);
 		assert(pos.w);
@@ -193,23 +192,17 @@ void WidgetSlider::render () {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+			render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 		}
 	}
 
 	if (pressed || in_focus) {
 		std::stringstream ss;
-		TooltipData tip_new;
-
 		ss << value;
-		tip_new.addText(ss.str());
-		if (!tip_new.isEmpty()) {
-			if (!tip_new.compare(&tip_buf)) {
-				tip_buf.clear();
-				tip_buf = tip_new;
-			}
-			tip->render(tip_buf, Point(pos_knob.x + pos_knob.w*2, pos_knob.y + (pos_knob.h/2)), STYLE_TOPLABEL);
-		}
+
+		TooltipData tip_data;
+		tip_data.addText(ss.str());
+		tooltipm->push(tip_data, Point(pos_knob.x + pos_knob.w*2, pos_knob.y + (pos_knob.h/2)), TooltipData::STYLE_TOPLABEL);
 	}
 }
 

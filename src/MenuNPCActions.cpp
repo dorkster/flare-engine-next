@@ -35,47 +35,35 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsParsing.h"
 #include "WidgetLabel.h"
 
-#define SEPARATOR_HEIGHT 2
-#define ITEM_SPACING 2
-#define MENU_BORDER 8
+MenuNPCActions::Action::Action(const std::string& _id, const std::string& _label)
+	: id(_id)
+	, label(!id.empty() ? new WidgetLabel() : NULL)
+{
+	if (label)
+		label->setText(_label);
+}
 
-class Action {
-public:
-	Action(const std::string& _id = "", std::string _label = "")
-		: id(_id)
-		, label(id != "" ? new WidgetLabel() : NULL) {
-		if (label)
-			label->set(_label);
-	}
+MenuNPCActions::Action::Action(const Action &r) {
+	*this = r;
+}
 
-	Action(const Action &r)
-		: id(r.id)
-		, label(id != "" ? new WidgetLabel() : NULL) {
-		if (label)
-			label->set(r.label->get());
-
-		rect = r.rect;
-	}
-
-	Action& operator=(const Action &r) {
-		id = r.id;
-		label = (id != "") ? new WidgetLabel() : NULL;
-		if (label)
-			label->set(r.label->get());
-
-		rect = r.rect;
-
+MenuNPCActions::Action& MenuNPCActions::Action::operator=(const MenuNPCActions::Action &r) {
+	if (this == &r)
 		return *this;
-	}
 
-	virtual ~Action() {
-		delete label;
-	}
+	id = r.id;
+	label = !id.empty() ? new WidgetLabel() : NULL;
+	if (label)
+		label->setText(r.label->getText());
 
-	std::string id;
-	WidgetLabel *label;
-	Rect rect;
-};
+	rect = r.rect;
+
+	return *this;
+}
+
+MenuNPCActions::Action::~Action() {
+	delete label;
+}
 
 MenuNPCActions::MenuNPCActions()
 	: Menu()
@@ -94,25 +82,25 @@ MenuNPCActions::MenuNPCActions()
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuNPCActions|Description of menus/npc.txt
-	if (infile.open("menus/npc.txt")) {
+	if (infile.open("menus/npc.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR background_color|color, int : Color, Alpha|Color and alpha of the menu's background.
-			if(infile.key == "background_color") background_color = toRGBA(infile.val);
+			if(infile.key == "background_color") background_color = Parse::toRGBA(infile.val);
 			// @ATTR topic_normal_color|color|The normal color of a generic topic text.
-			else if(infile.key == "topic_normal_color") topic_normal_color = toRGB(infile.val);
+			else if(infile.key == "topic_normal_color") topic_normal_color = Parse::toRGB(infile.val);
 			// @ATTR topic_hilight_color|color|The color of generic topic text when it's hovered over or selected.
-			else if(infile.key == "topic_hilight_color") topic_hilight_color = toRGB(infile.val);
+			else if(infile.key == "topic_hilight_color") topic_hilight_color = Parse::toRGB(infile.val);
 			// @ATTR vendor_normal_color|color|The normal color of the vendor option text.
-			else if(infile.key == "vendor_normal_color") vendor_normal_color = toRGB(infile.val);
+			else if(infile.key == "vendor_normal_color") vendor_normal_color = Parse::toRGB(infile.val);
 			// @ATTR vendor_hilight_color|color|The color of vendor option text when it's hovered over or selected.
-			else if(infile.key == "vendor_hilight_color") vendor_hilight_color = toRGB(infile.val);
+			else if(infile.key == "vendor_hilight_color") vendor_hilight_color = Parse::toRGB(infile.val);
 			// @ATTR cancel_normal_color|color|The normal color of the option to close the menu.
-			else if(infile.key == "cancel_normal_color") cancel_normal_color = toRGB(infile.val);
+			else if(infile.key == "cancel_normal_color") cancel_normal_color = Parse::toRGB(infile.val);
 			// @ATTR cancel_hilight_color|color|The color of the option to close the menu when it's hovered over or selected.
-			else if(infile.key == "cancel_hilight_color") cancel_hilight_color = toRGB(infile.val);
+			else if(infile.key == "cancel_hilight_color") cancel_hilight_color = Parse::toRGB(infile.val);
 
 			else infile.error("MenuNPCActions: '%s' is not a valid key.", infile.key.c_str());
 		}
@@ -130,8 +118,8 @@ void MenuNPCActions::update() {
 	for(size_t i=0; i<npc_actions.size(); i++) {
 		h += ITEM_SPACING;
 		if (npc_actions[i].label) {
-			w = std::max(static_cast<int>(npc_actions[i].label->bounds.w), w);
-			h += npc_actions[i].label->bounds.h;
+			w = std::max(npc_actions[i].label->getBounds()->w, w);
+			h += npc_actions[i].label->getBounds()->h;
 		}
 		else
 			h += SEPARATOR_HEIGHT;
@@ -156,7 +144,7 @@ void MenuNPCActions::update() {
 		npc_actions[i].rect.w = w;
 
 		if (npc_actions[i].label) {
-			npc_actions[i].rect.h = npc_actions[i].label->bounds.h + (ITEM_SPACING*2);
+			npc_actions[i].rect.h = npc_actions[i].label->getBounds()->h + (ITEM_SPACING*2);
 
 			if (i == current_action) {
 				if (npc_actions[i].id == "id_cancel")
@@ -165,11 +153,6 @@ void MenuNPCActions::update() {
 					text_color = vendor_hilight_color;
 				else
 					text_color = topic_hilight_color;
-
-				npc_actions[i].label->set(MENU_BORDER + (w/2),
-										  yoffs + (npc_actions[i].rect.h/2) ,
-										  JUSTIFY_CENTER, VALIGN_CENTER,
-										  npc_actions[i].label->get(), text_color);
 			}
 			else {
 				if (npc_actions[i].id == "id_cancel")
@@ -178,12 +161,12 @@ void MenuNPCActions::update() {
 					text_color = vendor_normal_color;
 				else
 					text_color = topic_normal_color;
-
-				npc_actions[i].label->set(MENU_BORDER + (w/2),
-										  yoffs + (npc_actions[i].rect.h/2),
-										  JUSTIFY_CENTER, VALIGN_CENTER,
-										  npc_actions[i].label->get(), text_color);
 			}
+
+			npc_actions[i].label->setPos(MENU_BORDER + (w/2), yoffs + (npc_actions[i].rect.h/2));
+			npc_actions[i].label->setJustify(FontEngine::JUSTIFY_CENTER);
+			npc_actions[i].label->setVAlign(LabelInfo::VALIGN_CENTER);
+			npc_actions[i].label->setColor(text_color);
 
 		}
 		else
@@ -309,19 +292,19 @@ void MenuNPCActions::logic() {
 	if (!visible) return;
 
 	if (!inpt->usingMouse()) {
-		if (inpt->lock[ACCEPT])
+		if (inpt->lock[Input::ACCEPT])
 			return;
 		keyboardLogic();
 	}
 	else {
-		if (inpt->lock[MAIN1])
+		if (inpt->lock[Input::MAIN1])
 			return;
 
 		/* get action under mouse */
 		bool got_action = false;
 		for (size_t i=0; i<npc_actions.size(); i++) {
 
-			if (!isWithinRect(npc_actions[i].rect, inpt->mouse))
+			if (!Utils::isWithinRect(npc_actions[i].rect, inpt->mouse))
 				continue;
 
 			got_action = true;
@@ -343,9 +326,9 @@ void MenuNPCActions::logic() {
 	}
 
 	/* is main1 pressed */
-	if (static_cast<int>(current_action) > -1 && ((inpt->pressing[MAIN1] && inpt->usingMouse()) || (inpt->pressing[ACCEPT] && NO_MOUSE))) {
-		if (inpt->pressing[MAIN1]) inpt->lock[MAIN1] = true;
-		if (inpt->pressing[ACCEPT]) inpt->lock[ACCEPT] = true;
+	if (static_cast<int>(current_action) > -1 && ((inpt->pressing[Input::MAIN1] && inpt->usingMouse()) || (inpt->pressing[Input::ACCEPT] && settings->no_mouse))) {
+		if (inpt->pressing[Input::MAIN1]) inpt->lock[Input::MAIN1] = true;
+		if (inpt->pressing[Input::ACCEPT]) inpt->lock[Input::ACCEPT] = true;
 
 
 		if (npc_actions[current_action].label == NULL)
@@ -371,11 +354,11 @@ void MenuNPCActions::logic() {
 }
 
 void MenuNPCActions::keyboardLogic() {
-	if (inpt->pressing[LEFT]) inpt->lock[LEFT] = true;
-	if (inpt->pressing[RIGHT]) inpt->lock[RIGHT] = true;
+	if (inpt->pressing[Input::LEFT]) inpt->lock[Input::LEFT] = true;
+	if (inpt->pressing[Input::RIGHT]) inpt->lock[Input::RIGHT] = true;
 
-	if (inpt->pressing[UP] && !inpt->lock[UP]) {
-		inpt->lock[UP] = true;
+	if (inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) {
+		inpt->lock[Input::UP] = true;
 		do {
 			current_action--;
 			if (static_cast<int>(current_action) < 0)
@@ -383,8 +366,8 @@ void MenuNPCActions::keyboardLogic() {
 		}
 		while (npc_actions[current_action].label == NULL);
 	}
-	if (inpt->pressing[DOWN] && !inpt->lock[DOWN]) {
-		inpt->lock[DOWN] = true;
+	if (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN]) {
+		inpt->lock[Input::DOWN] = true;
 		do {
 			current_action++;
 			if (current_action >= npc_actions.size())

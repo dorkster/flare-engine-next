@@ -43,15 +43,18 @@ class WidgetLabel;
 class WidgetListBox;
 class WidgetSlider;
 class WidgetTabControl;
-class WidgetTooltip;
 
 class GameStateConfigBase : public GameState {
+protected:
+
 public:
 	short AUDIO_TAB;
 	short INTERFACE_TAB;
 	short MODS_TAB;
 
-	explicit GameStateConfigBase(bool do_init = true);
+	static const bool DO_INIT = true;
+
+	explicit GameStateConfigBase(bool do_init);
 	~GameStateConfigBase();
 
 	virtual void init();
@@ -79,7 +82,6 @@ public:
 	void render();
 	virtual void renderTabContents();
 	virtual void renderDialogs();
-	virtual void renderTooltips(TooltipData& tip_new);
 
 	void placeLabeledWidget(WidgetLabel* lb, Widget* w, int x1, int y1, int x2, int y2, std::string const& str, int justify = 0);
 	virtual void refreshWidgets();
@@ -144,9 +146,6 @@ public:
 	WidgetButton        * inactivemods_activate_btn;
 
 	MenuConfirm         * defaults_confirm;
-
-	WidgetTooltip       * tip;
-	TooltipData         tip_buf;
 
 	int active_tab;
 

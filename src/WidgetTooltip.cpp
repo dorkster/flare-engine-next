@@ -23,6 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * class WidgetTooltip
  */
 
+#include "EngineSettings.h"
 #include "FontEngine.h"
 #include "RenderDevice.h"
 #include "Settings.h"
@@ -30,60 +31,61 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Utils.h"
 #include "WidgetTooltip.h"
 
-int TOOLTIP_CONTEXT = TOOLTIP_NONE;
-
 WidgetTooltip::WidgetTooltip() {
-	background = render_device->loadImage("images/menus/tooltips.png", "", false);
+	background = render_device->loadImage("images/menus/tooltips.png", RenderDevice::ERROR_NONE);
+	sprite_buf = NULL;
 }
 
 WidgetTooltip::~WidgetTooltip() {
 	if (background)
 		background->unref();
+
+	delete sprite_buf;
 }
 
 /**
  * Knowing the total size of the text and the position of origin,
  * calculate the starting position of the background and text
  */
-Point WidgetTooltip::calcPosition(STYLE style, const Point& pos, const Point& size) {
+Point WidgetTooltip::calcPosition(uint8_t style, const Point& pos, const Point& size) {
 
 	Point tip_pos;
 
 	// TopLabel style is fixed and centered over the origin
-	if (style == STYLE_TOPLABEL) {
+	if (style == TooltipData::STYLE_TOPLABEL) {
 		tip_pos.x = pos.x - size.x/2;
-		tip_pos.y = pos.y - TOOLTIP_OFFSET;
+		tip_pos.y = pos.y - eset->tooltips.offset;
 	}
 	// Float style changes position based on the screen quadrant of the origin
 	// (usually used for tooltips which are long and we don't want them to overflow
 	//  off the end of the screen)
-	else if (style == STYLE_FLOAT) {
+	else if (style == TooltipData::STYLE_FLOAT) {
 		// upper left
-		if (pos.x < VIEW_W_HALF && pos.y < VIEW_H_HALF) {
-			tip_pos.x = pos.x + TOOLTIP_OFFSET;
-			tip_pos.y = pos.y + TOOLTIP_OFFSET;
+		if (pos.x < settings->view_w_half && pos.y < settings->view_h_half) {
+			tip_pos.x = pos.x + eset->tooltips.offset;
+			tip_pos.y = pos.y + eset->tooltips.offset;
 		}
 		// upper right
-		else if (pos.x >= VIEW_W_HALF && pos.y < VIEW_H_HALF) {
-			tip_pos.x = pos.x - TOOLTIP_OFFSET - size.x;
-			tip_pos.y = pos.y + TOOLTIP_OFFSET;
+		else if (pos.x >= settings->view_w_half && pos.y < settings->view_h_half) {
+			tip_pos.x = pos.x - eset->tooltips.offset - size.x;
+			tip_pos.y = pos.y + eset->tooltips.offset;
 		}
 		// lower left
-		else if (pos.x < VIEW_W_HALF && pos.y >= VIEW_H_HALF) {
-			tip_pos.x = pos.x + TOOLTIP_OFFSET;
-			tip_pos.y = pos.y - TOOLTIP_OFFSET - size.y;
+		else if (pos.x < settings->view_w_half && pos.y >= settings->view_h_half) {
+			tip_pos.x = pos.x + eset->tooltips.offset;
+			tip_pos.y = pos.y - eset->tooltips.offset - size.y;
 		}
 		// lower right
-		else if (pos.x >= VIEW_W_HALF && pos.y >= VIEW_H_HALF) {
-			tip_pos.x = pos.x - TOOLTIP_OFFSET - size.x;
-			tip_pos.y = pos.y - TOOLTIP_OFFSET - size.y;
+		else if (pos.x >= settings->view_w_half && pos.y >= settings->view_h_half) {
+			tip_pos.x = pos.x - eset->tooltips.offset - size.x;
+			tip_pos.y = pos.y - eset->tooltips.offset - size.y;
 		}
 
 		// very large tooltips might still be off screen at this point
 		// so we try to constrain them to the screen bounds
 		// we give priority to being able to read the top-left of the tooltip over the bottom-right
-		if (tip_pos.x + size.x > VIEW_W) tip_pos.x = VIEW_W - size.x;
-		if (tip_pos.y + size.y > VIEW_H) tip_pos.y = VIEW_H - size.y;
+		if (tip_pos.x + size.x > settings->view_w) tip_pos.x = settings->view_w - size.x;
+		if (tip_pos.y + size.y > settings->view_h) tip_pos.y = settings->view_h - size.y;
 		if (tip_pos.x < 0) tip_pos.x = 0;
 		if (tip_pos.y < 0) tip_pos.y = 0;
 	}
@@ -94,19 +96,19 @@ Point WidgetTooltip::calcPosition(STYLE style, const Point& pos, const Point& si
 /**
  * Creates the cached text buffer if needed and sets the position & bounds of the tooltip
  */
-void WidgetTooltip::prerender(TooltipData&tip, const Point& pos, STYLE style) {
-	if (tip.tip_buffer == NULL) {
+void WidgetTooltip::prerender(TooltipData&tip, const Point& pos, uint8_t style) {
+	if (sprite_buf == NULL || !tip.compare(data_buf)) {
 		if (!createBuffer(tip)) return;
 	}
 
 	Point size;
-	size.x = tip.tip_buffer->getGraphicsWidth();
-	size.y = tip.tip_buffer->getGraphicsHeight();
+	size.x = sprite_buf->getGraphicsWidth();
+	size.y = sprite_buf->getGraphicsHeight();
 
 	Point tip_pos = calcPosition(style, pos, size);
 
-	tip.tip_buffer->setDestX(tip_pos.x);
-	tip.tip_buffer->setDestY(tip_pos.y);
+	sprite_buf->setDestX(tip_pos.x);
+	sprite_buf->setDestY(tip_pos.y);
 
 	bounds.x = tip_pos.x;
 	bounds.y = tip_pos.y;
@@ -118,9 +120,12 @@ void WidgetTooltip::prerender(TooltipData&tip, const Point& pos, STYLE style) {
  * Tooltip position depends on the screen quadrant of the source.
  * Draw the buffered tooltip if it exists, else render the tooltip and buffer it
  */
-void WidgetTooltip::render(TooltipData &tip, const Point& pos, STYLE style) {
+void WidgetTooltip::render(TooltipData &tip, const Point& pos, uint8_t style) {
+	if (tip.isEmpty())
+		return;
+
 	prerender(tip, pos, style);
-	render_device->render(tip.tip_buffer);
+	render_device->render(sprite_buf);
 }
 
 /**
@@ -128,7 +133,6 @@ void WidgetTooltip::render(TooltipData &tip, const Point& pos, STYLE style) {
  * Instead of doing this each frame, do it once and cache the result.
  */
 bool WidgetTooltip::createBuffer(TooltipData &tip) {
-
 	if (tip.lines.empty()) {
 		tip.lines.resize(1);
 		tip.colors.resize(1);
@@ -144,19 +148,19 @@ bool WidgetTooltip::createBuffer(TooltipData &tip) {
 	font->setFont("font_regular");
 
 	// calculate the full size to display a multi-line tooltip
-	Point size = font->calc_size(fulltext, TOOLTIP_WIDTH);
+	Point size = font->calc_size(fulltext, eset->tooltips.width);
 
 	// WARNING: dynamic memory allocation. Be careful of memory leaks.
-	if (tip.tip_buffer) {
-		delete tip.tip_buffer;
-		tip.tip_buffer = NULL;
+	if (sprite_buf) {
+		delete sprite_buf;
+		sprite_buf = NULL;
 	}
 
 	Image *graphics;
-	graphics = render_device->createImage(size.x + (TOOLTIP_MARGIN*2), size.y + (TOOLTIP_MARGIN*2));
+	graphics = render_device->createImage(size.x + (eset->tooltips.margin*2), size.y + (eset->tooltips.margin*2));
 
 	if (!graphics) {
-		logError("WidgetTooltip: Could not create tooltip buffer.");
+		Utils::logError("WidgetTooltip: Could not create tooltip buffer.");
 		return false;
 	}
 
@@ -171,54 +175,55 @@ bool WidgetTooltip::createBuffer(TooltipData &tip) {
 		// top left
 		src.x = 0;
 		src.y = 0;
-		src.w = graphics->getWidth()-TOOLTIP_BACKGROUND_BORDER;
-		src.h = graphics->getHeight()-TOOLTIP_BACKGROUND_BORDER;
+		src.w = graphics->getWidth() - eset->tooltips.background_border;
+		src.h = graphics->getHeight() - eset->tooltips.background_border;
 		dest.x = 0;
 		dest.y = 0;
 		render_device->renderToImage(background, src, graphics, dest);
 
 		// right
-		src.x = background->getWidth()-TOOLTIP_BACKGROUND_BORDER;
+		src.x = background->getWidth() - eset->tooltips.background_border;
 		src.y = 0;
-		src.w = TOOLTIP_BACKGROUND_BORDER;
-		src.h = graphics->getHeight()-TOOLTIP_BACKGROUND_BORDER;
-		dest.x = graphics->getWidth()-TOOLTIP_BACKGROUND_BORDER;
+		src.w = eset->tooltips.background_border;
+		src.h = graphics->getHeight() - eset->tooltips.background_border;
+		dest.x = graphics->getWidth() - eset->tooltips.background_border;
 		dest.y = 0;
 		render_device->renderToImage(background, src, graphics, dest);
 
 		// bottom
 		src.x = 0;
-		src.y = background->getHeight()-TOOLTIP_BACKGROUND_BORDER;
-		src.w = graphics->getWidth()-TOOLTIP_BACKGROUND_BORDER;
-		src.h = TOOLTIP_BACKGROUND_BORDER;
+		src.y = background->getHeight() - eset->tooltips.background_border;
+		src.w = graphics->getWidth() - eset->tooltips.background_border;
+		src.h = eset->tooltips.background_border;
 		dest.x = 0;
-		dest.y = graphics->getHeight()-TOOLTIP_BACKGROUND_BORDER;
+		dest.y = graphics->getHeight() - eset->tooltips.background_border;
 		render_device->renderToImage(background, src, graphics, dest);
 
 		// bottom right
-		src.x = background->getWidth()-TOOLTIP_BACKGROUND_BORDER;
-		src.y = background->getHeight()-TOOLTIP_BACKGROUND_BORDER;
-		src.w = TOOLTIP_BACKGROUND_BORDER;
-		src.h = TOOLTIP_BACKGROUND_BORDER;
-		dest.x = graphics->getWidth()-TOOLTIP_BACKGROUND_BORDER;
-		dest.y = graphics->getHeight()-TOOLTIP_BACKGROUND_BORDER;
+		src.x = background->getWidth() - eset->tooltips.background_border;
+		src.y = background->getHeight() - eset->tooltips.background_border;
+		src.w = eset->tooltips.background_border;
+		src.h = eset->tooltips.background_border;
+		dest.x = graphics->getWidth() - eset->tooltips.background_border;
+		dest.y = graphics->getHeight() - eset->tooltips.background_border;
 		render_device->renderToImage(background, src, graphics, dest);
 	}
 
-	int cursor_y = TOOLTIP_MARGIN;
+	int cursor_y = eset->tooltips.margin;
 
 	for (unsigned int i=0; i<tip.lines.size(); i++) {
 		if (background)
-			font->renderShadowed(tip.lines[i], TOOLTIP_MARGIN, cursor_y, JUSTIFY_LEFT, graphics, size.x, tip.colors[i]);
+			font->renderShadowed(tip.lines[i], eset->tooltips.margin, cursor_y, FontEngine::JUSTIFY_LEFT, graphics, size.x, tip.colors[i]);
 		else
-			font->render(tip.lines[i], TOOLTIP_MARGIN, cursor_y, JUSTIFY_LEFT, graphics, size.x, tip.colors[i]);
+			font->render(tip.lines[i], eset->tooltips.margin, cursor_y, FontEngine::JUSTIFY_LEFT, graphics, size.x, tip.colors[i]);
 
 		cursor_y = font->cursor_y;
 	}
 
-	tip.tip_buffer = graphics->createSprite();
+	sprite_buf = graphics->createSprite();
 	graphics->unref();
 
+	data_buf = tip;
 	return true;
 }
 

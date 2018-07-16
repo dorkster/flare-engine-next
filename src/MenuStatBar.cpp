@@ -42,9 +42,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 MenuStatBar::MenuStatBar(const std::string& type)
 	: bar(NULL)
+	, stat_min(0)
 	, stat_cur(0)
 	, stat_max(0)
-	, orientation(0) // horizontal
+	, orientation(HORIZONTAL)
 	, custom_text_pos(false) // label will be placed in the middle of the bar
 	, custom_string("")
 	, bar_gfx("")
@@ -56,23 +57,23 @@ MenuStatBar::MenuStatBar(const std::string& type)
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuStatBar|Description of menus/hp.txt, menus/mp.txt, menus/xp.txt
-	if(infile.open("menus/"+type+".txt")) {
+	if(infile.open("menus/"+type+".txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR bar_pos|rectangle|Position and dimensions of the bar graphics.
 			if(infile.key == "bar_pos") {
-				bar_pos = toRect(infile.val);
+				bar_pos = Parse::toRect(infile.val);
 			}
 			// @ATTR text_pos|label|Position of the text displaying the current value of the relevant stat.
 			else if(infile.key == "text_pos") {
 				custom_text_pos = true;
-				text_pos = eatLabelInfo(infile.val);
+				text_pos = Parse::popLabelInfo(infile.val);
 			}
 			// @ATTR orientation|bool|True is vertical orientation; false is horizontal.
 			else if(infile.key == "orientation") {
-				orientation = toBool(infile.val);
+				orientation = Parse::toBool(infile.val);
 			}
 			// @ATTR bar_gfx|filename|Filename of the image to use for the "fill" of the bar.
 			else if (infile.key == "bar_gfx") {
@@ -91,8 +92,6 @@ MenuStatBar::MenuStatBar(const std::string& type)
 
 	loadGraphics();
 
-	color_normal = font->getColor("menu_normal");
-
 	align();
 }
 
@@ -104,7 +103,7 @@ void MenuStatBar::loadGraphics() {
 	}
 
 	if (bar_gfx != "") {
-		graphics = render_device->loadImage(bar_gfx);
+		graphics = render_device->loadImage(bar_gfx, RenderDevice::ERROR_NORMAL);
 		if (graphics) {
 			bar = graphics->createSprite();
 			graphics->unref();
@@ -112,10 +111,14 @@ void MenuStatBar::loadGraphics() {
 	}
 }
 
-void MenuStatBar::update(unsigned long _stat_cur, unsigned long _stat_max, const std::string& _custom_string) {
-	if (!_custom_string.empty()) custom_string = _custom_string;
+void MenuStatBar::update(unsigned long _stat_min, unsigned long _stat_cur, unsigned long _stat_max) {
+	stat_min = _stat_min;
 	stat_cur = _stat_cur;
 	stat_max = _stat_max;
+}
+
+void MenuStatBar::setCustomString(const std::string& _custom_string) {
+	custom_string = _custom_string;
 }
 
 void MenuStatBar::render() {
@@ -139,10 +142,12 @@ void MenuStatBar::render() {
 	Menu::render();
 
 	unsigned long stat_cur_clamped = std::min(stat_cur, stat_max);
+	unsigned long normalized_cur = stat_cur_clamped - std::min(stat_cur_clamped, stat_min);
+	unsigned long normalized_max = stat_max - std::min(stat_max, stat_min);
 
 	// draw bar progress based on orientation
-	if (orientation == 0) {
-		unsigned long bar_length = (stat_max == 0) ? 0 : (stat_cur_clamped * static_cast<unsigned long>(bar_pos.w)) / stat_max;
+	if (orientation == HORIZONTAL) {
+		unsigned long bar_length = (normalized_max == 0) ? 0 : (normalized_cur * static_cast<unsigned long>(bar_pos.w)) / normalized_max;
 		src.x = 0;
 		src.y = 0;
 		src.w = static_cast<int>(bar_length);
@@ -150,8 +155,8 @@ void MenuStatBar::render() {
 		dest.x = bar_dest.x;
 		dest.y = bar_dest.y;
 	}
-	else if (orientation == 1) {
-		unsigned long bar_length = (stat_max == 0) ? 0 : (stat_cur_clamped * static_cast<unsigned long>(bar_pos.h)) / stat_max;
+	else if (orientation == VERTICAL) {
+		unsigned long bar_length = (normalized_max == 0) ? 0 : (normalized_cur * static_cast<unsigned long>(bar_pos.h)) / normalized_max;
 		src.x = 0;
 		src.y = bar_pos.h-static_cast<int>(bar_length);
 		src.w = bar_pos.w;
@@ -169,18 +174,27 @@ void MenuStatBar::render() {
 	// if mouseover, draw text
 	if (!text_pos.hidden) {
 
-		if (STATBAR_LABELS || (inpt->usingMouse() && isWithinRect(bar_dest, inpt->mouse))) {
+		if (settings->statbar_labels || (inpt->usingMouse() && Utils::isWithinRect(bar_dest, inpt->mouse))) {
 			std::stringstream ss;
 			if (!custom_string.empty())
 				ss << custom_string;
 			else
 				ss << stat_cur << "/" << stat_max;
 
-			if (custom_text_pos)
-				label->set(bar_dest.x+text_pos.x, bar_dest.y+text_pos.y, text_pos.justify, text_pos.valign, ss.str(), color_normal, text_pos.font_style);
-			else
-				label->set(bar_dest.x+bar_pos.w/2, bar_dest.y+bar_pos.h/2, JUSTIFY_CENTER, VALIGN_CENTER, ss.str(), color_normal);
-			// label->set(ss.str());
+			label->setText(ss.str());
+			label->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+			if (custom_text_pos) {
+				label->setPos(bar_dest.x + text_pos.x, bar_dest.y + text_pos.y);
+				label->setJustify(text_pos.justify);
+				label->setVAlign(text_pos.valign);
+				label->setFont(text_pos.font_style);
+			}
+			else {
+				label->setPos(bar_dest.x + bar_pos.w/2, bar_dest.y + bar_pos.h/2);
+				label->setJustify(FontEngine::JUSTIFY_CENTER);
+				label->setVAlign(LabelInfo::VALIGN_CENTER);
+			}
 			label->render();
 		}
 	}

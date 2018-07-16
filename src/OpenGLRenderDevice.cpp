@@ -24,6 +24,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <string.h>
 
 #include "CursorManager.h"
+#include "EngineSettings.h"
 #include "IconManager.h"
 #include "InputState.h"
 #include "MessageEngine.h"
@@ -82,7 +83,7 @@ void drawPrimitive(GLfloat* vertexData, const Color& color, DRAW_TYPE type)
 	}
 	else if (type == TYPE_LINE)
 	{
-		logInfo("drawPrimitive(TYPE_LINE) UNIMPLEMENTED");
+		Utils::logInfo("drawPrimitive(TYPE_LINE) UNIMPLEMENTED");
 		points_count = 2;
 		mode = GL_LINE_STRIP;
 		return;
@@ -182,7 +183,7 @@ void OpenGLImage::fillWithColor(const Color& color) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, getWidth(), getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 	int error = glGetError();
 	if (error != GL_NO_ERROR)
-		logInfo("Error while calling glTexImage2D(): %d", error);
+		Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 
 	free(buffer);
 }
@@ -229,16 +230,16 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #endif
 
-	logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
-	MOUSE_SCALED = false;
+	Utils::logInfo("Using Render Device: OpenGLRenderDevice (hardware, SDL2/OpenGL)");
+	settings->mouse_scaled = false;
 
-	fullscreen = FULLSCREEN;
-	hwsurface = HWSURFACE;
-	vsync = VSYNC;
-	texture_filter = TEXTURE_FILTER;
+	fullscreen = settings->fullscreen;
+	hwsurface = settings->hwsurface;
+	vsync = settings->vsync;
+	texture_filter = settings->texture_filter;
 
-	min_screen.x = MIN_SCREEN_W;
-	min_screen.y = MIN_SCREEN_H;
+	min_screen.x = eset->resolutions.min_screen_w;
+	min_screen.y = eset->resolutions.min_screen_h;
 
 	m_positionData[0] = -1.0f; m_positionData[1] = -1.0f;
 	m_positionData[2] =  1.0f; m_positionData[3] = -1.0f;
@@ -251,15 +252,15 @@ OpenGLRenderDevice::OpenGLRenderDevice()
 	m_elementBufferData[3] = 3;
 }
 
-int OpenGLRenderDevice::createContext(bool allow_fallback) {
-	bool settings_changed = (fullscreen != FULLSCREEN || hwsurface != HWSURFACE || vsync != VSYNC || texture_filter != TEXTURE_FILTER);
+int OpenGLRenderDevice::createContextInternal() {
+	bool settings_changed = (fullscreen != settings->fullscreen || hwsurface != settings->hwsurface || vsync != settings->vsync || texture_filter != settings->texture_filter);
 
 	Uint32 w_flags = 0;
 	Uint32 r_flags = 0;
-	int window_w = SCREEN_W;
-	int window_h = SCREEN_H;
+	int window_w = settings->screen_w;
+	int window_h = settings->screen_h;
 
-	if (FULLSCREEN) {
+	if (settings->fullscreen) {
 		w_flags = w_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
 
 		// make the window the same size as the desktop resolution
@@ -271,8 +272,8 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 	}
 	else if (fullscreen && is_initialized) {
 		// if the game was previously in fullscreen, resize the window when returning to windowed mode
-		window_w = MIN_SCREEN_W;
-		window_h = MIN_SCREEN_H;
+		window_w = eset->resolutions.min_screen_w;
+		window_h = eset->resolutions.min_screen_h;
 		w_flags = w_flags | SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
 	}
 	else {
@@ -281,14 +282,14 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 
 	w_flags = w_flags | SDL_WINDOW_RESIZABLE;
 
-	if (HWSURFACE) {
+	if (settings->hwsurface) {
 		r_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE;
 	}
 	else {
 		r_flags = SDL_RENDERER_SOFTWARE | SDL_RENDERER_TARGETTEXTURE;
-		VSYNC = false; // can't have software mode & vsync at the same time
+		settings->vsync = false; // can't have software mode & vsync at the same time
 	}
-	if (VSYNC) r_flags = r_flags | SDL_RENDERER_PRESENTVSYNC;
+	if (settings->vsync) r_flags = r_flags | SDL_RENDERER_PRESENTVSYNC;
 
 	if (settings_changed || !is_initialized) {
 		if (is_initialized) {
@@ -303,7 +304,7 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 		if (window) {
 			renderer = SDL_GL_CreateContext(window);
 			if (renderer) {
-				if (TEXTURE_FILTER && !IGNORE_TEXTURE_FILTER)
+				if (settings->texture_filter && !eset->resolutions.ignore_texture_filter)
 					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 				else
 					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
@@ -311,7 +312,7 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 				windowResize();
 			}
 
-			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+			SDL_SetWindowMinimumSize(window, eset->resolutions.min_screen_w, eset->resolutions.min_screen_h);
 			// setting minimum size might move the window, so set position again
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		}
@@ -322,55 +323,36 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 			buildResources();
 		}
 
-		bool window_created = window != NULL && renderer != NULL;
-
-		if (!window_created && !is_initialized) {
-			// If this is the first attempt and it failed we are not
-			// getting anywhere.
-			logError("SDLOpenGLRenderDevice: createContext() failed: %s", SDL_GetError());
-			SDL_Quit();
-			exit(1);
-		}
-		else if (!window_created) {
-			if (allow_fallback) {
-				// try previous setting first
-				FULLSCREEN = fullscreen;
-				HWSURFACE = hwsurface;
-				VSYNC = vsync;
-				TEXTURE_FILTER = texture_filter;
-				if (createContext(false) == -1) {
-					// last resort, try turning everything off
-					FULLSCREEN = false;
-					HWSURFACE = false;
-					VSYNC = false;
-					TEXTURE_FILTER = false;
-					return createContext(false);
-				}
-				else {
-					return 0;
-				}
-			}
-		}
-		else {
+		if (window && renderer) {
 			if (!is_initialized) {
 				// save the system gamma levels if we just created the window
 				SDL_GetWindowGammaRamp(window, gamma_r, gamma_g, gamma_b);
+				Utils::logInfo("RenderDevice: Window size is %dx%d", settings->screen_w, settings->screen_h);
 			}
 
-			fullscreen = FULLSCREEN;
-			hwsurface = HWSURFACE;
-			vsync = VSYNC;
-			texture_filter = TEXTURE_FILTER;
+			fullscreen = settings->fullscreen;
+			hwsurface = settings->hwsurface;
+			vsync = settings->vsync;
+			texture_filter = settings->texture_filter;
 			is_initialized = true;
+
+			Utils::logInfo("RenderDevice: Fullscreen=%d, Hardware surfaces=%d, Vsync=%d, Texture Filter=%d", fullscreen, hwsurface, vsync, texture_filter);
+
+#if SDL_VERSION_ATLEAST(2, 0, 4)
+			SDL_GetDisplayDPI(0, &ddpi, 0, 0);
+			Utils::logInfo("RenderDevice: Display DPI is %f", ddpi);
+#else
+			Utils::logError("RenderDevice: The SDL version used to compile Flare does not support SDL_GetDisplayDPI(). The virtual_dpi setting will be ignored.");
+#endif
 		}
 	}
 
 	if (is_initialized) {
 		// update minimum window size if it has changed
-		if (min_screen.x != MIN_SCREEN_W || min_screen.y != MIN_SCREEN_H) {
-			min_screen.x = MIN_SCREEN_W;
-			min_screen.y = MIN_SCREEN_H;
-			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+		if (min_screen.x != eset->resolutions.min_screen_w || min_screen.y != eset->resolutions.min_screen_h) {
+			min_screen.x = eset->resolutions.min_screen_w;
+			min_screen.y = eset->resolutions.min_screen_h;
+			SDL_SetWindowMinimumSize(window, eset->resolutions.min_screen_w, eset->resolutions.min_screen_h);
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		}
 
@@ -385,27 +367,32 @@ int OpenGLRenderDevice::createContext(bool allow_fallback) {
 		delete curs;
 		curs = new CursorManager();
 
-		if (CHANGE_GAMMA)
-			setGamma(GAMMA);
+		if (settings->change_gamma)
+			setGamma(settings->gamma);
 		else {
 			resetGamma();
-			CHANGE_GAMMA = false;
-			GAMMA = 1.0;
+			settings->change_gamma = false;
+			settings->gamma = 1.0;
 		}
 	}
 
 	return (is_initialized ? 0 : -1);
 }
 
+void OpenGLRenderDevice::createContextError() {
+	Utils::logError("SDLHardwareRenderDevice: createContext() failed: %s", SDL_GetError());
+	Utils::logErrorDialog("SDLHardwareRenderDevice: createContext() failed: %s", SDL_GetError());
+}
+
 int OpenGLRenderDevice::render(Renderable& r, Rect& dest) {
 	SDL_Rect src = r.src;
 	SDL_Rect _dest = dest;
 
-	m_offset[0] = 2.0f * static_cast<float>(_dest.x)/VIEW_W;
-	m_offset[1] = 2.0f * static_cast<float>(_dest.y)/VIEW_H;
+	m_offset[0] = 2.0f * static_cast<float>(_dest.x)/settings->view_w;
+	m_offset[1] = 2.0f * static_cast<float>(_dest.y)/settings->view_h;
 
-	m_offset[2] = static_cast<float>(src.w)/VIEW_W;
-	m_offset[3] = static_cast<float>(src.h)/VIEW_H;
+	m_offset[2] = static_cast<float>(src.w)/settings->view_w;
+	m_offset[3] = static_cast<float>(src.h)/settings->view_h;
 
 	int height = static_cast<OpenGLImage *>(r.image)->getHeight();
 	int width = static_cast<OpenGLImage *>(r.image)->getWidth();
@@ -449,7 +436,7 @@ void* openShaderFile(const std::string& filename, GLint *length)
 	void *buffer;
 
 	if (!f) {
-		logError("Unable to open shader file %s for reading", full_filename.c_str());
+		Utils::logError("Unable to open shader file %s for reading", full_filename.c_str());
 		return NULL;
 	}
 
@@ -483,11 +470,11 @@ GLuint getShader(GLenum type, const std::string& filename)
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &shader_ok);
 	if (!shader_ok)
 	{
-		logError("Failed to compile %s:", filename.c_str());
+		Utils::logError("Failed to compile %s:", filename.c_str());
 
 		GLchar glsl_log[BUFSIZ];
 		glGetShaderInfoLog(shader, BUFSIZ, NULL, glsl_log);
-		logError("%s", glsl_log);
+		Utils::logError("%s", glsl_log);
 
 		glDeleteShader(shader);
 		return 1;
@@ -508,7 +495,7 @@ GLuint createProgram(GLuint vertex_shader, GLuint fragment_shader)
 	glGetProgramiv(program, GL_LINK_STATUS, &program_ok);
 	if (!program_ok)
 	{
-		logError("Failed to link shader program:");
+		Utils::logError("Failed to link shader program:");
 		glDeleteProgram(program);
 		return 1;
 	}
@@ -590,11 +577,11 @@ int OpenGLRenderDevice::render(Sprite *r) {
 	SDL_Rect src = m_clip;
 	SDL_Rect dest = m_dest;
 
-	m_offset[0] = 2.0f * static_cast<float>(dest.x)/VIEW_W;
-	m_offset[1] = 2.0f * static_cast<float>(dest.y)/VIEW_H;
+	m_offset[0] = 2.0f * static_cast<float>(dest.x)/settings->view_w;
+	m_offset[1] = 2.0f * static_cast<float>(dest.y)/settings->view_h;
 
-	m_offset[2] = static_cast<float>(src.w)/VIEW_W;
-	m_offset[3] = static_cast<float>(src.h)/VIEW_H;
+	m_offset[2] = static_cast<float>(src.w)/settings->view_w;
+	m_offset[3] = static_cast<float>(src.h)/settings->view_h;
 
 	int height = r->getGraphics()->getHeight();
 	int width = r->getGraphics()->getWidth();
@@ -646,8 +633,8 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	{
 		glUniform1i(uniforms.light, 0);
 	}
-	glUniform1i(uniforms.screenWidth, SCREEN_W);
-	glUniform1i(uniforms.screenHeight, SCREEN_H);
+	glUniform1i(uniforms.screenWidth, settings->screen_w);
+	glUniform1i(uniforms.screenHeight, settings->screen_h);
 
 	glUniform4fv(uniforms.offset, 1, offset);
 	glUniform4fv(uniforms.texelOffset, 1, texelOffset);
@@ -670,7 +657,7 @@ void OpenGLRenderDevice::composeFrame(GLfloat* offset, GLfloat* texelOffset, boo
 	);
 	GLenum error = glGetError();
 	if (error)
-		logInfo("Error while calling glDrawElements(): %d", error);
+		Utils::logInfo("Error while calling glDrawElements(): %d", error);
 
 	glDisableVertexAttribArray(attributes.position);
 }
@@ -688,7 +675,7 @@ void configureFrameBuffer(GLuint* frameBuffer, GLuint frameTexture, int frame_w,
 
 	GLenum error = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (error != GL_FRAMEBUFFER_COMPLETE)
-		logInfo("Failed to initialize framebuffer: %d", error);
+		Utils::logInfo("Failed to initialize framebuffer: %d", error);
 
 	glViewport(0, 0, frame_w, frame_h);
 }
@@ -777,7 +764,7 @@ Image * OpenGLRenderDevice::renderTextToImage(FontStyle* font_style, const std::
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, surface->pixels);
 		int error = glGetError();
 		if (error != GL_NO_ERROR)
-			logInfo("Error while calling glTexImage2D(): %d", error);
+			Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 		SDL_FreeSurface(surface);
 	}
 
@@ -794,8 +781,8 @@ void OpenGLRenderDevice::drawPixel(
 	const Color& color
 ) {
 	GLfloat positionData[2];
-	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[1] = 1.0f - 2.0f * static_cast<float>(y)/static_cast<float>(VIEW_H);
+	positionData[0] = 2.0f * static_cast<float>(x)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(y)/static_cast<float>(settings->view_h);
 
 	drawPrimitive(positionData, color, TYPE_PIXEL);
 }
@@ -808,10 +795,10 @@ void OpenGLRenderDevice::drawLine(
 	const Color& color
 ) {
 	GLfloat positionData[4];
-	positionData[0] = 2.0f * static_cast<float>(x0)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[1] = 1.0f - 2.0f * static_cast<float>(y0)/static_cast<float>(VIEW_H);
-	positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[3] = 1.0f - 2.0f * static_cast<float>(y1)/static_cast<float>(VIEW_H);
+	positionData[0] = 2.0f * static_cast<float>(x0)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(y0)/static_cast<float>(settings->view_h);
+	positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[3] = 1.0f - 2.0f * static_cast<float>(y1)/static_cast<float>(settings->view_h);
 
 	drawPrimitive(positionData, color, TYPE_LINE);
 }
@@ -822,14 +809,14 @@ void OpenGLRenderDevice::drawRectangle(
 	const Color& color
 ) {
 	GLfloat positionData[8];
-	positionData[0] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[1] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(VIEW_H);
-	positionData[2] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[3] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(VIEW_H);
-	positionData[4] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[5] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(VIEW_H);
-	positionData[6] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(VIEW_W) - 1.0f;
-	positionData[7] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(VIEW_H);
+	positionData[0] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(settings->view_h);
+	positionData[2] = 2.0f * static_cast<float>(p0.x)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[3] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(settings->view_h);
+	positionData[4] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[5] = 1.0f - 2.0f * static_cast<float>(p1.y)/static_cast<float>(settings->view_h);
+	positionData[6] = 2.0f * static_cast<float>(p1.x)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[7] = 1.0f - 2.0f * static_cast<float>(p0.y)/static_cast<float>(settings->view_h);
 
 	drawPrimitive(positionData, color, TYPE_RECT);
 }
@@ -917,7 +904,7 @@ Image *OpenGLRenderDevice::createImage(int width, int height) {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
 	int error = glGetError();
 	if (error != GL_NO_ERROR)
-		logInfo("Error while calling glTexImage2D(): %d", error);
+		Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 
 	free(buffer);
 
@@ -942,14 +929,14 @@ void OpenGLRenderDevice::updateTitleBar() {
 
 	if (!window) return;
 
-	title = strdup(msg->get(WINDOW_TITLE).c_str());
+	title = strdup(msg->get(eset->misc.window_title).c_str());
 	titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
 
 	if (title) SDL_SetWindowTitle(window, title);
 	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
-Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::string& errormessage, bool IfNotFoundExit) {
+Image *OpenGLRenderDevice::loadImage(const std::string& filename, int error_type) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);
@@ -959,11 +946,13 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 	OpenGLImage *image = NULL;
 	SDL_Surface *cleanup = IMG_Load(mods->locate(filename).c_str());
 	if(!cleanup) {
-		if (!errormessage.empty())
-			logError("OpenGLRenderDevice: %s: %s", errormessage.c_str(), IMG_GetError());
-		if (IfNotFoundExit) {
-			SDL_Quit();
-			exit(1);
+		if (error_type != ERROR_NONE)
+			Utils::logError("OpenGLRenderDevice: Couldn't load image: '%s'. %s", filename.c_str(), IMG_GetError());
+
+		if (error_type == ERROR_EXIT) {
+			Utils::logErrorDialog("OpenGLRenderDevice: Couldn't load image: '%s'.\n%s", filename.c_str(), IMG_GetError());
+			mods->resetModConfig();
+			Utils::Exit(1);
 		}
 	}
 	else {
@@ -984,7 +973,7 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surface->w, surface->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surface->pixels);
 		int error = glGetError();
 		if (error != GL_NO_ERROR)
-			logInfo("Error while calling glTexImage2D(): %d", error);
+			Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 
 		SDL_FreeSurface(surface);
 		SDL_FreeSurface(cleanup);
@@ -1010,13 +999,13 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surfaceN->w, surfaceN->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceN->pixels);
 		int error = glGetError();
 		if (error != GL_NO_ERROR)
-			logInfo("Error while calling glTexImage2D(): %d", error);
+			Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 
 		SDL_FreeSurface(surfaceN);
 		SDL_FreeSurface(cleanupN);
 	}
 	else if (cleanupN) {
-		logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
+		Utils::logInfo("Skip loading image %s, it has wrong size", normalFileName.c_str());
 		SDL_FreeSurface(cleanupN);
 	}
 
@@ -1040,13 +1029,13 @@ Image *OpenGLRenderDevice::loadImage(const std::string& filename, const std::str
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, surfaceAO->w, surfaceAO->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, surfaceAO->pixels);
 		int error = glGetError();
 		if (error != GL_NO_ERROR)
-			logInfo("Error while calling glTexImage2D(): %d", error);
+			Utils::logInfo("Error while calling glTexImage2D(): %d", error);
 
 		SDL_FreeSurface(surfaceAO);
 		SDL_FreeSurface(cleanupAO);
 	}
 	else if (cleanupAO) {
-		logInfo("Skip loading image %s, it has wrong size", aoFileName.c_str());
+		Utils::logInfo("Skip loading image %s, it has wrong size", aoFileName.c_str());
 		SDL_FreeSurface(cleanupAO);
 	}
 
@@ -1065,8 +1054,8 @@ void OpenGLRenderDevice::getWindowSize(short unsigned *screen_w, short unsigned 
 void OpenGLRenderDevice::windowResize() {
 	windowResizeInternal();
 
-	int offsetY = static_cast<int>(SCREEN_H - VIEW_H / VIEW_SCALING) / 2;
-	glViewport(0, offsetY, static_cast<GLint>(VIEW_W / VIEW_SCALING), static_cast<GLint>(VIEW_H / VIEW_SCALING));
+	int offsetY = static_cast<int>(settings->screen_h - settings->view_h / settings->view_scaling) / 2;
+	glViewport(0, offsetY, static_cast<GLint>(settings->view_w / settings->view_scaling), static_cast<GLint>(settings->view_h / settings->view_scaling));
 
-	updateScreenVars();
+	settings->updateScreenVars();
 }

@@ -18,6 +18,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "GameStateConfigBase.h"
@@ -42,59 +43,59 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 GameStateTitle::GameStateTitle()
 	: GameState()
 	, logo(NULL)
-	, align_logo(ALIGN_CENTER)
+	, align_logo(Utils::ALIGN_CENTER)
 	, exit_game(false)
 	, load_game(false)
 {
 
 	// set up buttons
-	button_play = new WidgetButton();
-	button_exit = new WidgetButton();
-	button_cfg = new WidgetButton();
-	button_credits = new WidgetButton();
+	button_play = new WidgetButton(WidgetButton::DEFAULT_FILE);
+	button_exit = new WidgetButton(WidgetButton::DEFAULT_FILE);
+	button_cfg = new WidgetButton(WidgetButton::DEFAULT_FILE);
+	button_credits = new WidgetButton(WidgetButton::DEFAULT_FILE);
 
 	FileParser infile;
 	// @CLASS GameStateTitle|Description of menus/gametitle.txt
-	if (infile.open("menus/gametitle.txt")) {
+	if (infile.open("menus/gametitle.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			// @ATTR logo|filename, int, int, alignment : Image file, X, Y, Alignment|Filename and position of the main logo image.
 			if (infile.key == "logo") {
-				Image *graphics = render_device->loadImage(popFirstString(infile.val), "");
+				Image *graphics = render_device->loadImage(Parse::popFirstString(infile.val), RenderDevice::ERROR_NONE);
 				if (graphics) {
  				    logo = graphics->createSprite();
 					graphics->unref();
 
-					pos_logo.x = popFirstInt(infile.val);
-					pos_logo.y = popFirstInt(infile.val);
-					align_logo = parse_alignment(popFirstString(infile.val));
+					pos_logo.x = Parse::popFirstInt(infile.val);
+					pos_logo.y = Parse::popFirstInt(infile.val);
+					align_logo = Parse::toAlignment(Parse::popFirstString(infile.val));
 				}
 			}
 			// @ATTR play_pos|int, int, alignment : X, Y, Alignment|Position of the "Play Game" button.
 			else if (infile.key == "play_pos") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_play->setBasePos(x, y, a);
 			}
 			// @ATTR config_pos|int, int, alignment : X, Y, Alignment|Position of the "Configuration" button.
 			else if (infile.key == "config_pos") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_cfg->setBasePos(x, y, a);
 			}
 			// @ATTR credits_pos|int, int, alignment : X, Y, Alignment|Position of the "Credits" button.
 			else if (infile.key == "credits_pos") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_credits->setBasePos(x, y, a);
 			}
 			// @ATTR exit_pos|int, int, alignment : X, Y, Alignment|Position of the "Exit Game" button.
 			else if (infile.key == "exit_pos") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_exit->setBasePos(x, y, a);
 			}
 			else {
@@ -105,7 +106,7 @@ GameStateTitle::GameStateTitle()
 	}
 
 	button_play->label = msg->get("Play Game");
-	if (!ENABLE_PLAYGAME) {
+	if (!eset->gameplay.enable_playgame) {
 		button_play->enabled = false;
 		button_play->tooltip = msg->get("Enable a core mod to continue");
 	}
@@ -122,9 +123,12 @@ GameStateTitle::GameStateTitle()
 
 	// set up labels
 	label_version = new WidgetLabel();
-	label_version->set(0, 0, JUSTIFY_RIGHT, VALIGN_TOP, getVersionString(), font->getColor("menu_normal"));
+	label_version->setJustify(FontEngine::JUSTIFY_RIGHT);
+	label_version->setText(VersionInfo::createVersionStringFull());
+	label_version->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	// Setup tab order
+	tablist.ignore_no_mouse = true;
 	tablist.add(button_play);
 	tablist.add(button_cfg);
 	tablist.add(button_credits);
@@ -132,7 +136,7 @@ GameStateTitle::GameStateTitle()
 
 	refreshWidgets();
 
-	if (ENABLE_PLAYGAME && !LOAD_SLOT.empty()) {
+	if (eset->gameplay.enable_playgame && !settings->load_slot.empty()) {
 		showLoading();
 		setRequestedGameState(new GameStateLoad());
 	}
@@ -144,16 +148,16 @@ void GameStateTitle::logic() {
 	if (inpt->window_resized)
 		refreshWidgets();
 
-	button_play->enabled = ENABLE_PLAYGAME;
+	button_play->enabled = eset->gameplay.enable_playgame;
 
 	snd->logic(FPoint(0,0));
 
-	if(inpt->pressing[CANCEL] && !inpt->lock[CANCEL]) {
-		inpt->lock[CANCEL] = true;
+	if(inpt->pressing[Input::CANCEL] && !inpt->lock[Input::CANCEL]) {
+		inpt->lock[Input::CANCEL] = true;
 		exitRequested = true;
 	}
 
-	tablist.logic(true);
+	tablist.logic();
 
 	if (button_play->checkClick()) {
 		showLoading();
@@ -161,12 +165,12 @@ void GameStateTitle::logic() {
 	}
 	else if (button_cfg->checkClick()) {
 		showLoading();
-		if (platform_options.config_menu_type == CONFIG_MENU_TYPE_DESKTOP_NO_VIDEO)
-			setRequestedGameState(new GameStateConfigDesktop(false));
-		else if (platform_options.config_menu_type == CONFIG_MENU_TYPE_DESKTOP)
-			setRequestedGameState(new GameStateConfigDesktop(true));
+		if (platform.config_menu_type == Platform::CONFIG_MENU_TYPE_DESKTOP_NO_VIDEO)
+			setRequestedGameState(new GameStateConfigDesktop(!GameStateConfigDesktop::ENABLE_VIDEO_TAB));
+		else if (platform.config_menu_type == Platform::CONFIG_MENU_TYPE_DESKTOP)
+			setRequestedGameState(new GameStateConfigDesktop(GameStateConfigDesktop::ENABLE_VIDEO_TAB));
 		else
-			setRequestedGameState(new GameStateConfigBase());
+			setRequestedGameState(new GameStateConfigBase(GameStateConfigBase::DO_INIT));
 	}
 	else if (button_credits->checkClick()) {
 		showLoading();
@@ -181,7 +185,7 @@ void GameStateTitle::logic() {
 			setRequestedGameState(credits);
 		}
 	}
-	else if (platform_options.has_exit_button && button_exit->checkClick()) {
+	else if (platform.has_exit_button && button_exit->checkClick()) {
 		exitRequested = true;
 	}
 }
@@ -193,17 +197,17 @@ void GameStateTitle::refreshWidgets() {
 		r.y = pos_logo.y;
 		r.w = logo->getGraphicsWidth();
 		r.h = logo->getGraphicsHeight();
-		alignToScreenEdge(align_logo, &r);
+		Utils::alignToScreenEdge(align_logo, &r);
 		logo->setDestX(r.x);
 		logo->setDestY(r.y);
 	}
 
-	button_play->setPos();
-	button_cfg->setPos();
-	button_credits->setPos();
-	button_exit->setPos();
+	button_play->setPos(0, 0);
+	button_cfg->setPos(0, 0);
+	button_credits->setPos(0, 0);
+	button_exit->setPos(0, 0);
 
-	label_version->setPos(VIEW_W, 0);
+	label_version->setPos(settings->view_w, 0);
 }
 
 void GameStateTitle::render() {
@@ -215,7 +219,7 @@ void GameStateTitle::render() {
 	button_cfg->render();
 	button_credits->render();
 
-	if (platform_options.has_exit_button)
+	if (platform.has_exit_button)
 		button_exit->render();
 
 	// version number

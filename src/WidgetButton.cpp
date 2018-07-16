@@ -27,19 +27,16 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "InputState.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
+#include "TooltipManager.h"
 #include "WidgetButton.h"
-#include "WidgetTooltip.h"
+
+const std::string WidgetButton::DEFAULT_FILE = "images/menus/buttons/button_default.png";
 
 WidgetButton::WidgetButton(const std::string& _fileName)
 	: Widget()
 	, fileName(_fileName)
 	, buttons()
 	, wlabel()
-	, color_normal(font->getColor("widget_normal"))
-	, color_disabled(font->getColor("widget_disabled"))
-	, tip_buf()
-	, tip_new()
-	, tip(new WidgetTooltip())
 	, activated(false)
 	, label("")
 	, tooltip("")
@@ -63,7 +60,7 @@ void WidgetButton::setPos(int offset_x, int offset_y) {
 void WidgetButton::loadArt() {
 	// load button images
 	Image *graphics;
-	graphics = render_device->loadImage(fileName, "Couldn't load button image", true);
+	graphics = render_device->loadImage(fileName, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		buttons = graphics->createSprite();
 		pos.w = buttons->getGraphicsWidth();
@@ -74,31 +71,30 @@ void WidgetButton::loadArt() {
 }
 
 bool WidgetButton::checkClick() {
-	return checkClick(inpt->mouse.x,inpt->mouse.y);
+	return checkClickAt(inpt->mouse.x,inpt->mouse.y);
 }
 
 /**
  * Sets and releases the "pressed" visual state of the button
  * If press and release, activate (return true)
  */
-bool WidgetButton::checkClick(int x, int y) {
+bool WidgetButton::checkClickAt(int x, int y) {
 	Point mouse(x,y);
 
-	// Change the hover state
-	hover = isWithinRect(pos, mouse) && inpt->usingMouse();
+	checkTooltip(mouse);
 
-	// Check the tooltip
-	tip_new = checkTooltip(mouse);
+	// Change the hover state
+	hover = Utils::isWithinRect(pos, mouse) && inpt->usingMouse();
 
 	// disabled buttons can't be clicked;
 	if (!enabled) return false;
 
 	// main button already in use, new click not allowed
-	if (inpt->lock[MAIN1]) return false;
-	if (inpt->lock[ACCEPT]) return false;
+	if (inpt->lock[Input::MAIN1]) return false;
+	if (inpt->lock[Input::ACCEPT]) return false;
 
 	// main click released, so the button state goes back to unpressed
-	if (pressed && !inpt->lock[MAIN1] && !inpt->lock[ACCEPT] && (isWithinRect(pos, mouse) || activated)) {
+	if (pressed && !inpt->lock[Input::MAIN1] && !inpt->lock[Input::ACCEPT] && (Utils::isWithinRect(pos, mouse) || activated)) {
 		activated = false;
 		pressed = false;
 		return true;
@@ -107,10 +103,10 @@ bool WidgetButton::checkClick(int x, int y) {
 	pressed = false;
 
 	// detect new click
-	if (inpt->pressing[MAIN1]) {
-		if (isWithinRect(pos, mouse)) {
+	if (inpt->pressing[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos, mouse)) {
 
-			inpt->lock[MAIN1] = true;
+			inpt->lock[Input::MAIN1] = true;
 			pressed = true;
 
 		}
@@ -151,15 +147,6 @@ void WidgetButton::render() {
 	wlabel.local_frame = local_frame;
 	wlabel.local_offset = local_offset;
 	wlabel.render();
-
-	// render the tooltip
-	if (!tip_new.isEmpty()) {
-		if (!tip_new.compare(&tip_buf)) {
-			tip_buf.clear();
-			tip_buf = tip_new;
-		}
-		tip->render(tip_buf, inpt->mouse, STYLE_FLOAT);
-	}
 }
 
 /**
@@ -168,34 +155,27 @@ void WidgetButton::render() {
 void WidgetButton::refresh() {
 	if (label != "") {
 
-		int font_x = pos.x + (pos.w/2);
-		int font_y = pos.y + (pos.h/2);
+		wlabel.setPos(pos.x + (pos.w/2), pos.y + (pos.h/2));
+		wlabel.setJustify(FontEngine::JUSTIFY_CENTER);
+		wlabel.setVAlign(LabelInfo::VALIGN_CENTER);
+		wlabel.setText(label);
 
 		if (enabled)
-			wlabel.set(font_x, font_y, JUSTIFY_CENTER, VALIGN_CENTER, label, color_normal);
+			wlabel.setColor(font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 		else
-			wlabel.set(font_x, font_y, JUSTIFY_CENTER, VALIGN_CENTER, label, color_disabled);
+			wlabel.setColor(font->getColor(FontEngine::COLOR_WIDGET_DISABLED));
 	}
 }
 
-/**
- * If mousing-over an item with a tooltip, return that tooltip data.
- *
- * @param mouse The x,y screen coordinates of the mouse cursor
- */
-TooltipData WidgetButton::checkTooltip(const Point& mouse) {
-	TooltipData _tip;
-
-	if (inpt->usingMouse() && isWithinRect(pos, mouse) && tooltip != "") {
-		_tip.addText(tooltip);
+void WidgetButton::checkTooltip(const Point& mouse) {
+	if (inpt->usingMouse() && Utils::isWithinRect(pos, mouse) && tooltip != "") {
+		TooltipData tip_data;
+		tip_data.addText(tooltip);
+		tooltipm->push(tip_data, mouse, TooltipData::STYLE_FLOAT);
 	}
-
-	return _tip;
 }
 
 WidgetButton::~WidgetButton() {
-	if (buttons) delete buttons;
-	tip_buf.clear();
-	delete tip;
+	delete buttons;
 }
 

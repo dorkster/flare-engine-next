@@ -26,8 +26,8 @@ Widget::Widget()
 	: render_to_alpha(false)
 	, in_focus(false)
 	, focusable(false)
-	, scroll_type(TWO_DIRECTIONS)
-	, alignment(ALIGN_TOPLEFT) {
+	, scroll_type(SCROLL_TWO_DIRECTIONS)
+	, alignment(Utils::ALIGN_TOPLEFT) {
 }
 
 Widget::~Widget() {
@@ -51,7 +51,7 @@ bool Widget::getPrev() {
 	return false;
 }
 
-void Widget::setBasePos(int x, int y, ALIGNMENT a) {
+void Widget::setBasePos(int x, int y, int a) {
 	pos_base.x = x;
 	pos_base.y = y;
 	alignment = a;
@@ -60,20 +60,21 @@ void Widget::setBasePos(int x, int y, ALIGNMENT a) {
 void Widget::setPos(int offset_x, int offset_y) {
 	pos.x = pos_base.x + offset_x;
 	pos.y = pos_base.y + offset_y;
-	alignToScreenEdge(alignment, &pos);
+	Utils::alignToScreenEdge(alignment, &pos);
 }
 
-TabList::TabList(ScrollType _scrolltype, int _LEFT, int _RIGHT, int _ACTIVATE)
+TabList::TabList()
 	: widgets()
 	, current(-1)
 	, previous(-1)
 	, locked(false)
-	, scrolltype(_scrolltype)
-	, MV_LEFT(_LEFT)
-	, MV_RIGHT(_RIGHT)
-	, ACTIVATE(_ACTIVATE)
+	, scrolltype(Widget::SCROLL_TWO_DIRECTIONS)
+	, MV_LEFT(Input::LEFT)
+	, MV_RIGHT(Input::RIGHT)
+	, ACTIVATE(Input::ACCEPT)
 	, prev_tablist(NULL)
-	, next_tablist(NULL) {
+	, next_tablist(NULL)
+	, ignore_no_mouse(false) {
 }
 
 TabList::~TabList() {
@@ -161,7 +162,7 @@ bool TabList::previous_is_valid() {
 	return previous >= 0 && previous < static_cast<int>(widgets.size());
 }
 
-Widget* TabList::getNext(bool inner, WidgetRelSelect dir) {
+Widget* TabList::getNext(bool inner, uint8_t dir) {
 	if (widgets.empty())
 		return NULL;
 
@@ -193,7 +194,7 @@ Widget* TabList::getNext(bool inner, WidgetRelSelect dir) {
 				defocus();
 				locked = true;
 				next_tablist->unlock();
-				return next_tablist->getNext(false);
+				return next_tablist->getNext(!GET_INNER, WIDGET_SELECT_AUTO);
 			}
 		}
 	}
@@ -202,7 +203,7 @@ Widget* TabList::getNext(bool inner, WidgetRelSelect dir) {
 	return widgets.at(current);
 }
 
-Widget* TabList::getPrev(bool inner, WidgetRelSelect dir) {
+Widget* TabList::getPrev(bool inner, uint8_t dir) {
 	if (widgets.empty())
 		return NULL;
 
@@ -238,7 +239,7 @@ Widget* TabList::getPrev(bool inner, WidgetRelSelect dir) {
 				defocus();
 				locked = true;
 				prev_tablist->unlock();
-				return prev_tablist->getPrev(false);
+				return prev_tablist->getPrev(!GET_INNER, WIDGET_SELECT_AUTO);
 			}
 		}
 	}
@@ -247,7 +248,7 @@ Widget* TabList::getPrev(bool inner, WidgetRelSelect dir) {
 	return widgets.at(current);
 }
 
-int TabList::getNextRelativeIndex(WidgetRelSelect dir) {
+int TabList::getNextRelativeIndex(uint8_t dir) {
 	if (current == -1)
 		return -1;
 
@@ -270,7 +271,7 @@ int TabList::getNextRelativeIndex(WidgetRelSelect dir) {
 		else if (dir == WIDGET_SELECT_DOWN && p1.y >= p2.y)
 			continue;
 
-		float dist = calcDist(p1, p2);
+		float dist = Utils::calcDist(p1, p2);
 
 		if (min_distance == -1 || dist < min_distance) {
 			min_distance = dist;
@@ -313,50 +314,60 @@ void TabList::setNextTabList(TabList *tl) {
 	next_tablist = tl;
 }
 
-void TabList::logic(bool allow_keyboard) {
-	if (locked) return;
-	if (!inpt->usingMouse() || allow_keyboard) {
-		ScrollType inner_scrolltype = VERTICAL;
+void TabList::setScrollType(uint8_t _scrolltype) {
+	scrolltype = _scrolltype;
+}
 
-		if (current_is_valid() && widgets.at(current)->scroll_type != TWO_DIRECTIONS) {
+void TabList::setInputs(int _LEFT, int _RIGHT, int _ACTIVATE) {
+	MV_LEFT = _LEFT;
+	MV_RIGHT = _RIGHT;
+	ACTIVATE = _ACTIVATE;
+}
+
+void TabList::logic() {
+	if (locked) return;
+	if (!inpt->usingMouse() || ignore_no_mouse) {
+		uint8_t inner_scrolltype = Widget::SCROLL_VERTICAL;
+
+		if (current_is_valid() && widgets.at(current)->scroll_type != Widget::SCROLL_TWO_DIRECTIONS) {
 			inner_scrolltype = widgets.at(current)->scroll_type;
 		}
 
-		if (scrolltype == VERTICAL || scrolltype == TWO_DIRECTIONS) {
-			if (inpt->pressing[DOWN] && !inpt->lock[DOWN]) {
-				inpt->lock[DOWN] = true;
+		if (scrolltype == Widget::SCROLL_VERTICAL || scrolltype == Widget::SCROLL_TWO_DIRECTIONS) {
+			if (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN]) {
+				inpt->lock[Input::DOWN] = true;
 
-				if (inner_scrolltype == VERTICAL)
-					getNext(true, WIDGET_SELECT_DOWN);
-				else if (inner_scrolltype == HORIZONTAL)
-					getNext(false, WIDGET_SELECT_DOWN);
+				if (inner_scrolltype == Widget::SCROLL_VERTICAL)
+					getNext(GET_INNER, WIDGET_SELECT_DOWN);
+				else if (inner_scrolltype == Widget::SCROLL_HORIZONTAL)
+					getNext(!GET_INNER, WIDGET_SELECT_DOWN);
 			}
-			else if (inpt->pressing[UP] && !inpt->lock[UP]) {
-				inpt->lock[UP] = true;
+			else if (inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) {
+				inpt->lock[Input::UP] = true;
 
-				if (inner_scrolltype == VERTICAL)
-					getPrev(true, WIDGET_SELECT_UP);
-				else if (inner_scrolltype == HORIZONTAL)
-					getPrev(false, WIDGET_SELECT_UP);
+				if (inner_scrolltype == Widget::SCROLL_VERTICAL)
+					getPrev(GET_INNER, WIDGET_SELECT_UP);
+				else if (inner_scrolltype == Widget::SCROLL_HORIZONTAL)
+					getPrev(!GET_INNER, WIDGET_SELECT_UP);
 			}
 		}
 
-		if (scrolltype == HORIZONTAL || scrolltype == TWO_DIRECTIONS) {
+		if (scrolltype == Widget::SCROLL_HORIZONTAL || scrolltype == Widget::SCROLL_TWO_DIRECTIONS) {
 			if (inpt->pressing[MV_LEFT] && !inpt->lock[MV_LEFT]) {
 				inpt->lock[MV_LEFT] = true;
 
-				if (inner_scrolltype == VERTICAL)
-					getPrev(false, WIDGET_SELECT_LEFT);
-				else if (inner_scrolltype == HORIZONTAL)
-					getPrev(true, WIDGET_SELECT_LEFT);
+				if (inner_scrolltype == Widget::SCROLL_VERTICAL)
+					getPrev(!GET_INNER, WIDGET_SELECT_LEFT);
+				else if (inner_scrolltype == Widget::SCROLL_HORIZONTAL)
+					getPrev(GET_INNER, WIDGET_SELECT_LEFT);
 			}
 			else if (inpt->pressing[MV_RIGHT] && !inpt->lock[MV_RIGHT]) {
 				inpt->lock[MV_RIGHT] = true;
 
-				if (inner_scrolltype == VERTICAL)
-					getNext(false, WIDGET_SELECT_RIGHT);
-				else if (inner_scrolltype == HORIZONTAL)
-					getNext(true, WIDGET_SELECT_RIGHT);
+				if (inner_scrolltype == Widget::SCROLL_VERTICAL)
+					getNext(!GET_INNER, WIDGET_SELECT_RIGHT);
+				else if (inner_scrolltype == Widget::SCROLL_HORIZONTAL)
+					getNext(GET_INNER, WIDGET_SELECT_RIGHT);
 			}
 		}
 
@@ -368,13 +379,13 @@ void TabList::logic(bool allow_keyboard) {
 	}
 
 	// If mouse is clicked, defocus current tabindex item
-	if (inpt->pressing[MAIN1] && !inpt->lock[MAIN1] && current_is_valid() && !isWithinRect(widgets[getCurrent()]->pos, inpt->mouse)) {
+	if (inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1] && current_is_valid() && !Utils::isWithinRect(widgets[getCurrent()]->pos, inpt->mouse)) {
 		defocus();
 	}
 
 	// Also defocus if we start using the mouse
 	// we need to disable this for touchscreen devices so that item tooltips will work
-	if (!TOUCHSCREEN && current != -1 && inpt->usingMouse()) {
+	if (!settings->touchscreen && current != -1 && inpt->usingMouse()) {
 		defocus();
 	}
 }

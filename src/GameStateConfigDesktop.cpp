@@ -43,43 +43,39 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WidgetScrollBox.h"
 #include "WidgetSlider.h"
 #include "WidgetTabControl.h"
-#include "WidgetTooltip.h"
 
 #include <limits.h>
 #include <iomanip>
 
-#define GAMMA_MIN 5
-#define GAMMA_MAX 15
-
 GameStateConfigDesktop::GameStateConfigDesktop(bool _enable_video_tab)
-	: GameStateConfigBase(false)
-	, renderer_lstb(new WidgetListBox(4))
+	: GameStateConfigBase(!GameStateConfigBase::DO_INIT)
+	, renderer_lstb(new WidgetListBox(4, WidgetListBox::DEFAULT_FILE))
 	, renderer_lb(new WidgetLabel())
-	, fullscreen_cb(new WidgetCheckBox())
+	, fullscreen_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, fullscreen_lb(new WidgetLabel())
-	, hwsurface_cb(new WidgetCheckBox())
+	, hwsurface_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, hwsurface_lb(new WidgetLabel())
-	, vsync_cb(new WidgetCheckBox())
+	, vsync_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, vsync_lb(new WidgetLabel())
-	, texture_filter_cb(new WidgetCheckBox())
+	, texture_filter_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, texture_filter_lb(new WidgetLabel())
-	, dpi_scaling_cb(new WidgetCheckBox())
+	, dpi_scaling_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, dpi_scaling_lb(new WidgetLabel())
-	, change_gamma_cb(new WidgetCheckBox())
+	, change_gamma_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, change_gamma_lb(new WidgetLabel())
-	, gamma_sl(new WidgetSlider())
+	, gamma_sl(new WidgetSlider(WidgetSlider::DEFAULT_FILE))
 	, gamma_lb(new WidgetLabel())
-	, joystick_device_lstb(new WidgetListBox(10))
+	, joystick_device_lstb(new WidgetListBox(10, WidgetListBox::DEFAULT_FILE))
 	, joystick_device_lb(new WidgetLabel())
-	, enable_joystick_cb(new WidgetCheckBox())
+	, enable_joystick_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, enable_joystick_lb(new WidgetLabel())
-	, mouse_move_cb(new WidgetCheckBox())
+	, mouse_move_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, mouse_move_lb(new WidgetLabel())
-	, mouse_aim_cb(new WidgetCheckBox())
+	, mouse_aim_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, mouse_aim_lb(new WidgetLabel())
-	, no_mouse_cb(new WidgetCheckBox())
+	, no_mouse_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, no_mouse_lb(new WidgetLabel())
-	, joystick_deadzone_sl(new WidgetSlider())
+	, joystick_deadzone_sl(new WidgetSlider(WidgetSlider::DEFAULT_FILE))
 	, joystick_deadzone_lb(new WidgetLabel())
 	, input_scrollbox(NULL)
 	, input_confirm(new MenuConfirm(msg->get("Clear"),msg->get("Assign:")))
@@ -92,13 +88,13 @@ GameStateConfigDesktop::GameStateConfigDesktop(bool _enable_video_tab)
 	, keybind_tip(new WidgetTooltip())
 {
 	// Allocate KeyBindings
-	for (int i = 0; i < inpt->key_count; i++) {
+	for (int i = 0; i < inpt->KEY_COUNT; i++) {
 		keybinds_lb.push_back(new WidgetLabel());
-		keybinds_lb[i]->set(inpt->binding_name[i]);
-		keybinds_lb[i]->setJustify(JUSTIFY_RIGHT);
+		keybinds_lb[i]->setText(inpt->binding_name[i]);
+		keybinds_lb[i]->setJustify(FontEngine::JUSTIFY_RIGHT);
 	}
-	for (int i = 0; i < inpt->key_count * 3; i++) {
-		keybinds_btn.push_back(new WidgetButton());
+	for (int i = 0; i < inpt->KEY_COUNT * 3; i++) {
+		keybinds_btn.push_back(new WidgetButton(WidgetButton::DEFAULT_FILE));
 	}
 
 	key_count = static_cast<unsigned>(keybinds_btn.size()/3);
@@ -140,7 +136,7 @@ void GameStateConfigDesktop::init() {
 
 	// Allocate KeyBindings ScrollBox
 	input_scrollbox = new WidgetScrollBox(scrollpane.w, scrollpane.h);
-	input_scrollbox->setBasePos(scrollpane.x, scrollpane.y);
+	input_scrollbox->setBasePos(scrollpane.x, scrollpane.y, Utils::ALIGN_TOPLEFT);
 	input_scrollbox->bg = scrollpane_color;
 	input_scrollbox->resize(scrollpane.w, scrollpane_contents);
 
@@ -167,15 +163,15 @@ void GameStateConfigDesktop::init() {
 
 void GameStateConfigDesktop::readConfig() {
 	FileParser infile;
-	if (infile.open("menus/config.txt")) {
+	if (infile.open("menus/config.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (parseKeyButtons(infile))
 				continue;
 
-			int x1 = popFirstInt(infile.val);
-			int y1 = popFirstInt(infile.val);
-			int x2 = popFirstInt(infile.val);
-			int y2 = popFirstInt(infile.val);
+			int x1 = Parse::popFirstInt(infile.val);
+			int y1 = Parse::popFirstInt(infile.val);
+			int x2 = Parse::popFirstInt(infile.val);
+			int y2 = Parse::popFirstInt(infile.val);
 
 			if (parseKeyDesktop(infile, x1, y1, x2, y2))
 				continue;
@@ -218,7 +214,7 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 
 		refreshRenderers();
 
-		renderer_lb->setJustify(JUSTIFY_CENTER);
+		renderer_lb->setJustify(FontEngine::JUSTIFY_CENTER);
 	}
 	else if (infile.key == "renderer_height") {
 		// @ATTR renderer_height|int|Number of visible rows for the "Renderer" list box.
@@ -226,39 +222,39 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 	}
 	else if (infile.key == "fullscreen") {
 		// @ATTR fullscreen|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Full Screen Mode" checkbox relative to the frame.
-		placeLabeledWidget(fullscreen_lb, fullscreen_cb, x1, y1, x2, y2, msg->get("Full Screen Mode"), JUSTIFY_RIGHT);
+		placeLabeledWidget(fullscreen_lb, fullscreen_cb, x1, y1, x2, y2, msg->get("Full Screen Mode"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "mouse_move") {
 		// @ATTR mouse_move|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Move hero using mouse" checkbox relative to the frame.
-		placeLabeledWidget(mouse_move_lb, mouse_move_cb, x1, y1, x2, y2, msg->get("Move hero using mouse"), JUSTIFY_RIGHT);
+		placeLabeledWidget(mouse_move_lb, mouse_move_cb, x1, y1, x2, y2, msg->get("Move hero using mouse"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "hwsurface") {
 		// @ATTR hwsurface|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Hardware surfaces" checkbox relative to the frame.
-		placeLabeledWidget(hwsurface_lb, hwsurface_cb, x1, y1, x2, y2, msg->get("Hardware surfaces"), JUSTIFY_RIGHT);
+		placeLabeledWidget(hwsurface_lb, hwsurface_cb, x1, y1, x2, y2, msg->get("Hardware surfaces"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "vsync") {
 		// @ATTR vsync|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "V-Sync" checkbox relative to the frame.
-		placeLabeledWidget(vsync_lb, vsync_cb, x1, y1, x2, y2, msg->get("V-Sync"), JUSTIFY_RIGHT);
+		placeLabeledWidget(vsync_lb, vsync_cb, x1, y1, x2, y2, msg->get("V-Sync"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "texture_filter") {
 		// @ATTR texture_filter|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Texture Filtering" checkbox relative to the frame.
-		placeLabeledWidget(texture_filter_lb, texture_filter_cb, x1, y1, x2, y2, msg->get("Texture Filtering"), JUSTIFY_RIGHT);
+		placeLabeledWidget(texture_filter_lb, texture_filter_cb, x1, y1, x2, y2, msg->get("Texture Filtering"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "dpi_scaling") {
 		// @ATTR dpi_scaling|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "DPI scaling" checkbox relative to the frame.
-		placeLabeledWidget(dpi_scaling_lb, dpi_scaling_cb, x1, y1, x2, y2, msg->get("DPI scaling"), JUSTIFY_RIGHT);
+		placeLabeledWidget(dpi_scaling_lb, dpi_scaling_cb, x1, y1, x2, y2, msg->get("DPI scaling"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "change_gamma") {
 		// @ATTR change_gamma|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Allow changing gamma" checkbox relative to the frame.
-		placeLabeledWidget(change_gamma_lb, change_gamma_cb, x1, y1, x2, y2, msg->get("Allow changing gamma"), JUSTIFY_RIGHT);
+		placeLabeledWidget(change_gamma_lb, change_gamma_cb, x1, y1, x2, y2, msg->get("Allow changing gamma"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "gamma") {
 		// @ATTR gamma|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Gamma" slider relative to the frame.
-		placeLabeledWidget(gamma_lb, gamma_sl, x1, y1, x2, y2, msg->get("Gamma"), JUSTIFY_RIGHT);
+		placeLabeledWidget(gamma_lb, gamma_sl, x1, y1, x2, y2, msg->get("Gamma"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "enable_joystick") {
 		// @ATTR enable_joystick|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Use joystick" checkbox relative to the frame.
-		placeLabeledWidget(enable_joystick_lb, enable_joystick_cb, x1, y1, x2, y2, msg->get("Use joystick"), JUSTIFY_RIGHT);
+		placeLabeledWidget(enable_joystick_lb, enable_joystick_cb, x1, y1, x2, y2, msg->get("Use joystick"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "joystick_device") {
 		// @ATTR joystick_device|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Joystick" list box relative to the frame.
@@ -270,7 +266,7 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 				joystick_device_lstb->append(joystick_name, joystick_name);
 		}
 
-		joystick_device_lb->setJustify(JUSTIFY_CENTER);
+		joystick_device_lb->setJustify(FontEngine::JUSTIFY_CENTER);
 	}
 	else if (infile.key == "joystick_device_height") {
 		// @ATTR joystick_device_height|int|Number of visible rows for the "Joystick" list box.
@@ -278,15 +274,15 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 	}
 	else if (infile.key == "mouse_aim") {
 		// @ATTR mouse_aim|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Mouse aim" checkbox relative to the frame.
-		placeLabeledWidget(mouse_aim_lb, mouse_aim_cb, x1, y1, x2, y2, msg->get("Mouse aim"), JUSTIFY_RIGHT);
+		placeLabeledWidget(mouse_aim_lb, mouse_aim_cb, x1, y1, x2, y2, msg->get("Mouse aim"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "no_mouse") {
 		// @ATTR no_mouse|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Do not use mouse" checkbox relative to the frame.
-		placeLabeledWidget(no_mouse_lb, no_mouse_cb, x1, y1, x2, y2, msg->get("Do not use mouse"), JUSTIFY_RIGHT);
+		placeLabeledWidget(no_mouse_lb, no_mouse_cb, x1, y1, x2, y2, msg->get("Do not use mouse"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "joystick_deadzone") {
 		// @ATTR joystick_deadzone|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Joystick Deadzone" slider relative to the frame.
-		placeLabeledWidget(joystick_deadzone_lb, joystick_deadzone_sl, x1, y1, x2, y2, msg->get("Joystick Deadzone"), JUSTIFY_RIGHT);
+		placeLabeledWidget(joystick_deadzone_lb, joystick_deadzone_sl, x1, y1, x2, y2, msg->get("Joystick Deadzone"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "secondary_offset") {
 		// @ATTR secondary_offset|point|Offset of the second (and third) columns of keybinds.
@@ -316,74 +312,73 @@ bool GameStateConfigDesktop::parseKeyDesktop(FileParser &infile, int &x1, int &y
 	}
 
 	// @ATTR cancel|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Cancel" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "cancel") keybind_num = CANCEL;
+	else if (infile.key == "cancel") keybind_num = Input::CANCEL;
 	// @ATTR accept|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Accept" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "accept") keybind_num = ACCEPT;
+	else if (infile.key == "accept") keybind_num = Input::ACCEPT;
 	// @ATTR up|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Up" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "up") keybind_num = UP;
+	else if (infile.key == "up") keybind_num = Input::UP;
 	// @ATTR down|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Down" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "down") keybind_num = DOWN;
+	else if (infile.key == "down") keybind_num = Input::DOWN;
 	// @ATTR left|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Left" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "left") keybind_num = LEFT;
+	else if (infile.key == "left") keybind_num = Input::LEFT;
 	// @ATTR right|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Right" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "right") keybind_num = RIGHT;
+	else if (infile.key == "right") keybind_num = Input::RIGHT;
 	// @ATTR bar1|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar1" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar1") keybind_num = BAR_1;
+	else if (infile.key == "bar1") keybind_num = Input::BAR_1;
 	// @ATTR bar2|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar2" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar2") keybind_num = BAR_2;
+	else if (infile.key == "bar2") keybind_num = Input::BAR_2;
 	// @ATTR bar3|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar3" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar3") keybind_num = BAR_3;
+	else if (infile.key == "bar3") keybind_num = Input::BAR_3;
 	// @ATTR bar4|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar4" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar4") keybind_num = BAR_4;
+	else if (infile.key == "bar4") keybind_num = Input::BAR_4;
 	// @ATTR bar5|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar5" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar5") keybind_num = BAR_5;
+	else if (infile.key == "bar5") keybind_num = Input::BAR_5;
 	// @ATTR bar6|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar6" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar6") keybind_num = BAR_6;
+	else if (infile.key == "bar6") keybind_num = Input::BAR_6;
 	// @ATTR bar7|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar7" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar7") keybind_num = BAR_7;
+	else if (infile.key == "bar7") keybind_num = Input::BAR_7;
 	// @ATTR Bar8|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar8" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar8") keybind_num = BAR_8;
+	else if (infile.key == "bar8") keybind_num = Input::BAR_8;
 	// @ATTR bar9|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar9" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar9") keybind_num = BAR_9;
+	else if (infile.key == "bar9") keybind_num = Input::BAR_9;
 	// @ATTR bar0|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Bar0" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "bar0") keybind_num = BAR_0;
+	else if (infile.key == "bar0") keybind_num = Input::BAR_0;
 	// @ATTR main1|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Main1" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "main1") keybind_num = MAIN1;
+	else if (infile.key == "main1") keybind_num = Input::MAIN1;
 	// @ATTR main2|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Main2" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "main2") keybind_num = MAIN2;
+	else if (infile.key == "main2") keybind_num = Input::MAIN2;
 	// @ATTR character|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Character" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "character") keybind_num = CHARACTER;
+	else if (infile.key == "character") keybind_num = Input::CHARACTER;
 	// @ATTR inventory|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Inventory" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "inventory") keybind_num = INVENTORY;
+	else if (infile.key == "inventory") keybind_num = Input::INVENTORY;
 	// @ATTR powers|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Powers" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "powers") keybind_num = POWERS;
+	else if (infile.key == "powers") keybind_num = Input::POWERS;
 	// @ATTR log|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Log" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "log") keybind_num = LOG;
+	else if (infile.key == "log") keybind_num = Input::LOG;
 	// @ATTR ctrl|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Ctrl" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "ctrl") keybind_num = CTRL;
+	else if (infile.key == "ctrl") keybind_num = Input::CTRL;
 	// @ATTR shift|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Shift" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "shift") keybind_num = SHIFT;
+	else if (infile.key == "shift") keybind_num = Input::SHIFT;
 	// @ATTR alt|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Alt" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "alt") keybind_num = ALT;
+	else if (infile.key == "alt") keybind_num = Input::ALT;
 	// @ATTR delete|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Delete" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "delete") keybind_num = DEL;
+	else if (infile.key == "delete") keybind_num = Input::DEL;
 	// @ATTR actionbar|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "ActionBar Accept" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "actionbar") keybind_num = ACTIONBAR;
+	else if (infile.key == "actionbar") keybind_num = Input::ACTIONBAR;
 	// @ATTR actionbar_back|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "ActionBar Left" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "actionbar_back") keybind_num = ACTIONBAR_BACK;
+	else if (infile.key == "actionbar_back") keybind_num = Input::ACTIONBAR_BACK;
 	// @ATTR actionbar_forward|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "ActionBar Right" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "actionbar_forward") keybind_num = ACTIONBAR_FORWARD;
+	else if (infile.key == "actionbar_forward") keybind_num = Input::ACTIONBAR_FORWARD;
 	// @ATTR actionbar_use|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "ActionBar Use" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "actionbar_use") keybind_num = ACTIONBAR_USE;
+	else if (infile.key == "actionbar_use") keybind_num = Input::ACTIONBAR_USE;
 	// @ATTR developer_menu|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Developer Menu" keybind relative to the keybinding scrollbox.
-	else if (infile.key == "developer_menu") keybind_num = DEVELOPER_MENU;
+	else if (infile.key == "developer_menu") keybind_num = Input::DEVELOPER_MENU;
 
 	else return false;
 
 	if (keybind_num > -1 && static_cast<unsigned>(keybind_num) < keybinds_lb.size() && static_cast<unsigned>(keybind_num) < keybinds_btn.size()) {
 		//keybindings
-		keybinds_lb[keybind_num]->setX(x1);
-		keybinds_lb[keybind_num]->setY(y1);
+		keybinds_lb[keybind_num]->setPos(x1, y1);
 		keybinds_btn[keybind_num]->pos.x = x2;
 		keybinds_btn[keybind_num]->pos.y = y2;
 	}
@@ -507,39 +502,39 @@ void GameStateConfigDesktop::update() {
 }
 
 void GameStateConfigDesktop::updateVideo() {
-	fullscreen_cb->setChecked(FULLSCREEN);
-	hwsurface_cb->setChecked(HWSURFACE);
-	vsync_cb->setChecked(VSYNC);
-	texture_filter_cb->setChecked(TEXTURE_FILTER);
-	dpi_scaling_cb->setChecked(DPI_SCALING);
-	change_gamma_cb->setChecked(CHANGE_GAMMA);
+	fullscreen_cb->setChecked(settings->fullscreen);
+	hwsurface_cb->setChecked(settings->hwsurface);
+	vsync_cb->setChecked(settings->vsync);
+	texture_filter_cb->setChecked(settings->texture_filter);
+	dpi_scaling_cb->setChecked(settings->dpi_scaling);
+	change_gamma_cb->setChecked(settings->change_gamma);
 
-	if (CHANGE_GAMMA) {
-		render_device->setGamma(GAMMA);
+	if (settings->change_gamma) {
+		render_device->setGamma(settings->gamma);
 	}
 	else {
-		GAMMA = 1.0;
+		settings->gamma = 1.0;
 		gamma_sl->enabled = false;
 		render_device->resetGamma();
 	}
-	gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(GAMMA*10.0));
+	gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(settings->gamma * 10.0));
 
 	refreshRenderers();
 }
 
 void GameStateConfigDesktop::updateInput() {
-	enable_joystick_cb->setChecked(ENABLE_JOYSTICK);
-	mouse_aim_cb->setChecked(MOUSE_AIM);
-	no_mouse_cb->setChecked(NO_MOUSE);
-	mouse_move_cb->setChecked(MOUSE_MOVE);
+	enable_joystick_cb->setChecked(settings->enable_joystick);
+	mouse_aim_cb->setChecked(settings->mouse_aim);
+	no_mouse_cb->setChecked(settings->no_mouse);
+	mouse_move_cb->setChecked(settings->mouse_move);
 
-	if (ENABLE_JOYSTICK && inpt->getNumJoysticks() > 0) {
+	if (settings->enable_joystick && inpt->getNumJoysticks() > 0) {
 		inpt->initJoystick();
-		joystick_device_lstb->select(JOYSTICK_DEVICE);
+		joystick_device_lstb->select(settings->joystick_device);
 	}
-	joystick_device_lstb->refresh(WidgetListBox::GOTO_SELECTED);
+	joystick_device_lstb->jumpToSelected();
 
-	joystick_deadzone_sl->set(0,32768,JOY_DEADZONE);
+	joystick_deadzone_sl->set(0, 32768, settings->joy_deadzone);
 }
 
 void GameStateConfigDesktop::updateKeybinds() {
@@ -549,11 +544,11 @@ void GameStateConfigDesktop::updateKeybinds() {
 		keybinds_btn[i]->refresh();
 	}
 	for (unsigned int i = key_count; i < key_count*2; i++) {
-		keybinds_btn[i]->label = inpt->getBindingString(i-key_count, INPUT_BINDING_ALT);
+		keybinds_btn[i]->label = inpt->getBindingString(i-key_count, InputState::BINDING_ALT);
 		keybinds_btn[i]->refresh();
 	}
 	for (unsigned int i = key_count*2; i < keybinds_btn.size(); i++) {
-		keybinds_btn[i]->label = inpt->getBindingString(i-(key_count*2), INPUT_BINDING_JOYSTICK);
+		keybinds_btn[i]->label = inpt->getBindingString(i-(key_count*2), InputState::BINDING_JOYSTICK);
 		keybinds_btn[i]->refresh();
 	}
 	input_scrollbox->refresh();
@@ -625,38 +620,38 @@ bool GameStateConfigDesktop::logicMain() {
 
 void GameStateConfigDesktop::logicVideo() {
 	if (fullscreen_cb->checkClick()) {
-		FULLSCREEN = fullscreen_cb->isChecked();
+		settings->fullscreen = fullscreen_cb->isChecked();
 	}
 	else if (hwsurface_cb->checkClick()) {
-		HWSURFACE = hwsurface_cb->isChecked();
+		settings->hwsurface = hwsurface_cb->isChecked();
 	}
 	else if (vsync_cb->checkClick()) {
-		VSYNC = vsync_cb->isChecked();
+		settings->vsync = vsync_cb->isChecked();
 	}
 	else if (texture_filter_cb->checkClick()) {
-		TEXTURE_FILTER = texture_filter_cb->isChecked();
+		settings->texture_filter = texture_filter_cb->isChecked();
 	}
 	else if (dpi_scaling_cb->checkClick()) {
-		DPI_SCALING = dpi_scaling_cb->isChecked();
+		settings->dpi_scaling = dpi_scaling_cb->isChecked();
 		render_device->windowResize();
 		refreshWidgets();
 		force_refresh_background = true;
 	}
 	else if (change_gamma_cb->checkClick()) {
-		CHANGE_GAMMA = change_gamma_cb->isChecked();
-		if (CHANGE_GAMMA) {
+		settings->change_gamma = change_gamma_cb->isChecked();
+		if (settings->change_gamma) {
 			gamma_sl->enabled = true;
 		}
 		else {
-			GAMMA = 1.0;
+			settings->gamma = 1.0;
 			gamma_sl->enabled = false;
-			gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(GAMMA*10.0));
+			gamma_sl->set(GAMMA_MIN, GAMMA_MAX, static_cast<int>(settings->gamma * 10.0));
 			render_device->resetGamma();
 		}
 	}
 	else if (gamma_sl->checkClick()) {
-		GAMMA = static_cast<float>(gamma_sl->getValue())*0.1f;
-		render_device->setGamma(GAMMA);
+		settings->gamma = static_cast<float>(gamma_sl->getValue()) * 0.1f;
+		render_device->setGamma(settings->gamma);
 	}
 	else if (renderer_lstb->checkClick()) {
 		new_render_device = renderer_lstb->getValue();
@@ -677,73 +672,73 @@ void GameStateConfigDesktop::logicInput() {
 
 	if (mouse_move_cb->checkClick()) {
 		if (mouse_move_cb->isChecked()) {
-			MOUSE_MOVE=true;
+			settings->mouse_move = true;
 			enableMouseOptions();
 		}
-		else MOUSE_MOVE=false;
+		else settings->mouse_move=false;
 	}
 	else if (mouse_aim_cb->checkClick()) {
 		if (mouse_aim_cb->isChecked()) {
-			MOUSE_AIM=true;
+			settings->mouse_aim = true;
 			enableMouseOptions();
 		}
-		else MOUSE_AIM=false;
+		else settings->mouse_aim=false;
 	}
 	else if (no_mouse_cb->checkClick()) {
 		if (no_mouse_cb->isChecked()) {
-			NO_MOUSE=true;
+			settings->no_mouse = true;
 			disableMouseOptions();
 		}
-		else NO_MOUSE=false;
+		else settings->no_mouse = false;
 	}
 	else if (enable_joystick_cb->checkClick()) {
 		if (enable_joystick_cb->isChecked()) {
-			ENABLE_JOYSTICK=true;
+			settings->enable_joystick = true;
 			if (inpt->getNumJoysticks() > 0) {
-				JOYSTICK_DEVICE = 0;
+				settings->joystick_device = 0;
 				inpt->initJoystick();
-				joystick_device_lstb->select(JOYSTICK_DEVICE);
+				joystick_device_lstb->select(settings->joystick_device);
 			}
 
 			if (inpt->getNumJoysticks() > 0)
-				joystick_device_lstb->refresh(WidgetListBox::GOTO_SELECTED);
+				joystick_device_lstb->jumpToSelected();
 		}
 		else {
 			disableJoystickOptions();
 		}
 	}
 	else if (joystick_deadzone_sl->checkClick()) {
-		JOY_DEADZONE = joystick_deadzone_sl->getValue();
+		settings->joy_deadzone = joystick_deadzone_sl->getValue();
 	}
 	else if (joystick_device_lstb->checkClick()) {
-		JOYSTICK_DEVICE = joystick_device_lstb->getSelected();
-		if (JOYSTICK_DEVICE != -1) {
-			ENABLE_JOYSTICK=true;
+		settings->joystick_device = joystick_device_lstb->getSelected();
+		if (settings->joystick_device != -1) {
+			settings->enable_joystick = true;
 			if (inpt->getNumJoysticks() > 0) {
 				inpt->initJoystick();
 			}
 		}
 		else {
-			ENABLE_JOYSTICK = false;
+			settings->enable_joystick = false;
 		}
-		enable_joystick_cb->setChecked(ENABLE_JOYSTICK);
+		enable_joystick_cb->setChecked(settings->enable_joystick);
 	}
 }
 
 void GameStateConfigDesktop::logicKeybinds() {
 	input_scrollbox->logic();
 	for (unsigned int i = 0; i < keybinds_btn.size(); i++) {
-		if (i >= static_cast<unsigned int>(inpt->key_count * 2)) {
-			keybinds_btn[i]->enabled = ENABLE_JOYSTICK;
+		if (i >= static_cast<unsigned int>(inpt->KEY_COUNT * 2)) {
+			keybinds_btn[i]->enabled = settings->enable_joystick;
 			keybinds_btn[i]->refresh();
 		}
 		Point mouse = input_scrollbox->input_assist(inpt->mouse);
-		if (keybinds_btn[i]->checkClick(mouse.x,mouse.y)) {
+		if (keybinds_btn[i]->checkClickAt(mouse.x,mouse.y)) {
 			std::string confirm_msg;
 			confirm_msg = msg->get("Assign:") + ' ' + inpt->binding_name[i%key_count];
 			delete input_confirm;
 			input_confirm = new MenuConfirm(msg->get("Clear"),confirm_msg);
-			input_confirm_ticks = MAX_FRAMES_PER_SEC * 10; // 10 seconds
+			input_confirm_ticks = settings->max_frames_per_sec * 10; // 10 seconds
 			input_confirm->visible = true;
 			input_key = i;
 			inpt->last_button = -1;
@@ -782,10 +777,10 @@ void GameStateConfigDesktop::renderDialogs() {
 		keybind_tip_data.addText(keybind_msg);
 
 		if (keybind_tip_ticks == 0)
-			keybind_tip_ticks = MAX_FRAMES_PER_SEC * 5;
+			keybind_tip_ticks = settings->max_frames_per_sec * 5;
 
 		if (keybind_tip_ticks > 0) {
-			keybind_tip->render(keybind_tip_data, Point(VIEW_W, 0), STYLE_FLOAT);
+			keybind_tip->render(keybind_tip_data, Point(settings->view_w, 0), TooltipData::STYLE_FLOAT);
 			keybind_tip_ticks--;
 		}
 
@@ -797,18 +792,6 @@ void GameStateConfigDesktop::renderDialogs() {
 		keybind_msg.clear();
 		keybind_tip_ticks = 0;
 	}
-}
-
-void GameStateConfigDesktop::renderTooltips(TooltipData& tip_new) {
-	GameStateConfigBase::renderTooltips(tip_new);
-
-	if (active_tab == VIDEO_TAB && tip_new.isEmpty()) tip_new = renderer_lstb->checkTooltip(inpt->mouse);
-	if (active_tab == VIDEO_TAB && tip_new.isEmpty()) tip_new = hwsurface_cb->checkTooltip(inpt->mouse);
-	if (active_tab == VIDEO_TAB && tip_new.isEmpty()) tip_new = vsync_cb->checkTooltip(inpt->mouse);
-	if (active_tab == VIDEO_TAB && tip_new.isEmpty()) tip_new = dpi_scaling_cb->checkTooltip(inpt->mouse);
-	if (active_tab == VIDEO_TAB && tip_new.isEmpty()) tip_new = change_gamma_cb->checkTooltip(inpt->mouse);
-	if (active_tab == INPUT_TAB && tip_new.isEmpty()) tip_new = joystick_device_lstb->checkTooltip(inpt->mouse);
-	if (active_tab == INPUT_TAB && tip_new.isEmpty()) tip_new = no_mouse_cb->checkTooltip(inpt->mouse);
 }
 
 void GameStateConfigDesktop::refreshWidgets() {
@@ -842,7 +825,7 @@ void GameStateConfigDesktop::scanKey(int button) {
 
 	if (input_confirm->visible && !input_confirm->isWithinButtons) {
 		// keyboard & mouse
-		if (column == INPUT_BINDING_DEFAULT || column == INPUT_BINDING_ALT) {
+		if (column == InputState::BINDING_DEFAULT || column == InputState::BINDING_ALT) {
 			if (inpt->last_button != -1) {
 				// mouse
 				inpt->setKeybind(inpt->last_button, real_button, column, keybind_msg);
@@ -855,11 +838,11 @@ void GameStateConfigDesktop::scanKey(int button) {
 			}
 		}
 		// joystick
-		else if (column == INPUT_BINDING_JOYSTICK && inpt->last_joybutton != -1) {
+		else if (column == InputState::BINDING_JOYSTICK && inpt->last_joybutton != -1) {
 			inpt->setKeybind(inpt->last_joybutton, real_button, column, keybind_msg);
 			confirmKey(real_button);
 		}
-		else if (column == INPUT_BINDING_JOYSTICK && inpt->last_joyaxis != -1) {
+		else if (column == InputState::BINDING_JOYSTICK && inpt->last_joyaxis != -1) {
 			inpt->setKeybind(inpt->last_joyaxis, real_button, column, keybind_msg);
 			confirmKey(real_button);
 		}
@@ -910,24 +893,24 @@ void GameStateConfigDesktop::cleanupDialogs() {
 }
 
 void GameStateConfigDesktop::enableMouseOptions() {
-	NO_MOUSE = false;
-	no_mouse_cb->setChecked(NO_MOUSE);
+	settings->no_mouse = false;
+	no_mouse_cb->setChecked(settings->no_mouse);
 }
 
 void GameStateConfigDesktop::disableMouseOptions() {
-	MOUSE_AIM=false;
-	mouse_aim_cb->setChecked(MOUSE_AIM);
+	settings->mouse_aim = false;
+	mouse_aim_cb->setChecked(settings->mouse_aim);
 
-	MOUSE_MOVE=false;
-	mouse_move_cb->setChecked(MOUSE_MOVE);
+	settings->mouse_move = false;
+	mouse_move_cb->setChecked(settings->mouse_move);
 
-	NO_MOUSE = true;
-	no_mouse_cb->setChecked(NO_MOUSE);
+	settings->no_mouse = true;
+	no_mouse_cb->setChecked(settings->no_mouse);
 }
 
 void GameStateConfigDesktop::disableJoystickOptions() {
-	ENABLE_JOYSTICK=false;
-	enable_joystick_cb->setChecked(ENABLE_JOYSTICK);
+	settings->enable_joystick = false;
+	enable_joystick_cb->setChecked(settings->enable_joystick);
 
 	for (int i=0; i<joystick_device_lstb->getSize(); i++)
 		joystick_device_lstb->deselect(i);
@@ -944,10 +927,10 @@ void GameStateConfigDesktop::refreshRenderers() {
 
 	for (size_t i = 0; i < rd_name.size(); ++i) {
 		renderer_lstb->append(rd_name[i], rd_desc[i]);
-		if (rd_name[i] == RENDER_DEVICE) {
+		if (rd_name[i] == settings->render_device_name) {
 			renderer_lstb->select(static_cast<int>(i));
 		}
 	}
 
-	renderer_lstb->refresh(WidgetListBox::GOTO_SELECTED);
+	renderer_lstb->jumpToSelected();
 }

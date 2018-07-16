@@ -26,6 +26,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 FileParser::FileParser()
 	: current_index(0)
+	, is_mod_file(false)
+	, error_mode(ERROR_NORMAL)
 	, line("")
 	, line_number(0)
 	, include_fp(NULL)
@@ -35,20 +37,23 @@ FileParser::FileParser()
 	, val("") {
 }
 
-bool FileParser::open(const std::string& _filename, bool locateFileName, const std::string &_errormessage) {
+bool FileParser::open(const std::string& _filename, bool _is_mod_file, int _error_mode) {
+	is_mod_file = _is_mod_file;
+	error_mode = _error_mode;
+
 	filenames.clear();
-	if (locateFileName) {
-		filenames = mods->list(_filename);
+	if (is_mod_file) {
+		filenames = mods->list(_filename, ModManager::LIST_FULL_PATHS);
 	}
 	else {
 		filenames.push_back(_filename);
 	}
 	current_index = 0;
 	line_number = 0;
-	this->errormessage = _errormessage;
 
-	if (filenames.empty() && !errormessage.empty()) {
-		logError("FileParser: %s: %s: No such file or directory!", _filename.c_str(), errormessage.c_str());
+	if (filenames.empty()) {
+		if (error_mode != ERROR_NONE)
+			Utils::logError("FileParser: Could not open text file: %s: No such file or directory!", _filename.c_str());
 		return false;
 	}
 
@@ -61,12 +66,12 @@ bool FileParser::open(const std::string& _filename, bool locateFileName, const s
 
 		if (ret) {
 			// This will be the first file to be parsed. Seek to the start of the file and leave it open.
-			if (infile.good() && trim(getLine(infile)) != "APPEND") {
+			if (infile.good() && Parse::trim(Parse::getLine(infile)) != "APPEND") {
 				std::string test_line;
 
 				// get the first non-comment, non blank line
 				while (infile.good()) {
-					test_line = trim(getLine(infile));
+					test_line = Parse::trim(Parse::getLine(infile));
 					if (test_line.length() == 0) continue;
 					else if (test_line.at(0) == '#') continue;
 					else break;
@@ -87,8 +92,8 @@ bool FileParser::open(const std::string& _filename, bool locateFileName, const s
 			}
 		}
 		else {
-			if (!errormessage.empty())
-				logError("FileParser: %s: %s", errormessage.c_str(), filenames[i-1].c_str());
+			if (error_mode != ERROR_NONE)
+				Utils::logError("FileParser: Could not open text file: %s", filenames[i-1].c_str());
 			infile.clear();
 		}
 	}
@@ -137,7 +142,7 @@ bool FileParser::next() {
 				}
 			}
 
-			line = trim(getLine(infile));
+			line = Parse::trim(Parse::getLine(infile));
 			line_number++;
 
 			// skip ahead if this line is empty
@@ -151,7 +156,7 @@ bool FileParser::next() {
 			// set new section if this line is a section declaration
 			if (starts_with == "[") {
 				new_section = true;
-				section = parse_section_title(line);
+				section = Parse::getSectionTitle(line);
 
 				// keep searching for a key-pair
 				continue;
@@ -170,7 +175,7 @@ bool FileParser::next() {
 					std::string tmp = line.substr(first_space+1);
 
 					include_fp = new FileParser();
-					if (!include_fp || !include_fp->open(tmp)) {
+					if (!include_fp || !include_fp->open(tmp, is_mod_file, error_mode)) {
 						delete include_fp;
 						include_fp = NULL;
 					}
@@ -183,7 +188,7 @@ bool FileParser::next() {
 			}
 
 			// this is a keypair. Perform basic parsing and return
-			parse_key_pair(line, key, val);
+			Parse::getKeyPair(line, key, val);
 			return true;
 		}
 
@@ -197,8 +202,8 @@ bool FileParser::next() {
 		const std::string current_filename = filenames[current_index];
 		infile.open(current_filename.c_str(), std::ios::in);
 		if (!infile.is_open()) {
-			if (!errormessage.empty())
-				logError("FileParser: %s: %s", errormessage.c_str(), current_filename.c_str());
+			if (error_mode != ERROR_NONE)
+				Utils::logError("FileParser: Could not open text file: %s", current_filename.c_str());
 			infile.clear();
 			return false;
 		}
@@ -217,7 +222,7 @@ std::string FileParser::getRawLine() {
 	line = "";
 
 	if (infile.good()) {
-		line = getLine(infile);
+		line = Parse::getLine(infile);
 	}
 	return line;
 }
@@ -240,7 +245,7 @@ void FileParser::errorBuf(const char* buffer) {
 	else {
 		std::stringstream ss;
 		ss << "[" << filenames[current_index] << ":" << line_number << "] " << buffer;
-		logError(ss.str().c_str());
+		Utils::logError(ss.str().c_str());
 	}
 }
 

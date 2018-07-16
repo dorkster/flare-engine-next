@@ -10,8 +10,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 # Default definitions
 if (NOT MSVC)
-	set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wunused -Wshadow -Woverloaded-virtual -Wunreachable-code -Wconversion -Wno-sign-conversion -Wformat-security ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wunused -Wshadow -Woverloaded-virtual -Wunreachable-code -Wconversion -Wno-sign-conversion -Wformat-security ${CMAKE_CXX_FLAGS}")
   set(CMAKE_CXX_FLAGS "-fno-math-errno -fno-exceptions ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-std=c++98 ${CMAKE_CXX_FLAGS}")
 else (NOT MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
   add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
@@ -113,6 +114,7 @@ Set (FLARE_SOURCES
 	./src/EnemyBehavior.cpp
 	./src/EnemyGroupManager.cpp
 	./src/EnemyManager.cpp
+	./src/EngineSettings.cpp
 	./src/EventManager.cpp
 	./src/FileParser.cpp
 	./src/FontEngine.cpp
@@ -178,11 +180,13 @@ Set (FLARE_SOURCES
 	./src/Settings.cpp
 	./src/SharedGameResources.cpp
 	./src/SharedResources.cpp
+	./src/SoundManager.cpp
 	./src/StatBlock.cpp
 	./src/Stats.cpp
 	./src/Subtitles.cpp
 	./src/TileSet.cpp
 	./src/TooltipData.cpp
+	./src/TooltipManager.cpp
 	./src/Utils.cpp
 	./src/UtilsDebug.cpp
 	./src/UtilsFileSystem.cpp
@@ -195,7 +199,6 @@ Set (FLARE_SOURCES
  	./src/WidgetLabel.cpp
  	./src/WidgetListBox.cpp
 	./src/WidgetLog.cpp
-	./src/WidgetSettings.cpp
 	./src/WidgetScrollBar.cpp
 	./src/WidgetScrollBox.cpp
 	./src/WidgetSlider.cpp
@@ -225,6 +228,7 @@ Set (FLARE_HEADERS
 	./src/EnemyBehavior.h
 	./src/EnemyGroupManager.h
 	./src/EnemyManager.h
+	./src/EngineSettings.h
 	./src/EventManager.h
 	./src/FileParser.h
 	./src/FontEngine.h
@@ -295,6 +299,7 @@ Set (FLARE_HEADERS
 	./src/Subtitles.h
 	./src/TileSet.h
 	./src/TooltipData.h
+	./src/TooltipManager.h
 	./src/Utils.h
 	./src/UtilsDebug.h
 	./src/UtilsFileSystem.h
@@ -308,7 +313,6 @@ Set (FLARE_HEADERS
  	./src/WidgetLabel.h
  	./src/WidgetListBox.h
 	./src/WidgetLog.h
-	./src/WidgetSettings.h
 	./src/WidgetScrollBar.h
 	./src/WidgetScrollBox.h
 	./src/WidgetSlider.h

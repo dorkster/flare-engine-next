@@ -34,18 +34,10 @@ class BonusData;
 class StatBlock;
 class WidgetButton;
 
-const int INV_WINDOW = -1;
-const int EQUIPMENT = 0;
-const int CARRIED = 1;
-
-enum {
-	INV_CTRL_NONE = 0,
-	INV_CTRL_VENDOR = 1,
-	INV_CTRL_STASH = 2
-};
-
 class MenuInventory : public Menu {
 private:
+	static const bool ONLY_EMPTY_SLOTS = true;
+
 	StatBlock *stats;
 
 	void loadGraphics();
@@ -60,26 +52,36 @@ private:
 	int MAX_CARRIED;
 
 	// label and widget positions
-	LabelInfo title;
-	LabelInfo currency_lbl;
 	Rect help_pos;
 	int carried_cols;
 	int carried_rows;
-	Color color_normal;
-	Color color_high;
 	std::vector<Point> equipped_pos;
 	Point carried_pos;
 
 	int tap_to_activate_ticks;
 
 public:
+	enum {
+		CTRL_NONE = 0,
+		CTRL_VENDOR = 1,
+		CTRL_STASH = 2
+	};
+
+	static const int NO_AREA = -1;
+	static const int EQUIPMENT = 0;
+	static const int CARRIED = 1;
+
+	static const bool ADD_PLAY_SOUND = true;
+	static const bool ADD_AUTO_EQUIP = true;
+	static const bool IS_DRAGGING = true;
+
 	explicit MenuInventory(StatBlock *stats);
 	~MenuInventory();
 	void align();
 
 	void logic();
 	void render();
-	TooltipData checkTooltip(const Point& position);
+	void renderTooltips(const Point& position);
 	int areaOver(const Point& position);
 
 	ItemStack click(const Point& position);

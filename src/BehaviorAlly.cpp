@@ -20,9 +20,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "BehaviorAlly.h"
 #include "Enemy.h"
 #include "EnemyManager.h"
+#include "EngineSettings.h"
 #include "MapRenderer.h"
-#include "Settings.h"
 #include "SharedGameResources.h"
+#include "SharedResources.h"
 #include "UtilsMath.h"
 
 const float ALLY_FLEE_DISTANCE = 2;
@@ -40,14 +41,14 @@ BehaviorAlly::~BehaviorAlly() {
 
 void BehaviorAlly::findTarget() {
 	// dying enemies can't target anything
-	if (e->stats.cur_state == ENEMY_DEAD || e->stats.cur_state == ENEMY_CRITDEAD) return;
+	if (e->stats.cur_state == StatBlock::ENEMY_DEAD || e->stats.cur_state == StatBlock::ENEMY_CRITDEAD) return;
 
 	// stunned minions can't act
 	if (e->stats.effects.stun) return;
 
 	// check distance and line of sight between minion and hero
 	if (pc->stats.alive)
-		hero_dist = calcDist(e->stats.pos, pc->stats.pos);
+		hero_dist = Utils::calcDist(e->stats.pos, pc->stats.pos);
 	else
 		hero_dist = 0;
 
@@ -56,7 +57,7 @@ void BehaviorAlly::findTarget() {
 		mapr->collider.unblock(e->stats.pos.x, e->stats.pos.y);
 		e->stats.pos.x = pc->stats.pos.x;
 		e->stats.pos.y = pc->stats.pos.y;
-		mapr->collider.block(e->stats.pos.x, e->stats.pos.y, true);
+		mapr->collider.block(e->stats.pos.x, e->stats.pos.y, MapCollision::IS_ALLY);
 		hero_dist = 0;
 	}
 
@@ -68,7 +69,7 @@ void BehaviorAlly::findTarget() {
 
 			//now work out the distance to the enemy and compare it to the distance to the current targer (we want to target the closest enemy)
 			if(enemies_in_combat) {
-				float enemy_dist = calcDist(e->stats.pos, enemy->stats.pos);
+				float enemy_dist = Utils::calcDist(e->stats.pos, enemy->stats.pos);
 				if (enemy_dist < target_dist) {
 					pursue_pos.x = enemy->stats.pos.x;
 					pursue_pos.y = enemy->stats.pos.y;
@@ -79,7 +80,7 @@ void BehaviorAlly::findTarget() {
 				//minion is not already chasig another enemy so chase this one
 				pursue_pos.x = enemy->stats.pos.x;
 				pursue_pos.y = enemy->stats.pos.y;
-				target_dist = calcDist(e->stats.pos, enemy->stats.pos);
+				target_dist = Utils::calcDist(e->stats.pos, enemy->stats.pos);
 			}
 
 			e->stats.in_combat = true;
@@ -93,7 +94,7 @@ void BehaviorAlly::findTarget() {
 		e->stats.in_combat = false;
 
 	// aggressive creatures are always in combat
-	if (e->stats.combat_style == COMBAT_AGGRESSIVE)
+	if (e->stats.combat_style == StatBlock::COMBAT_AGGRESSIVE)
 		e->stats.in_combat = true;
 
 	//the default target is the player
@@ -105,24 +106,24 @@ void BehaviorAlly::findTarget() {
 
 	// check line-of-sight
 	if (target_dist < e->stats.threat_range && pc->stats.alive)
-		los = mapr->collider.line_of_sight(e->stats.pos.x, e->stats.pos.y, pursue_pos.x, pursue_pos.y);
+		los = mapr->collider.lineOfSight(e->stats.pos.x, e->stats.pos.y, pursue_pos.x, pursue_pos.y);
 	else
 		los = false;
 
 	//if the player is blocked, all summons which the player is facing to move away for the specified frames
 	//need to set the flag player_blocked so that other allies know to get out of the way as well
 	//if hero is facing the summon
-	if(ENABLE_ALLY_COLLISION_AI) {
+	if(eset->misc.enable_ally_collision_ai) {
 		if(!enemym->player_blocked && hero_dist < ALLY_FLEE_DISTANCE
-				&& mapr->collider.is_facing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
+				&& mapr->collider.isFacing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
 			enemym->player_blocked = true;
 			enemym->player_blocked_ticks = BLOCK_TICKS;
 		}
 
-		bool player_closer_than_target = calcDist(e->stats.pos, pursue_pos) > calcDist(e->stats.pos, pc->stats.pos);
+		bool player_closer_than_target = Utils::calcDist(e->stats.pos, pursue_pos) > Utils::calcDist(e->stats.pos, pc->stats.pos);
 
 		if(enemym->player_blocked && (!e->stats.in_combat || player_closer_than_target)
-				&& mapr->collider.is_facing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
+				&& mapr->collider.isFacing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
 			fleeing = true;
 			pursue_pos = pc->stats.pos;
 		}
@@ -133,10 +134,10 @@ void BehaviorAlly::findTarget() {
 	// If we have a successful chance_flee roll, try to move to a safe distance
 	if (
 			e->stats.in_combat &&
-			e->stats.cur_state == ENEMY_STANCE &&
+			e->stats.cur_state == StatBlock::ENEMY_STANCE &&
 			!move_to_safe_dist && hero_dist < e->stats.flee_range &&
 			hero_dist >= e->stats.melee_range &&
-			percentChance(e->stats.chance_flee) &&
+			Math::percentChance(e->stats.chance_flee) &&
 			flee_cooldown == 0
 		)
 	{
@@ -150,12 +151,12 @@ void BehaviorAlly::findTarget() {
 
 		std::vector<int> flee_dirs;
 
-		int middle_dir = calcDirection(target_pos.x, target_pos.y, e->stats.pos.x, e->stats.pos.y);
+		int middle_dir = Utils::calcDirection(target_pos.x, target_pos.y, e->stats.pos.x, e->stats.pos.y);
 		for (int i = -2; i <= 2; ++i) {
-			int test_dir = rotateDirection(middle_dir, i);
+			int test_dir = Utils::rotateDirection(middle_dir, i);
 
-			FPoint test_pos = calcVector(e->stats.pos, test_dir, 1);
-			if (mapr->collider.is_valid_position(test_pos.x, test_pos.y, e->stats.movement_type, false)) {
+			FPoint test_pos = Utils::calcVector(e->stats.pos, test_dir, 1);
+			if (mapr->collider.isValidPosition(test_pos.x, test_pos.y, e->stats.movement_type, MapCollision::COLLIDE_NORMAL)) {
 				if (test_dir == e->stats.direction) {
 					// if we're already moving in a good direction, favor it over other directions
 					flee_dirs.clear();
@@ -174,8 +175,8 @@ void BehaviorAlly::findTarget() {
 			fleeing = false;
 		}
 		else {
-			int index = randBetween(0, static_cast<int>(flee_dirs.size())-1);
-			pursue_pos = calcVector(e->stats.pos, flee_dirs[index], 1);
+			int index = Math::randBetween(0, static_cast<int>(flee_dirs.size())-1);
+			pursue_pos = Utils::calcVector(e->stats.pos, flee_dirs[index], 1);
 
 			if (flee_ticks == 0) {
 				flee_ticks = e->stats.flee_duration;
@@ -192,17 +193,17 @@ void BehaviorAlly::checkMoveStateStance() {
 	// try to move to the target if we're either:
 	// 1. too far away and chance_pursue roll succeeds
 	// 2. within range, but lack line-of-sight (required to attack)
-	bool should_move_to_target = (target_dist > e->stats.melee_range && percentChance(e->stats.chance_pursue)) || (target_dist <= e->stats.melee_range && !los) || (hero_dist > ALLY_FOLLOW_DISTANCE_WALK);
+	bool should_move_to_target = (target_dist > e->stats.melee_range && Math::percentChance(e->stats.chance_pursue)) || (target_dist <= e->stats.melee_range && !los) || (hero_dist > ALLY_FOLLOW_DISTANCE_WALK);
 
 	if (should_move_to_target || fleeing) {
 		if(e->stats.in_combat && target_dist > e->stats.melee_range) {
 			if (e->move())
-				e->stats.cur_state = ENEMY_MOVE;
+				e->stats.cur_state = StatBlock::ENEMY_MOVE;
 		}
 
 		if((!e->stats.in_combat && hero_dist > ALLY_FOLLOW_DISTANCE_WALK) || fleeing) {
 			if (e->move()) {
-				e->stats.cur_state = ENEMY_MOVE;
+				e->stats.cur_state = StatBlock::ENEMY_MOVE;
 			}
 			else {
 				collided = true;
@@ -211,7 +212,7 @@ void BehaviorAlly::checkMoveStateStance() {
 				// hit an obstacle, try the next best angle
 				e->stats.direction = e->faceNextBest(pursue_pos.x, pursue_pos.y);
 				if (e->move()) {
-					e->stats.cur_state = ENEMY_MOVE;
+					e->stats.cur_state = StatBlock::ENEMY_MOVE;
 				}
 				else e->stats.direction = prev_direction;
 			}
@@ -235,7 +236,7 @@ void BehaviorAlly::checkMoveStateMove() {
 		}
 	}
 	// in order to prevent infinite fleeing, we re-roll our chance to flee after a certain duration
-	bool stop_fleeing = can_attack && fleeing && flee_ticks == 0 && !percentChance(e->stats.chance_flee);
+	bool stop_fleeing = can_attack && fleeing && flee_ticks == 0 && !Math::percentChance(e->stats.chance_flee);
 
 	if (!stop_fleeing && flee_ticks == 0) {
 		// if the roll to continue fleeing succeeds, but the flee duration has expired, we don't want to reset the duration to the full amount
@@ -253,7 +254,7 @@ void BehaviorAlly::checkMoveStateMove() {
 		if (stop_fleeing) {
 			flee_cooldown = e->stats.flee_cooldown;
 		}
-		e->stats.cur_state = ENEMY_STANCE;
+		e->stats.cur_state = StatBlock::ENEMY_STANCE;
 		move_to_safe_dist = false;
 		fleeing = false;
 	}
@@ -269,12 +270,12 @@ void BehaviorAlly::checkMoveStateMove() {
 			if(enemym->player_blocked && !e->stats.in_combat) {
 				e->stats.direction = pc->stats.direction;
 				if (!e->move()) {
-					e->stats.cur_state = ENEMY_STANCE;
+					e->stats.cur_state = StatBlock::ENEMY_STANCE;
 					e->stats.direction = prev_direction;
 				}
 			}
 			else {
-				e->stats.cur_state = ENEMY_STANCE;
+				e->stats.cur_state = StatBlock::ENEMY_STANCE;
 				e->stats.direction = prev_direction;
 			}
 		}

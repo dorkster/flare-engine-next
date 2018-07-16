@@ -20,7 +20,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "EnemyGroupManager.h"
 #include "FileParser.h"
 #include "ModManager.h"
-#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "UtilsFileSystem.h"
@@ -29,13 +28,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <cassert>
 
 EnemyGroupManager::EnemyGroupManager() {
-	std::vector<std::string> enemy_paths = mods->list("enemies", false);
+	std::vector<std::string> enemy_paths = mods->list("enemies", !ModManager::LIST_FULL_PATHS);
 
 	for (unsigned i=0; i<enemy_paths.size(); ++i) {
 		FileParser infile;
 
 		// @CLASS EnemyGroupManager|Description of enemies in enemies/
-		if (!infile.open(enemy_paths[i]))
+		if (!infile.open(enemy_paths[i], FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 			return;
 
 		Enemy_Level new_enemy;
@@ -50,7 +49,7 @@ EnemyGroupManager::EnemyGroupManager() {
 
 			if (infile.key == "level") {
 				// @ATTR level|int|Level of the enemy
-				new_enemy.level = toInt(infile.val);
+				new_enemy.level = Parse::toInt(infile.val);
 			}
 			else if (infile.key == "rarity") {
 				// @ATTR rarity|["common", "uncommon", "rare"]|Enemy rarity
@@ -64,7 +63,7 @@ EnemyGroupManager::EnemyGroupManager() {
 		infile.close();
 
 		std::string cat;
-		while ( (cat = popFirstString(category_str)) != "") {
+		while ( (cat = Parse::popFirstString(category_str)) != "") {
 			_categories[cat].push_back(new_enemy);
 		}
 	}
@@ -80,7 +79,7 @@ Enemy_Level EnemyGroupManager::getRandomEnemy(const std::string& category, int m
 		enemyCategory = it->second;
 	}
 	else {
-		logError("EnemyGroupManager: Could not find enemy category %s, returning empty enemy", category.c_str());
+		Utils::logError("EnemyGroupManager: Could not find enemy category %s, returning empty enemy", category.c_str());
 		return Enemy_Level();
 	}
 
@@ -102,7 +101,7 @@ Enemy_Level EnemyGroupManager::getRandomEnemy(const std::string& category, int m
 				add_times = 1;
 			}
 			else {
-				logError("EnemyGroupManager: 'rarity' property for enemy '%s' not valid (common|uncommon|rare): %s",
+				Utils::logError("EnemyGroupManager: 'rarity' property for enemy '%s' not valid (common|uncommon|rare): %s",
 						new_enemy.type.c_str(), new_enemy.rarity.c_str());
 			}
 
@@ -114,7 +113,7 @@ Enemy_Level EnemyGroupManager::getRandomEnemy(const std::string& category, int m
 	}
 
 	if (enemyCandidates.empty()) {
-		logError("EnemyGroupManager: Could not find a suitable enemy category for (%s, %d, %d)", category.c_str(), minlevel, maxlevel);
+		Utils::logError("EnemyGroupManager: Could not find a suitable enemy category for (%s, %d, %d)", category.c_str(), minlevel, maxlevel);
 		return Enemy_Level();
 	}
 	else {
@@ -125,7 +124,7 @@ Enemy_Level EnemyGroupManager::getRandomEnemy(const std::string& category, int m
 std::vector<Enemy_Level> EnemyGroupManager::getEnemiesInCategory(const std::string& category) const {
 	std::map<std::string, std::vector<Enemy_Level> >::const_iterator it = _categories.find(category);
 	if (it == _categories.end()) {
-		logError("EnemyGroupManager: Could not find enemy category %s, returning empty enemy list", category.c_str());
+		Utils::logError("EnemyGroupManager: Could not find enemy category %s, returning empty enemy list", category.c_str());
 		return std::vector<Enemy_Level>();
 	}
 	return it->second;

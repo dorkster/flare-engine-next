@@ -34,6 +34,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Enemy.h"
 #include "EnemyGroupManager.h"
 #include "EnemyManager.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "GameState.h"
 #include "GameStateCutscene.h"
@@ -48,6 +49,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuActionBar.h"
 #include "MenuBook.h"
 #include "MenuCharacter.h"
+#include "MenuDevConsole.h"
 #include "MenuEnemy.h"
 #include "MenuExit.h"
 #include "MenuHUDLog.h"
@@ -67,6 +69,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "QuestLog.h"
 #include "RenderDevice.h"
 #include "SaveLoad.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
@@ -82,7 +85,7 @@ GameStatePlay::GameStatePlay()
 	, npc_id(-1)
 	, npc_from_map(true)
 	, nearest_npc(-1)
-	, menu_enemy_timeout(MAX_FRAMES_PER_SEC*10)
+	, menu_enemy_timeout(settings->max_frames_per_sec * 10)
 	, second_ticks(0)
 	, is_first_map_load(true)
 {
@@ -132,7 +135,7 @@ void GameStatePlay::resetGame() {
 	menu->inv->inventory[1].clear();
 	menu->inv->changed_equipment = true;
 	menu->inv->currency = 0;
-	menu->questlog->clear();
+	menu->questlog->clearAll();
 	quests->createQuestList();
 	menu->hudlog->clear();
 
@@ -168,7 +171,7 @@ void GameStatePlay::checkEnemyFocus() {
 			enemy = hazards->last_enemy;
 		}
 		else {
-			enemy = enemym->getNearestEnemy(pc->stats.pos);
+			enemy = enemym->getNearestEnemy(pc->stats.pos, !EnemyManager::GET_CORPSE, NULL);
 		}
 	}
 	else {
@@ -177,9 +180,9 @@ void GameStatePlay::checkEnemyFocus() {
 			hazards->last_enemy = NULL;
 		}
 		else {
-			enemy = enemym->enemyFocus(inpt->mouse, mapr->cam, true);
-			if (enemy) curs->setCursor(CURSOR_ATTACK);
-			src_pos = screen_to_map(inpt->mouse.x, inpt->mouse.y, mapr->cam.x, mapr->cam.y);
+			enemy = enemym->enemyFocus(inpt->mouse, mapr->cam, EnemyManager::IS_ALIVE);
+			if (enemy) curs->setCursor(CursorManager::CURSOR_ATTACK);
+			src_pos = Utils::screenToMap(inpt->mouse.x, inpt->mouse.y, mapr->cam.x, mapr->cam.y);
 
 		}
 	}
@@ -193,7 +196,7 @@ void GameStatePlay::checkEnemyFocus() {
 	}
 	else if (inpt->usingMouse()) {
 		// if we're using a mouse and we didn't select an enemy, try selecting a dead one instead
-		Enemy *temp_enemy = enemym->enemyFocus(inpt->mouse, mapr->cam, false);
+		Enemy *temp_enemy = enemym->enemyFocus(inpt->mouse, mapr->cam, !EnemyManager::IS_ALIVE);
 		if (temp_enemy) {
 			pc->stats.target_corpse = &(temp_enemy->stats);
 			menu->enemy->enemy = temp_enemy;
@@ -211,10 +214,10 @@ void GameStatePlay::checkEnemyFocus() {
 	}
 
 	// save the positions of the nearest enemies for powers that use "target_nearest"
-	Enemy *nearest = enemym->getNearestEnemy(src_pos, false, &(pc->stats.target_nearest_dist));
+	Enemy *nearest = enemym->getNearestEnemy(src_pos, !EnemyManager::GET_CORPSE, &(pc->stats.target_nearest_dist));
 	if (nearest)
 		pc->stats.target_nearest = &(nearest->stats);
-	Enemy *nearest_corpse = enemym->getNearestEnemy(src_pos, true, &(pc->stats.target_nearest_corpse_dist));
+	Enemy *nearest_corpse = enemym->getNearestEnemy(src_pos, EnemyManager::GET_CORPSE, &(pc->stats.target_nearest_corpse_dist));
 	if (nearest_corpse)
 		pc->stats.target_nearest_corpse = &(nearest_corpse->stats);
 }
@@ -255,13 +258,13 @@ void GameStatePlay::checkNPCFocus() {
  * Do not allow power use with button MAIN1
  */
 bool GameStatePlay::restrictPowerUse() {
-	if(MOUSE_MOVE) {
-		if(inpt->pressing[MAIN1] && !inpt->pressing[SHIFT] && !menu->act->isWithinSlots(inpt->mouse) && !menu->act->isWithinMenus(inpt->mouse)) {
+	if (settings->mouse_move) {
+		if(inpt->pressing[Input::MAIN1] && !inpt->pressing[Input::SHIFT] && !menu->act->isWithinSlots(inpt->mouse) && !menu->act->isWithinMenus(inpt->mouse)) {
 			if(enemy == NULL) {
 				return true;
 			}
 			else {
-				if(static_cast<unsigned>(ACTIONBAR_MAIN) < menu->act->slots_count && menu->act->slot_enabled[ACTIONBAR_MAIN] && (powers->powers[menu->act->hotkeys[ACTIONBAR_MAIN]].target_party != enemy->stats.hero_ally))
+				if(static_cast<unsigned>(MenuActionBar::SLOT_MAIN1) < menu->act->slots_count && menu->act->slot_enabled[MenuActionBar::SLOT_MAIN1] && (powers->powers[menu->act->hotkeys[MenuActionBar::SLOT_MAIN1]].target_party != enemy->stats.hero_ally))
 					return true;
 			}
 		}
@@ -284,10 +287,10 @@ void GameStatePlay::checkLoot() {
 	ItemStack pickup;
 
 	// Autopickup
-	if (AUTOPICKUP_CURRENCY) {
+	if (eset->loot.autopickup_currency) {
 		pickup = loot->checkAutoPickup(pc->stats.pos);
 		if (!pickup.empty()) {
-			menu->inv->add(pickup, CARRIED, -1, true, true);
+			menu->inv->add(pickup, MenuInventory::CARRIED, ItemStorage::NO_SLOT, MenuInventory::ADD_PLAY_SOUND, MenuInventory::ADD_AUTO_EQUIP);
 			pickup.clear();
 		}
 	}
@@ -298,7 +301,7 @@ void GameStatePlay::checkLoot() {
 	}
 
 	if (!pickup.empty()) {
-		menu->inv->add(pickup, CARRIED, -1, true, true);
+		menu->inv->add(pickup, MenuInventory::CARRIED, ItemStorage::NO_SLOT, MenuInventory::ADD_PLAY_SOUND, MenuInventory::ADD_AUTO_EQUIP);
 		camp->setStatus(items->items[pickup.item].pickup_status);
 		pickup.clear();
 	}
@@ -327,12 +330,12 @@ void GameStatePlay::checkTeleport() {
 		// if we're not changing map, move allies to a the player's new position
 		// when changing maps, enemym->handleNewMap() does something similar to this
 		if (mapr->teleport_mapname.empty()) {
-			FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
+			FPoint spawn_pos = mapr->collider.getRandomNeighbor(Point(pc->stats.pos), 1, !MapCollision::IGNORE_BLOCKED);
 			for (unsigned int i=0; i < enemym->enemies.size(); i++) {
 				if(enemym->enemies[i]->stats.hero_ally && enemym->enemies[i]->stats.alive) {
 					mapr->collider.unblock(enemym->enemies[i]->stats.pos.x, enemym->enemies[i]->stats.pos.y);
 					enemym->enemies[i]->stats.pos = spawn_pos;
-					mapr->collider.block(enemym->enemies[i]->stats.pos.x, enemym->enemies[i]->stats.pos.y, true);
+					mapr->collider.block(enemym->enemies[i]->stats.pos.x, enemym->enemies[i]->stats.pos.y, MapCollision::IS_ALLY);
 				}
 			}
 		}
@@ -356,12 +359,12 @@ void GameStatePlay::checkTeleport() {
 			}
 
 			// store this as the new respawn point (provided the tile is open)
-			if (mapr->collider.is_valid_position(pc->stats.pos.x, pc->stats.pos.y, MOVEMENT_NORMAL, true)) {
+			if (mapr->collider.isValidPosition(pc->stats.pos.x, pc->stats.pos.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_HERO)) {
 				mapr->respawn_map = teleport_mapname;
 				mapr->respawn_point = pc->stats.pos;
 			}
 			else {
-				logError("GameStatePlay: Spawn position (%d, %d) is blocked.", static_cast<int>(pc->stats.pos.x), static_cast<int>(pc->stats.pos.y));
+				Utils::logError("GameStatePlay: Spawn position (%d, %d) is blocked.", static_cast<int>(pc->stats.pos.x), static_cast<int>(pc->stats.pos.y));
 			}
 
 			enemym->handleNewMap();
@@ -376,12 +379,12 @@ void GameStatePlay::checkTeleport() {
 			npc_id = nearest_npc = -1;
 
 			// return to title (permadeath) OR auto-save
-			if (pc->stats.permadeath && pc->stats.cur_state == AVATAR_DEAD) {
+			if (pc->stats.permadeath && pc->stats.cur_state == StatBlock::AVATAR_DEAD) {
 				snd->stopMusic();
 				showLoading();
 				setRequestedGameState(new GameStateTitle());
 			}
-			else if (SAVE_ONLOAD) {
+			else if (eset->misc.save_onload) {
 				if (!is_first_map_load)
 					save_load->saveGame();
 				else
@@ -396,13 +399,13 @@ void GameStatePlay::checkTeleport() {
 				on_load_teleport = true;
 		}
 
-		if (mapr->collider.is_outside_map(pc->stats.pos.x, pc->stats.pos.y)) {
-			logError("GameStatePlay: Teleport position is outside of map bounds.");
+		if (mapr->collider.isOutsideMap(pc->stats.pos.x, pc->stats.pos.y)) {
+			Utils::logError("GameStatePlay: Teleport position is outside of map bounds.");
 			pc->stats.pos.x = 0.5f;
 			pc->stats.pos.y = 0.5f;
 		}
 
-		mapr->collider.block(pc->stats.pos.x, pc->stats.pos.y, false);
+		mapr->collider.block(pc->stats.pos.x, pc->stats.pos.y, !MapCollision::IS_ALLY);
 
 		pc->stats.teleportation = false;
 
@@ -417,7 +420,7 @@ void GameStatePlay::checkTeleport() {
  * Also check closing the game window entirely.
  */
 void GameStatePlay::checkCancel() {
-	bool save_on_exit = SAVE_ONEXIT && !(pc->stats.permadeath && pc->stats.cur_state == AVATAR_DEAD);
+	bool save_on_exit = eset->misc.save_onexit && !(pc->stats.permadeath && pc->stats.cur_state == StatBlock::AVATAR_DEAD);
 
 	// if user has clicked exit game from exit menu
 	if (menu->requestingExit()) {
@@ -427,7 +430,7 @@ void GameStatePlay::checkCancel() {
 			save_load->saveGame();
 
 		// audio levels can be changed in the pause menu, so update our settings file
-		saveSettings();
+		settings->saveSettings();
 
 		snd->stopMusic();
 		showLoading();
@@ -460,10 +463,10 @@ void GameStatePlay::checkLog() {
 
 	while (!pc->log_msg.empty()) {
 		const std::string& str = pc->log_msg.front().first;
-		const bool prevent_spam = pc->log_msg.front().second;
+		const int msg_type = pc->log_msg.front().second;
 
-		menu->questlog->add(str, LOG_TYPE_MESSAGES, prevent_spam);
-		menu->hudlog->add(str, prevent_spam);
+		menu->questlog->add(str, MenuLog::TYPE_MESSAGES, msg_type);
+		menu->hudlog->add(str, msg_type);
 
 		pc->log_msg.pop();
 	}
@@ -489,7 +492,7 @@ void GameStatePlay::checkBook() {
 void GameStatePlay::loadTitles() {
 	FileParser infile;
 	// @CLASS GameStatePlay: Titles|Description of engine/titles.txt
-	if (infile.open("engine/titles.txt")) {
+	if (infile.open("engine/titles.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.new_section && infile.section == "title") {
 				Title t;
@@ -504,32 +507,32 @@ void GameStatePlay::loadTitles() {
 			}
 			else if (infile.key == "level") {
 				// @ATTR title.level|int|Requires level.
-				titles.back().level = toInt(infile.val);
+				titles.back().level = Parse::toInt(infile.val);
 			}
 			else if (infile.key == "power") {
 				// @ATTR title.power|power_id|Requires power.
-				titles.back().power = toInt(infile.val);
+				titles.back().power = Parse::toInt(infile.val);
 			}
 			else if (infile.key == "requires_status") {
 				// @ATTR title.requires_status|list(string)|Requires status.
-				std::string repeat_val = popFirstString(infile.val);
+				std::string repeat_val = Parse::popFirstString(infile.val);
 				while (repeat_val != "") {
 					titles.back().requires_status.push_back(repeat_val);
-					repeat_val = popFirstString(infile.val);
+					repeat_val = Parse::popFirstString(infile.val);
 				}
 			}
 			else if (infile.key == "requires_not_status") {
 				// @ATTR title.requires_not_status|list(string)|Requires not status.
-				std::string repeat_val = popFirstString(infile.val);
+				std::string repeat_val = Parse::popFirstString(infile.val);
 				while (repeat_val != "") {
 					titles.back().requires_not_status.push_back(repeat_val);
-					repeat_val = popFirstString(infile.val);
+					repeat_val = Parse::popFirstString(infile.val);
 				}
 			}
 			else if (infile.key == "primary_stat") {
 				// @ATTR title.primary_stat|predefined_string, predefined_string : Primary stat, Lesser primary stat|Required primary stat(s). The lesser stat is optional.
-				titles.back().primary_stat_1 = popFirstString(infile.val);
-				titles.back().primary_stat_2 = popFirstString(infile.val);
+				titles.back().primary_stat_1 = Parse::popFirstString(infile.val);
+				titles.back().primary_stat_2 = Parse::popFirstString(infile.val);
 			}
 			else infile.error("GameStatePlay: '%s' is not a valid key.", infile.key.c_str());
 		}
@@ -590,18 +593,18 @@ void GameStatePlay::checkEquipmentChange() {
 	if (menu->inv->changed_equipment) {
 
 		int feet_index = -1;
-		std::vector<Layer_gfx> img_gfx;
+		std::vector<Avatar::Layer_gfx> img_gfx;
 		// load only displayable layers
 		for (unsigned int j=0; j<pc->layer_reference_order.size(); j++) {
-			Layer_gfx gfx;
+			Avatar::Layer_gfx gfx;
 			gfx.gfx = "";
 			gfx.type = pc->layer_reference_order[j];
-			for (int i=0; i<menu->inv->inventory[EQUIPMENT].getSlotNumber(); i++) {
-				if (pc->layer_reference_order[j] == menu->inv->inventory[EQUIPMENT].slot_type[i]) {
-					gfx.gfx = items->items[menu->inv->inventory[EQUIPMENT][i].item].gfx;
-					gfx.type = menu->inv->inventory[EQUIPMENT].slot_type[i];
+			for (int i=0; i<menu->inv->inventory[MenuInventory::EQUIPMENT].getSlotNumber(); i++) {
+				if (pc->layer_reference_order[j] == menu->inv->inventory[MenuInventory::EQUIPMENT].slot_type[i]) {
+					gfx.gfx = items->items[menu->inv->inventory[MenuInventory::EQUIPMENT][i].item].gfx;
+					gfx.type = menu->inv->inventory[MenuInventory::EQUIPMENT].slot_type[i];
 				}
-				if (menu->inv->inventory[EQUIPMENT].slot_type[i] == "feet") {
+				if (menu->inv->inventory[MenuInventory::EQUIPMENT].slot_type[i] == "feet") {
 					feet_index = i;
 				}
 			}
@@ -612,7 +615,7 @@ void GameStatePlay::checkEquipmentChange() {
 			}
 			// fall back to default if it exists
 			if (gfx.gfx == "") {
-				bool exists = fileExists(mods->locate("animations/avatar/" + pc->stats.gfx_base + "/default_" + gfx.type + ".txt"));
+				bool exists = Filesystem::fileExists(mods->locate("animations/avatar/" + pc->stats.gfx_base + "/default_" + gfx.type + ".txt"));
 				if (exists) gfx.gfx = "default_" + gfx.type;
 			}
 			img_gfx.push_back(gfx);
@@ -621,7 +624,7 @@ void GameStatePlay::checkEquipmentChange() {
 		pc->loadGraphics(img_gfx);
 
 		if (feet_index != -1)
-			pc->loadStepFX(items->items[menu->inv->inventory[EQUIPMENT][feet_index].item].stepfx);
+			pc->loadStepFX(items->items[menu->inv->inventory[MenuInventory::EQUIPMENT][feet_index].item].stepfx);
 	}
 
 	menu->inv->changed_equipment = false;
@@ -632,7 +635,7 @@ void GameStatePlay::checkLootDrop() {
 	// if the player has dropped an item from the inventory
 	while (!menu->drop_stack.empty()) {
 		if (!menu->drop_stack.front().empty()) {
-			loot->addLoot(menu->drop_stack.front(), pc->stats.pos, true);
+			loot->addLoot(menu->drop_stack.front(), pc->stats.pos, LootManager::DROPPED_BY_HERO);
 		}
 		menu->drop_stack.pop();
 	}
@@ -640,7 +643,7 @@ void GameStatePlay::checkLootDrop() {
 	// if the player has dropped a quest reward because inventory full
 	while (!camp->drop_stack.empty()) {
 		if (!camp->drop_stack.front().empty()) {
-			loot->addLoot(camp->drop_stack.front(), pc->stats.pos, true);
+			loot->addLoot(camp->drop_stack.front(), pc->stats.pos, LootManager::DROPPED_BY_HERO);
 		}
 		camp->drop_stack.pop();
 	}
@@ -649,7 +652,7 @@ void GameStatePlay::checkLootDrop() {
 	// this happens when adding currency from older save files
 	while (!menu->inv->drop_stack.empty()) {
 		if (!menu->inv->drop_stack.front().empty()) {
-			loot->addLoot(menu->inv->drop_stack.front(), pc->stats.pos, true);
+			loot->addLoot(menu->inv->drop_stack.front(), pc->stats.pos, LootManager::DROPPED_BY_HERO);
 		}
 		menu->inv->drop_stack.pop();
 	}
@@ -663,7 +666,7 @@ void GameStatePlay::checkUsedItems() {
 		menu->inv->remove(powers->used_items[i]);
 	}
 	for (unsigned i=0; i<powers->used_equipped_items.size(); i++) {
-		menu->inv->inventory[EQUIPMENT].remove(powers->used_equipped_items[i]);
+		menu->inv->inventory[MenuInventory::EQUIPMENT].remove(powers->used_equipped_items[i], 1);
 		menu->inv->applyEquipment();
 	}
 	powers->used_items.clear();
@@ -676,20 +679,21 @@ void GameStatePlay::checkUsedItems() {
 void GameStatePlay::checkNotifications() {
 	if (pc->newLevelNotification || menu->chr->getUnspent() > 0) {
 		pc->newLevelNotification = false;
-		menu->act->requires_attention[MENU_CHARACTER] = !menu->chr->visible;
+		menu->act->requires_attention[MenuActionBar::MENU_CHARACTER] = !menu->chr->visible;
 	}
 	if (menu->pow->newPowerNotification) {
 		menu->pow->newPowerNotification = false;
-		menu->act->requires_attention[MENU_POWERS] = !menu->pow->visible;
+		menu->act->requires_attention[MenuActionBar::MENU_POWERS] = !menu->pow->visible;
 	}
 	if (quests->newQuestNotification) {
 		quests->newQuestNotification = false;
-		menu->act->requires_attention[MENU_LOG] = !menu->questlog->visible;
+		menu->act->requires_attention[MenuActionBar::MENU_LOG] = !menu->questlog->visible && !pc->questlog_dismissed;
+		pc->questlog_dismissed = false;
 	}
 
 	// if the player is transformed into a creature, don't notifications for the powers menu
 	if (pc->stats.transformed) {
-		menu->act->requires_attention[MENU_POWERS] = false;
+		menu->act->requires_attention[MenuActionBar::MENU_POWERS] = false;
 	}
 }
 
@@ -735,9 +739,9 @@ void GameStatePlay::checkNPCInteraction() {
 	if (npc_id != -1) {
 		bool interact_with_npc = false;
 		if (npc_from_map) {
-			float interact_distance = calcDist(pc->stats.pos, npcs->npcs[npc_id]->stats.pos);
+			float interact_distance = Utils::calcDist(pc->stats.pos, npcs->npcs[npc_id]->stats.pos);
 
-			if (interact_distance < INTERACT_RANGE) {
+			if (interact_distance < eset->misc.interact_range) {
 				interact_with_npc = true;
 			}
 			else {
@@ -754,8 +758,8 @@ void GameStatePlay::checkNPCInteraction() {
 
 		if (interact_with_npc) {
 			if (!menu->isNPCMenuVisible()) {
-				if (inpt->pressing[MAIN1] && inpt->usingMouse()) inpt->lock[MAIN1] = true;
-				if (inpt->pressing[ACCEPT]) inpt->lock[ACCEPT] = true;
+				if (inpt->pressing[Input::MAIN1] && inpt->usingMouse()) inpt->lock[Input::MAIN1] = true;
+				if (inpt->pressing[Input::ACCEPT]) inpt->lock[Input::ACCEPT] = true;
 
 				menu->npc->setNPC(npcs->npcs[npc_id]);
 
@@ -805,8 +809,8 @@ void GameStatePlay::checkStash() {
 		}
 
 		// If the player walks away from the stash, close its menu
-		float interact_distance = calcDist(pc->stats.pos, mapr->stash_pos);
-		if (interact_distance > INTERACT_RANGE || !pc->stats.alive) {
+		float interact_distance = Utils::calcDist(pc->stats.pos, mapr->stash_pos);
+		if (interact_distance > eset->misc.interact_range || !pc->stats.alive) {
 			menu->resetDrag();
 			menu->stash->visible = false;
 		}
@@ -848,8 +852,12 @@ void GameStatePlay::checkCutscene() {
 		mapr->respawn_point = pc->stats.pos;
 	}
 
-	if (SAVE_ONLOAD)
+	if (eset->misc.save_onload)
 		save_load->saveGame();
+
+	if (menu->devconsole) {
+		menu->devconsole->closeWindow();
+	}
 
 	setRequestedGameState(cutscene);
 }
@@ -873,8 +881,8 @@ void GameStatePlay::updateActionBar(unsigned index) {
 	for (unsigned i = index; i < menu->act->slots_count; i++) {
 		if (menu->act->hotkeys[i] == 0) continue;
 
-		for (int j=0; j<menu->inv->inventory[EQUIPMENT].getSlotNumber(); j++) {
-			int id = menu->inv->inventory[EQUIPMENT][j].item;
+		for (int j=0; j<menu->inv->inventory[MenuInventory::EQUIPMENT].getSlotNumber(); j++) {
+			int id = menu->inv->inventory[MenuInventory::EQUIPMENT][j].item;
 
 			for (unsigned k=0; k<items->items[id].replace_power.size(); k++) {
 				if (items->items[id].replace_power[k].x == menu->act->hotkeys_mod[i] &&
@@ -901,9 +909,9 @@ void GameStatePlay::logic() {
 	menu->logic();
 
 	if (!isPaused()) {
-		if (second_ticks < MAX_FRAMES_PER_SEC)
+		if (second_ticks < settings->max_frames_per_sec)
 			second_ticks++;
-		else if (second_ticks == MAX_FRAMES_PER_SEC) {
+		else if (second_ticks == settings->max_frames_per_sec) {
 			pc->time_played++;
 			second_ticks = 0;
 		}
@@ -930,8 +938,8 @@ void GameStatePlay::logic() {
 		}
 
 		// transfer hero data to enemies, for AI use
-		if (pc->stats.get(STAT_STEALTH) > 100) enemym->hero_stealth = 100;
-		else enemym->hero_stealth = pc->stats.get(STAT_STEALTH);
+		if (pc->stats.get(Stats::STEALTH) > 100) enemym->hero_stealth = 100;
+		else enemym->hero_stealth = pc->stats.get(Stats::STEALTH);
 
 		enemym->logic();
 		hazards->logic();
@@ -974,20 +982,20 @@ void GameStatePlay::logic() {
 		pc->setPowers = false;
 		if (!pc->stats.humanoid && menu->pow->visible) menu->closeRight();
 		// save ActionBar state and lock slots from removing/replacing power
-		for (int i=0; i<ACTIONBAR_MAX ; i++) {
+		for (int i = 0; i < MenuActionBar::SLOT_MAX ; i++) {
 			menu->act->hotkeys_temp[i] = menu->act->hotkeys[i];
 			menu->act->hotkeys[i] = 0;
 		}
-		int count = ACTIONBAR_MAIN;
+		int count = MenuActionBar::SLOT_MAIN1;
 		// put creature powers on action bar
 		for (size_t i=0; i<pc->charmed_stats->powers_ai.size(); i++) {
 			if (pc->charmed_stats->powers_ai[i].id != 0 && powers->powers[pc->charmed_stats->powers_ai[i].id].beacon != true) {
 				menu->act->hotkeys[count] = pc->charmed_stats->powers_ai[i].id;
 				menu->act->locked[count] = true;
 				count++;
-				if (count == ACTIONBAR_MAX)
+				if (count == MenuActionBar::SLOT_MAX)
 					count = 0;
-				else if (count == ACTIONBAR_MAIN)
+				else if (count == MenuActionBar::SLOT_MAIN1)
 					// we've filled the actionbar, stop adding powers to it
 					break;
 			}
@@ -997,7 +1005,7 @@ void GameStatePlay::logic() {
 			menu->act->locked[count] = true;
 		}
 		else if (pc->stats.manual_untransform && pc->untransform_power == 0)
-			logError("GameStatePlay: Untransform power not found, you can't untransform manually");
+			Utils::logError("GameStatePlay: Untransform power not found, you can't untransform manually");
 
 		menu->act->updated = true;
 
@@ -1010,7 +1018,7 @@ void GameStatePlay::logic() {
 		pc->revertPowers = false;
 
 		// restore ActionBar state
-		for (int i=0; i<ACTIONBAR_MAX; i++) {
+		for (int i = 0; i < MenuActionBar::SLOT_MAX; i++) {
 			menu->act->hotkeys[i] = menu->act->hotkeys_temp[i];
 			menu->act->locked[i] = false;
 		}
@@ -1025,11 +1033,11 @@ void GameStatePlay::logic() {
 	if (pc->respawn) {
 		pc->stats.alive = true;
 		pc->stats.corpse = false;
-		pc->stats.cur_state = AVATAR_STANCE;
+		pc->stats.cur_state = StatBlock::AVATAR_STANCE;
 		menu->inv->applyEquipment();
 		menu->inv->changed_equipment = true;
 		checkEquipmentChange();
-		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
+		pc->stats.hp = pc->stats.get(Stats::HP_MAX);
 		pc->stats.logic();
 		pc->stats.recalc();
 		powers->activatePassives(&pc->stats);
@@ -1038,7 +1046,7 @@ void GameStatePlay::logic() {
 
 	// use a normal mouse cursor is menus are open
 	if (menu->menus_open) {
-		curs->setCursor(CURSOR_NORMAL);
+		curs->setCursor(CursorManager::CURSOR_NORMAL);
 	}
 
 	// update the action bar as it may have been changed by items
@@ -1050,7 +1058,7 @@ void GameStatePlay::logic() {
 			menu->act->hotkeys_mod[i] = menu->act->hotkeys[i];
 		}
 
-		updateActionBar();
+		updateActionBar(UPDATE_ACTIONBAR_ALL);
 	}
 
 	// reload music if changed in the pause menu
@@ -1116,32 +1124,32 @@ void GameStatePlay::resetNPC() {
 
 bool GameStatePlay::checkPrimaryStat(const std::string& first, const std::string& second) {
 	int high = 0;
-	size_t high_index = PRIMARY_STATS.size();
-	size_t low_index = PRIMARY_STATS.size();
+	size_t high_index = eset->primary_stats.list.size();
+	size_t low_index = eset->primary_stats.list.size();
 
-	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 		int stat = pc->stats.get_primary(i);
 		if (stat > high) {
-			if (high_index != PRIMARY_STATS.size()) {
+			if (high_index != eset->primary_stats.list.size()) {
 				low_index = high_index;
 			}
 			high = stat;
 			high_index = i;
 		}
-		else if (stat == high && low_index == PRIMARY_STATS.size()) {
+		else if (stat == high && low_index == eset->primary_stats.list.size()) {
 			low_index = i;
 		}
-		else if (low_index == PRIMARY_STATS.size() || (low_index < PRIMARY_STATS.size() && stat > pc->stats.get_primary(low_index))) {
+		else if (low_index == eset->primary_stats.list.size() || (low_index < eset->primary_stats.list.size() && stat > pc->stats.get_primary(low_index))) {
 			low_index = i;
 		}
 	}
 
 	// if the first primary stat doesn't match, we don't care about the second one
-	if (high_index != PRIMARY_STATS.size() && first != PRIMARY_STATS[high_index].id)
+	if (high_index != eset->primary_stats.list.size() && first != eset->primary_stats.list[high_index].id)
 		return false;
 
 	if (!second.empty()) {
-		if (low_index != PRIMARY_STATS.size() && second != PRIMARY_STATS[low_index].id)
+		if (low_index != eset->primary_stats.list.size() && second != eset->primary_stats.list[low_index].id)
 			return false;
 	}
 	else if (second.empty() && pc->stats.get_primary(high_index) == pc->stats.get_primary(low_index)) {

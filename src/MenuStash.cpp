@@ -24,6 +24,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "Avatar.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "ItemManager.h"
@@ -34,6 +35,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
+#include "TooltipManager.h"
 #include "UtilsParsing.h"
 #include "WidgetButton.h"
 #include "WidgetSlot.h"
@@ -42,49 +44,48 @@ MenuStash::MenuStash(StatBlock *_stats)
 	: Menu()
 	, stats(_stats)
 	, closeButton(new WidgetButton("images/menus/buttons/button_x.png"))
-	, color_normal(font->getColor("menu_normal"))
 	, stock()
 	, updated(false)
 {
 
 	setBackground("images/menus/stash.png");
 
-	slots_cols = 8; // default if menus/stash.txt::stash_cols not set
-	slots_rows = 8; // default if menus/stash.txt::slots_rows not set
+	int slots_cols = 8; // default if menus/stash.txt::stash_cols not set
+	int slots_rows = 8; // default if menus/stash.txt::slots_rows not set
 
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuStash|Description of menus/stash.txt
-	if (infile.open("menus/stash.txt")) {
+	if (infile.open("menus/stash.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR close|point|Position of the close button.
 			if (infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				closeButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				closeButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR slots_area|point|Position of the top-left slot.
 			else if (infile.key == "slots_area") {
-				slots_area.x = popFirstInt(infile.val);
-				slots_area.y = popFirstInt(infile.val);
+				slots_area.x = Parse::popFirstInt(infile.val);
+				slots_area.y = Parse::popFirstInt(infile.val);
 			}
 			// @ATTR stash_cols|int|The number of columns for the grid of slots.
 			else if (infile.key == "stash_cols") {
-				slots_cols = std::max(1, toInt(infile.val));
+				slots_cols = std::max(1, Parse::toInt(infile.val));
 			}
 			// @ATTR stash_rows|int|The number of rows for the grid of slots.
 			else if (infile.key == "stash_rows") {
-				slots_rows = std::max(1, toInt(infile.val));
+				slots_rows = std::max(1, Parse::toInt(infile.val));
 			}
 			// @ATTR label_title|label|Position of the "Stash" label.
 			else if (infile.key == "label_title") {
-				title =  eatLabelInfo(infile.val);
+				label_title.setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR currency|label|Position of the label displaying the amount of currency stored in the stash.
 			else if (infile.key == "currency") {
-				currency =  eatLabelInfo(infile.val);
+				label_currency.setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			else {
 				infile.error("MenuStash: '%s' is not a valid key.", infile.key.c_str());
@@ -93,12 +94,17 @@ MenuStash::MenuStash(StatBlock *_stats)
 		infile.close();
 	}
 
-	STASH_SLOTS = slots_cols * slots_rows;
-	slots_area.w = slots_cols*ICON_SIZE;
-	slots_area.h = slots_rows*ICON_SIZE;
+	label_title.setText(msg->get("Shared Stash"));
+	label_title.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
-	stock.initGrid(STASH_SLOTS, slots_area, slots_cols);
-	for (int i = 0; i < STASH_SLOTS; i++) {
+	label_currency.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+	int stash_slots = slots_cols * slots_rows;
+	slots_area.w = slots_cols * eset->resolutions.icon_size;
+	slots_area.h = slots_rows * eset->resolutions.icon_size;
+
+	stock.initGrid(stash_slots, slots_area, slots_cols);
+	for (int i = 0; i < stash_slots; i++) {
 		tablist.add(stock.slots[i]);
 	}
 
@@ -110,6 +116,9 @@ void MenuStash::align() {
 
 	closeButton->setPos(window_area.x, window_area.y);
 	stock.setPos(window_area.x, window_area.y);
+
+	label_title.setPos(window_area.x, window_area.y);
+	label_currency.setPos(window_area.x, window_area.y);
 }
 
 void MenuStash::logic() {
@@ -119,7 +128,7 @@ void MenuStash::logic() {
 
 	if (closeButton->checkClick()) {
 		visible = false;
-		snd->play(sfx_close);
+		snd->play(sfx_close, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 	}
 }
 
@@ -133,14 +142,10 @@ void MenuStash::render() {
 	closeButton->render();
 
 	// text overlay
-	WidgetLabel label;
-	if (!title.hidden) {
-		label.set(window_area.x+title.x, window_area.y+title.y, title.justify, title.valign, msg->get("Shared Stash"), color_normal, title.font_style);
-		label.render();
-	}
-	if (!currency.hidden) {
-		label.set(window_area.x+currency.x, window_area.y+currency.y, currency.justify, currency.valign, msg->get("%d %s", stock.count(CURRENCY_ID), CURRENCY), color_normal, currency.font_style);
-		label.render();
+	label_title.render();
+	if (!label_currency.isHidden()) {
+		label_currency.setText(msg->get("%d %s", stock.count(eset->misc.currency_id), eset->loot.currency.c_str()));
+		label_currency.render();
 	}
 
 
@@ -166,12 +171,12 @@ bool MenuStash::drop(const Point& position, ItemStack stack) {
 	drag_prev_slot = stock.drag_prev_slot;
 
 	if (slot == -1) {
-		success = add(stack, slot, false);
+		success = add(stack, slot, !ADD_PLAY_SOUND);
 	}
 	else if (drag_prev_slot != -1) {
 		if (stock[slot].item == stack.item || stock[slot].empty()) {
 			// Drop the stack, merging if needed
-			success = add(stack, slot, false);
+			success = add(stack, slot, !ADD_PLAY_SOUND);
 		}
 		else if (drag_prev_slot != -1 && stock[drag_prev_slot].empty()) {
 			// Check if the previous slot is free (could still be used if SHIFT was used).
@@ -186,7 +191,7 @@ bool MenuStash::drop(const Point& position, ItemStack stack) {
 		}
 	}
 	else {
-		success = add(stack, slot, false);
+		success = add(stack, slot, !ADD_PLAY_SOUND);
 	}
 
 	return success;
@@ -202,7 +207,7 @@ bool MenuStash::add(ItemStack stack, int slot, bool play_sound) {
 	}
 
 	if (items->items[stack.item].quest_item) {
-		pc->logMsg(msg->get("Can not store quest items in the stash."), true);
+		pc->logMsg(msg->get("Can not store quest items in the stash."), Avatar::MSG_NORMAL);
 		drop_stack.push(stack);
 		return false;
 	}
@@ -212,7 +217,7 @@ bool MenuStash::add(ItemStack stack, int slot, bool play_sound) {
 		if (leftover.quantity != stack.quantity) {
 			updated = true;
 		}
-		pc->logMsg(msg->get("Stash is full."), true);
+		pc->logMsg(msg->get("Stash is full."), Avatar::MSG_NORMAL);
 		drop_stack.push(leftover);
 		return false;
 	}
@@ -229,7 +234,7 @@ bool MenuStash::add(ItemStack stack, int slot, bool play_sound) {
  */
 ItemStack MenuStash::click(const Point& position) {
 	ItemStack stack = stock.click(position);
-	if (TOUCHSCREEN) {
+	if (settings->touchscreen) {
 		tablist.setCurrent(stock.current_slot);
 	}
 	return stack;
@@ -242,8 +247,12 @@ void MenuStash::itemReturn(ItemStack stack) {
 	stock.itemReturn(stack);
 }
 
-TooltipData MenuStash::checkTooltip(const Point& position) {
-	return stock.checkTooltip(position, stats, PLAYER_INV);
+void MenuStash::renderTooltips(const Point& position) {
+	if (!visible || !Utils::isWithinRect(window_area, position))
+		return;
+
+	TooltipData tip_data = stock.checkTooltip(position, stats, ItemManager::PLAYER_INV);
+	tooltipm->push(tip_data, position, TooltipData::STYLE_FLOAT);
 }
 
 void MenuStash::removeFromPrevSlot(int quantity) {

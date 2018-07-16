@@ -20,14 +20,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 /**
- * class WidgetButton
+ * class WidgetSlot
  */
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FontEngine.h"
 #include "IconManager.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "WidgetSlot.h"
 
@@ -39,30 +39,30 @@ WidgetSlot::WidgetSlot(int _icon_id, int _ACTIVATE)
 	, amount(1)
 	, max_amount(1)
 	, amount_str("")
-	, ACTIVATE(_ACTIVATE)
+	, activate_key(_ACTIVATE)
 	, enabled(true)
 	, checked(false)
 	, pressed(false)
 	, continuous(false) {
 	focusable = true;
 	pos.x = pos.y = 0;
-	pos.w = ICON_SIZE;
-	pos.h = ICON_SIZE;
+	pos.w = eset->resolutions.icon_size;
+	pos.h = eset->resolutions.icon_size;
 
 	Rect src;
 	src.x = src.y = 0;
-	src.w = src.h = ICON_SIZE;
+	src.w = src.h = eset->resolutions.icon_size;
 
 
 	Image *graphics;
-	graphics = render_device->loadImage("images/menus/slot_selected.png");
+	graphics = render_device->loadImage("images/menus/slot_selected.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		slot_selected = graphics->createSprite();
 		slot_selected->setClip(src);
 		graphics->unref();
 	}
 
-	graphics = render_device->loadImage("images/menus/slot_checked.png");
+	graphics = render_device->loadImage("images/menus/slot_checked.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		slot_checked = graphics->createSprite();
 		slot_checked->setClip(src);
@@ -97,25 +97,25 @@ bool WidgetSlot::getPrev() {
 	return false;
 }
 
-CLICK_TYPE WidgetSlot::checkClick() {
+WidgetSlot::CLICK_TYPE WidgetSlot::checkClick() {
 	return checkClick(inpt->mouse.x,inpt->mouse.y);
 }
 
-CLICK_TYPE WidgetSlot::checkClick(int x, int y) {
+WidgetSlot::CLICK_TYPE WidgetSlot::checkClick(int x, int y) {
 	Point mouse(x,y);
 
 	// disabled slots can't be clicked;
 	if (!enabled) return NO_CLICK;
 
-	if (continuous && pressed && checked && (inpt->lock[MAIN2] || inpt->lock[ACTIVATE] || (inpt->touch_locked && isWithinRect(pos, mouse))))
+	if (continuous && pressed && checked && (inpt->lock[Input::MAIN2] || inpt->lock[activate_key] || (inpt->touch_locked && Utils::isWithinRect(pos, mouse))))
 		return ACTIVATED;
 
 	// main button already in use, new click not allowed
-	if (inpt->lock[MAIN1]) return NO_CLICK;
-	if (inpt->lock[MAIN2]) return NO_CLICK;
-	if (inpt->lock[ACTIVATE]) return NO_CLICK;
+	if (inpt->lock[Input::MAIN1]) return NO_CLICK;
+	if (inpt->lock[Input::MAIN2]) return NO_CLICK;
+	if (inpt->lock[activate_key]) return NO_CLICK;
 
-	if (pressed && !inpt->lock[MAIN1] && !inpt->lock[MAIN2] && !inpt->lock[ACTIVATE]) { // this is a button release
+	if (pressed && !inpt->lock[Input::MAIN1] && !inpt->lock[Input::MAIN2] && !inpt->lock[activate_key]) { // this is a button release
 		pressed = false;
 
 		checked = !checked;
@@ -129,19 +129,19 @@ CLICK_TYPE WidgetSlot::checkClick(int x, int y) {
 
 	// detect new click
 	// use MAIN1 only for selecting
-	if (inpt->pressing[MAIN1]) {
-		if (isWithinRect(pos, mouse)) {
+	if (inpt->pressing[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos, mouse)) {
 
-			inpt->lock[MAIN1] = true;
+			inpt->lock[Input::MAIN1] = true;
 			pressed = true;
 			checked = false;
 		}
 	}
 	// use MAIN2 only for activating
-	if (inpt->pressing[MAIN2]) {
-		if (isWithinRect(pos, mouse)) {
+	if (inpt->pressing[Input::MAIN2]) {
+		if (Utils::isWithinRect(pos, mouse)) {
 
-			inpt->lock[MAIN2] = true;
+			inpt->lock[Input::MAIN2] = true;
 			pressed = true;
 			checked = true;
 		}
@@ -149,7 +149,7 @@ CLICK_TYPE WidgetSlot::checkClick(int x, int y) {
 
 	// handle touch presses for action bar
 	if (continuous && inpt->touch_locked) {
-		if (isWithinRect(pos, mouse)) {
+		if (Utils::isWithinRect(pos, mouse)) {
 			pressed = true;
 			checked = true;
 			return ACTIVATED;
@@ -168,7 +168,7 @@ void WidgetSlot::setAmount(int _amount, int _max_amount) {
 	amount = _amount;
 	max_amount = _max_amount;
 
-	amount_str = abbreviateKilo(amount);
+	amount_str = Utils::abbreviateKilo(amount);
 }
 
 void WidgetSlot::render() {
@@ -181,7 +181,8 @@ void WidgetSlot::render() {
 		if (amount > 1 || max_amount > 1) {
 			std::stringstream ss;
 			ss << amount_str;
-			label_amount.set(pos.x + icons->text_offset.x, pos.y + icons->text_offset.y, JUSTIFY_LEFT, VALIGN_TOP, ss.str(), font->getColor("widget_normal"));
+			label_amount.setPos(pos.x + icons->text_offset.x, pos.y + icons->text_offset.y);
+			label_amount.setText(ss.str());
 			label_amount.local_frame = local_frame;
 			label_amount.local_offset = local_offset;
 			label_amount.render();

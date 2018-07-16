@@ -33,6 +33,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CursorManager.h"
 #include "EnemyGroupManager.h"
 #include "EnemyManager.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "Hazard.h"
 #include "InputState.h"
@@ -44,6 +45,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "PowerManager.h"
 #include "RenderDevice.h"
 #include "SaveLoad.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
@@ -63,7 +65,8 @@ Avatar::Avatar()
 	, close_menus(false)
 	, allow_movement(true)
 	, enemy_pos(FPoint(-1,-1))
-	, time_played(0) {
+	, time_played(0)
+	, questlog_dismissed(false) {
 
 	init();
 
@@ -89,7 +92,7 @@ Avatar::Avatar()
 	// load foot-step definitions
 	// @CLASS Avatar: Step sounds|Description of items/step_sounds.txt
 	FileParser infile;
-	if (infile.open("items/step_sounds.txt", true, "")) {
+	if (infile.open("items/step_sounds.txt", FileParser::MOD_FILE, FileParser::ERROR_NONE)) {
 		while (infile.next()) {
 			if (infile.key == "id") {
 				// @ATTR id|string|An identifier name for a set of step sounds.
@@ -116,7 +119,7 @@ void Avatar::init() {
 
 	// other init
 	sprites = 0;
-	stats.cur_state = AVATAR_STANCE;
+	stats.cur_state = StatBlock::AVATAR_STANCE;
 	if (mapr->hero_pos_enabled) {
 		stats.pos.x = mapr->hero_pos.x;
 		stats.pos.y = mapr->hero_pos.y;
@@ -130,7 +133,7 @@ void Avatar::init() {
 	stats.humanoid = true;
 	stats.level = 1;
 	stats.xp = 0;
-	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 		stats.primary[i] = stats.primary_starting[i] = 1;
 		stats.primary_additional[i] = 0;
 	}
@@ -177,18 +180,18 @@ void Avatar::loadLayerDefinitions() {
 
 	FileParser infile;
 	// @CLASS Avatar: Hero layers|Description of engine/hero_layers.txt
-	if (infile.open("engine/hero_layers.txt")) {
+	if (infile.open("engine/hero_layers.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (infile.key == "layer") {
 				// @ATTR layer|direction, list(string) : Direction, Layer name(s)|Defines the hero avatar sprite layer
-				unsigned dir = parse_direction(popFirstString(infile.val));
+				unsigned dir = Parse::toDirection(Parse::popFirstString(infile.val));
 				if (dir>7) {
 					infile.error("Avatar: Hero layer direction must be in range [0,7]");
-					logErrorDialog("Avatar: Hero layer direction must be in range [0,7]");
+					Utils::logErrorDialog("Avatar: Hero layer direction must be in range [0,7]");
 					mods->resetModConfig();
-					Exit(1);
+					Utils::Exit(1);
 				}
-				std::string layer = popFirstString(infile.val);
+				std::string layer = Parse::popFirstString(infile.val);
 				while (layer != "") {
 					// check if already in layer_reference:
 					unsigned ref_pos;
@@ -199,7 +202,7 @@ void Avatar::loadLayerDefinitions() {
 						layer_reference_order.push_back(layer);
 					layer_def[dir].push_back(ref_pos);
 
-					layer = popFirstString(infile.val);
+					layer = Parse::popFirstString(infile.val);
 				}
 			}
 			else {
@@ -234,7 +237,7 @@ void Avatar::loadGraphics(std::vector<Layer_gfx> _img_gfx) {
 			anims.push_back(animsets.back()->getAnimation(activeAnimation->getName()));
 			setAnimation("stance");
 			if(!anims.back()->syncTo(activeAnimation)) {
-				logError("Avatar: Error syncing animation in '%s' to 'animations/hero.txt'.", animsets.back()->getName().c_str());
+				Utils::logError("Avatar: Error syncing animation in '%s' to 'animations/hero.txt'.", animsets.back()->getName().c_str());
 			}
 		}
 		else {
@@ -278,7 +281,7 @@ void Avatar::loadStepFX(const std::string& stepname) {
 	}
 
 	// Could not find step sound fx
-	logError("Avatar: Could not find footstep sounds for '%s'.", filename.c_str());
+	Utils::logError("Avatar: Could not find footstep sounds for '%s'.", filename.c_str());
 }
 
 
@@ -289,36 +292,36 @@ bool Avatar::pressing_move() {
 	else if (stats.effects.knockback_speed != 0) {
 		return false;
 	}
-	else if (MOUSE_MOVE) {
-		return inpt->pressing[MAIN1];
+	else if (settings->mouse_move) {
+		return inpt->pressing[Input::MAIN1];
 	}
 	else {
-		return (inpt->pressing[UP] && !inpt->lock[UP]) ||
-			   (inpt->pressing[DOWN] && !inpt->lock[DOWN]) ||
-			   (inpt->pressing[LEFT] && !inpt->lock[LEFT]) ||
-			   (inpt->pressing[RIGHT] && !inpt->lock[RIGHT]);
+		return (inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) ||
+			   (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN]) ||
+			   (inpt->pressing[Input::LEFT] && !inpt->lock[Input::LEFT]) ||
+			   (inpt->pressing[Input::RIGHT] && !inpt->lock[Input::RIGHT]);
 	}
 }
 
 void Avatar::set_direction() {
 	// handle direction changes
-	if (MOUSE_MOVE) {
-		FPoint target = screen_to_map(inpt->mouse.x, inpt->mouse.y, stats.pos.x, stats.pos.y);
-		stats.direction = calcDirection(stats.pos.x, stats.pos.y, target.x, target.y);
+	if (settings->mouse_move) {
+		FPoint target = Utils::screenToMap(inpt->mouse.x, inpt->mouse.y, stats.pos.x, stats.pos.y);
+		stats.direction = Utils::calcDirection(stats.pos.x, stats.pos.y, target.x, target.y);
 	}
 	else {
-		if (inpt->pressing[UP] && !inpt->lock[UP] && inpt->pressing[LEFT] && !inpt->lock[LEFT]) stats.direction = 1;
-		else if (inpt->pressing[UP] && !inpt->lock[UP] && inpt->pressing[RIGHT] && !inpt->lock[RIGHT]) stats.direction = 3;
-		else if (inpt->pressing[DOWN] && !inpt->lock[DOWN] && inpt->pressing[RIGHT] && !inpt->lock[RIGHT]) stats.direction = 5;
-		else if (inpt->pressing[DOWN] && !inpt->lock[DOWN] && inpt->pressing[LEFT] && !inpt->lock[LEFT]) stats.direction = 7;
-		else if (inpt->pressing[LEFT] && !inpt->lock[LEFT]) stats.direction = 0;
-		else if (inpt->pressing[UP] && !inpt->lock[UP]) stats.direction = 2;
-		else if (inpt->pressing[RIGHT] && !inpt->lock[RIGHT]) stats.direction = 4;
-		else if (inpt->pressing[DOWN] && !inpt->lock[DOWN]) stats.direction = 6;
+		if (inpt->pressing[Input::UP] && !inpt->lock[Input::UP] && inpt->pressing[Input::LEFT] && !inpt->lock[Input::LEFT]) stats.direction = 1;
+		else if (inpt->pressing[Input::UP] && !inpt->lock[Input::UP] && inpt->pressing[Input::RIGHT] && !inpt->lock[Input::RIGHT]) stats.direction = 3;
+		else if (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN] && inpt->pressing[Input::RIGHT] && !inpt->lock[Input::RIGHT]) stats.direction = 5;
+		else if (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN] && inpt->pressing[Input::LEFT] && !inpt->lock[Input::LEFT]) stats.direction = 7;
+		else if (inpt->pressing[Input::LEFT] && !inpt->lock[Input::LEFT]) stats.direction = 0;
+		else if (inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) stats.direction = 2;
+		else if (inpt->pressing[Input::RIGHT] && !inpt->lock[Input::RIGHT]) stats.direction = 4;
+		else if (inpt->pressing[Input::DOWN] && !inpt->lock[Input::DOWN]) stats.direction = 6;
 		// Adjust for ORTHO tilesets
-		if (TILESET_ORIENTATION == TILESET_ORTHOGONAL &&
-				((inpt->pressing[UP] && !inpt->lock[UP]) || (inpt->pressing[DOWN] && !inpt->lock[UP]) ||
-				 (inpt->pressing[LEFT] && !inpt->lock[LEFT]) || (inpt->pressing[RIGHT] && !inpt->lock[RIGHT])))
+		if (eset->tileset.orientation == eset->tileset.TILESET_ORTHOGONAL &&
+				((inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) || (inpt->pressing[Input::DOWN] && !inpt->lock[Input::UP]) ||
+				 (inpt->pressing[Input::LEFT] && !inpt->lock[Input::LEFT]) || (inpt->pressing[Input::RIGHT] && !inpt->lock[Input::RIGHT])))
 			stats.direction = static_cast<unsigned char>((stats.direction == 7) ? 0 : stats.direction + 1);
 	}
 }
@@ -347,16 +350,16 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 	// handle when the player stops blocking
 	if (stats.effects.triggered_block && !stats.blocking) {
-		stats.cur_state = AVATAR_STANCE;
+		stats.cur_state = StatBlock::AVATAR_STANCE;
 		stats.effects.triggered_block = false;
-		stats.effects.clearTriggerEffects(TRIGGER_BLOCK);
+		stats.effects.clearTriggerEffects(Power::TRIGGER_BLOCK);
 		stats.refresh_stats = true;
 	}
 
 	stats.logic();
 
 	// check level up
-	if (stats.level < static_cast<int>(stats.xp_table.size()) && stats.xp >= stats.xp_table[stats.level]) {
+	if (stats.level < eset->xp.getMaxLevel() && stats.xp >= eset->xp.getLevelXP(stats.level + 1)) {
 		stats.level_up = true;
 		stats.level++;
 		std::stringstream ss;
@@ -365,26 +368,26 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 			ss << " " << msg->get("You may increase one attribute through the Character Menu.");
 			newLevelNotification = true;
 		}
-		logMsg(ss.str(), true);
+		logMsg(ss.str(), MSG_NORMAL);
 		stats.recalc();
-		snd->play(sound_levelup);
+		snd->play(sound_levelup, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 
 		// if the player managed to level up while dead (e.g. via a bleeding creature), restore to life
-		if (stats.cur_state == AVATAR_DEAD) {
-			stats.cur_state = AVATAR_STANCE;
+		if (stats.cur_state == StatBlock::AVATAR_DEAD) {
+			stats.cur_state = StatBlock::AVATAR_STANCE;
 		}
 	}
 
 	// assist mouse movement
-	if (!inpt->pressing[MAIN1]) {
+	if (!inpt->pressing[Input::MAIN1]) {
 		drag_walking = false;
 	}
 
 	// block some interactions when attacking
-	if (!inpt->pressing[MAIN1] && !inpt->pressing[MAIN2]) {
+	if (!inpt->pressing[Input::MAIN1] && !inpt->pressing[Input::MAIN2]) {
 		stats.attacking = false;
 	}
-	else if((inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) || (inpt->pressing[MAIN2] && !inpt->lock[MAIN2])) {
+	else if((inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1]) || (inpt->pressing[Input::MAIN2] && !inpt->lock[Input::MAIN2])) {
 		stats.attacking = true;
 	}
 
@@ -398,7 +401,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 	}
 
 	// save a valid tile position in the event that we untransform on an invalid tile
-	if (stats.transformed && mapr->collider.is_valid_position(stats.pos.x,stats.pos.y,MOVEMENT_NORMAL, true)) {
+	if (stats.transformed && mapr->collider.isValidPosition(stats.pos.x, stats.pos.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_HERO)) {
 		transform_pos = stats.pos;
 		transform_map = mapr->getFilename();
 	}
@@ -408,13 +411,13 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 		bool allowed_to_use_power = true;
 
 		switch(stats.cur_state) {
-			case AVATAR_STANCE:
+			case StatBlock::AVATAR_STANCE:
 
 				setAnimation("stance");
 
 				// allowed to move or use powers?
-				if (MOUSE_MOVE) {
-					allowed_to_move = restrict_power_use && (!inpt->lock[MAIN1] || drag_walking) && !lockAttack && !npc;
+				if (settings->mouse_move) {
+					allowed_to_move = restrict_power_use && (!inpt->lock[Input::MAIN1] || drag_walking) && !lockAttack && !npc;
 					allowed_to_use_power = !allowed_to_move;
 				}
 				else {
@@ -427,24 +430,24 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 					set_direction();
 
 				if (pressing_move() && allowed_to_move) {
-					if (MOUSE_MOVE && inpt->pressing[MAIN1]) {
-						inpt->lock[MAIN1] = true;
+					if (settings->mouse_move && inpt->pressing[Input::MAIN1]) {
+						inpt->lock[Input::MAIN1] = true;
 						drag_walking = true;
 					}
 
 					if (move()) { // no collision
-						stats.cur_state = AVATAR_RUN;
+						stats.cur_state = StatBlock::AVATAR_RUN;
 					}
 				}
 
-				if (MOUSE_MOVE && !inpt->pressing[MAIN1]) {
-					inpt->lock[MAIN1] = false;
+				if (settings->mouse_move && !inpt->pressing[Input::MAIN1]) {
+					inpt->lock[Input::MAIN1] = false;
 					lockAttack = false;
 				}
 
 				break;
 
-			case AVATAR_RUN:
+			case StatBlock::AVATAR_RUN:
 
 				setAnimation("run");
 
@@ -452,12 +455,12 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 					int stepfx = rand() % static_cast<int>(sound_steps.size());
 
 					if (activeAnimation->isFirstFrame() || activeAnimation->isActiveFrame())
-						snd->play(sound_steps[stepfx]);
+						snd->play(sound_steps[stepfx], snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 				}
 
 				// allowed to move or use powers?
-				if (MOUSE_MOVE) {
-					allowed_to_use_power = !(restrict_power_use && !inpt->lock[MAIN1]);
+				if (settings->mouse_move) {
+					allowed_to_use_power = !(restrict_power_use && !inpt->lock[Input::MAIN1]);
 				}
 				else {
 					allowed_to_use_power = true;
@@ -468,28 +471,28 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				// handle transition to STANCE
 				if (!pressing_move()) {
-					stats.cur_state = AVATAR_STANCE;
+					stats.cur_state = StatBlock::AVATAR_STANCE;
 					break;
 				}
 				else if (!move()) { // collide with wall
-					stats.cur_state = AVATAR_STANCE;
+					stats.cur_state = StatBlock::AVATAR_STANCE;
 					break;
 				}
 
 				if (activeAnimation->getName() != "run")
-					stats.cur_state = AVATAR_STANCE;
+					stats.cur_state = StatBlock::AVATAR_STANCE;
 
 				break;
 
-			case AVATAR_ATTACK:
+			case StatBlock::AVATAR_ATTACK:
 
 				setAnimation(attack_anim);
 
 				if (attack_cursor) {
-					curs->setCursor(CURSOR_ATTACK);
+					curs->setCursor(CursorManager::CURSOR_ATTACK);
 				}
 
-				if (MOUSE_MOVE) lockAttack = true;
+				if (settings->mouse_move) lockAttack = true;
 
 				if (activeAnimation->isFirstFrame()) {
 					float attack_speed = (stats.effects.getAttackSpeed(attack_anim) * powers->powers[current_power].attack_speed) / 100.0f;
@@ -503,7 +506,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 				if (activeAnimation->isActiveFrame() && !stats.hold_state) {
 					// some powers check if the caster is blocking a tile
 					// so we block the player tile prematurely here
-					mapr->collider.block(stats.pos.x, stats.pos.y, false);
+					mapr->collider.block(stats.pos.x, stats.pos.y, !MapCollision::IS_ALLY);
 
 					powers->activate(current_power, &stats, act_target);
 					hero_cooldown[current_power] = powers->powers[current_power].cooldown;
@@ -513,7 +516,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 				}
 
 				if ((activeAnimation->isLastFrame() && stats.state_ticks == 0) || activeAnimation->getName() != attack_anim) {
-					stats.cur_state = AVATAR_STANCE;
+					stats.cur_state = StatBlock::AVATAR_STANCE;
 					stats.cooldown_ticks = stats.cooldown;
 					allowed_to_use_power = false;
 					stats.prevent_interrupt = false;
@@ -521,7 +524,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				break;
 
-			case AVATAR_BLOCK:
+			case StatBlock::AVATAR_BLOCK:
 
 				setAnimation("block");
 
@@ -529,7 +532,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				break;
 
-			case AVATAR_HIT:
+			case StatBlock::AVATAR_HIT:
 
 				setAnimation("hit");
 
@@ -543,12 +546,12 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 				}
 
 				if (activeAnimation->getTimesPlayed() >= 1 || activeAnimation->getName() != "hit") {
-					stats.cur_state = AVATAR_STANCE;
+					stats.cur_state = StatBlock::AVATAR_STANCE;
 				}
 
 				break;
 
-			case AVATAR_DEAD:
+			case StatBlock::AVATAR_DEAD:
 				allowed_to_use_power = false;
 
 				if (stats.effects.triggered_death) break;
@@ -572,26 +575,26 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 					// close menus in GameStatePlay
 					close_menus = true;
 
-					playSound(ENTITY_SOUND_DIE);
+					playSound(Entity::SOUND_DIE);
 
 					if (stats.permadeath) {
 						// ignore death penalty on permadeath and instead delete the player's saved game
 						stats.death_penalty = false;
-						removeSaveDir(save_load->getGameSlot());
+						Utils::removeSaveDir(save_load->getGameSlot());
 						menu->exit->disableSave();
 
-						logMsg(substituteVarsInString(msg->get("You are defeated. Game over! ${INPUT_CONTINUE} to exit to Title."), this), true);
+						logMsg(Utils::substituteVarsInString(msg->get("You are defeated. Game over! ${INPUT_CONTINUE} to exit to Title."), this), MSG_NORMAL);
 					}
 					else {
 						// raise the death penalty flag.  This is handled in MenuInventory
 						stats.death_penalty = true;
 
-						logMsg(substituteVarsInString(msg->get("You are defeated. ${INPUT_CONTINUE} to continue."), this), true);
+						logMsg(Utils::substituteVarsInString(msg->get("You are defeated. ${INPUT_CONTINUE} to continue."), this), MSG_NORMAL);
 					}
 
 					// if the player is attacking, we need to block further input
-					if (inpt->pressing[MAIN1])
-						inpt->lock[MAIN1] = true;
+					if (inpt->pressing[Input::MAIN1])
+						inpt->lock[Input::MAIN1] = true;
 				}
 
 				if (activeAnimation->getTimesPlayed() >= 1 || activeAnimation->getName() != "die") {
@@ -599,9 +602,9 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 				}
 
 				// allow respawn with Accept if not permadeath
-				if ((inpt->pressing[ACCEPT] || (TOUCHSCREEN && inpt->pressing[MAIN1] && !inpt->lock[MAIN1])) && stats.corpse) {
-					if (inpt->pressing[ACCEPT]) inpt->lock[ACCEPT] = true;
-					if (TOUCHSCREEN && inpt->pressing[MAIN1]) inpt->lock[MAIN1] = true;
+				if ((inpt->pressing[Input::ACCEPT] || (settings->touchscreen && inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1])) && stats.corpse) {
+					if (inpt->pressing[Input::ACCEPT]) inpt->lock[Input::ACCEPT] = true;
+					if (settings->touchscreen && inpt->pressing[Input::MAIN1]) inpt->lock[Input::MAIN1] = true;
 					mapr->teleportation = true;
 					mapr->teleport_mapname = mapr->respawn_map;
 					if (stats.permadeath) {
@@ -632,20 +635,20 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 				ActionData &action = action_queue[i];
 				const Power &power = powers->powers[action.power];
 
-				if (power.type == POWTYPE_BLOCK)
+				if (power.type == Power::TYPE_BLOCK)
 					blocking = true;
 
 				if (action.power != 0 && (stats.cooldown_ticks == 0 || action.instant_item)) {
 					FPoint target = action.target;
 
 					// check requirements
-					if ((stats.cur_state == AVATAR_ATTACK || stats.cur_state == AVATAR_HIT) && !action.instant_item)
+					if ((stats.cur_state == StatBlock::AVATAR_ATTACK || stats.cur_state == StatBlock::AVATAR_HIT) && !action.instant_item)
 						continue;
-					if (!stats.canUsePower(action.power))
+					if (!stats.canUsePower(action.power, !StatBlock::CAN_USE_PASSIVE))
 						continue;
-					if (power.requires_los && !mapr->collider.line_of_sight(stats.pos.x, stats.pos.y, target.x, target.y))
+					if (power.requires_los && !mapr->collider.lineOfSight(stats.pos.x, stats.pos.y, target.x, target.y))
 						continue;
-					if (power.requires_empty_target && !mapr->collider.is_empty(target.x, target.y))
+					if (power.requires_empty_target && !mapr->collider.isEmpty(target.x, target.y))
 						continue;
 					if (hero_cooldown[action.power] > 0)
 						continue;
@@ -653,16 +656,16 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 						continue;
 
 					// automatically target the selected enemy with melee attacks
-					if (inpt->usingMouse() && power.type == POWTYPE_FIXED && power.starting_pos == STARTING_POS_MELEE && enemy_pos.x != -1 && enemy_pos.y != -1) {
+					if (inpt->usingMouse() && power.type == Power::TYPE_FIXED && power.starting_pos == Power::STARTING_POS_MELEE && enemy_pos.x != -1 && enemy_pos.y != -1) {
 						target = enemy_pos;
 					}
 
 					// is this a power that requires changing direction?
 					if (power.face) {
-						stats.direction = calcDirection(stats.pos.x, stats.pos.y, target.x, target.y);
+						stats.direction = Utils::calcDirection(stats.pos.x, stats.pos.y, target.x, target.y);
 					}
 
-					if (power.new_state != POWSTATE_INSTANT) {
+					if (power.new_state != Power::STATE_INSTANT) {
 						current_power = action.power;
 						act_target = target;
 						attack_anim = power.attack_anim;
@@ -676,23 +679,23 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 					stats.prevent_interrupt = power.prevent_interrupt;
 
-					if (power.pre_power > 0 && percentChance(power.pre_power_chance)) {
+					if (power.pre_power > 0 && Math::percentChance(power.pre_power_chance)) {
 						powers->activate(power.pre_power, &stats, target);
 					}
 
 					switch (power.new_state) {
-						case POWSTATE_ATTACK:	// handle attack powers
-							stats.cur_state = AVATAR_ATTACK;
+						case Power::STATE_ATTACK:	// handle attack powers
+							stats.cur_state = StatBlock::AVATAR_ATTACK;
 							break;
 
-						case POWSTATE_INSTANT:	// handle instant powers
+						case Power::STATE_INSTANT:	// handle instant powers
 							powers->activate(action.power, &stats, target);
 							hero_cooldown[action.power] = power.cooldown;
 							break;
 
 						default:
-							if (power.type == POWTYPE_BLOCK) {
-								stats.cur_state = AVATAR_BLOCK;
+							if (power.type == Power::TYPE_BLOCK) {
+								stats.cur_state = StatBlock::AVATAR_BLOCK;
 								powers->activate(action.power, &stats, target);
 								stats.refresh_stats = true;
 							}
@@ -701,11 +704,11 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 					// if the player is attacking, show the attack cursor
 					attack_cursor = (
-						stats.cur_state == AVATAR_ATTACK &&
+						stats.cur_state == StatBlock::AVATAR_ATTACK &&
 						!power.buff && !power.buff_teleport &&
-						power.type != POWTYPE_TRANSFORM &&
-						power.type != POWTYPE_BLOCK &&
-						!(power.starting_pos == STARTING_POS_SOURCE && power.speed == 0)
+						power.type != Power::TYPE_TRANSFORM &&
+						power.type != Power::TYPE_BLOCK &&
+						!(power.starting_pos == Power::STARTING_POS_SOURCE && power.speed == 0)
 					);
 
 				}
@@ -718,8 +721,8 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 	// calc new cam position from player position
 	// cam is focused at player position
-	float cam_dx = (calcDist(FPoint(mapr->cam.x, stats.pos.y), stats.pos)) / CAMERA_SPEED;
-	float cam_dy = (calcDist(FPoint(stats.pos.x, mapr->cam.y), stats.pos)) / CAMERA_SPEED;
+	float cam_dx = (Utils::calcDist(FPoint(mapr->cam.x, stats.pos.y), stats.pos)) / eset->misc.camera_speed;
+	float cam_dy = (Utils::calcDist(FPoint(stats.pos.x, mapr->cam.y), stats.pos)) / eset->misc.camera_speed;
 
 	if (mapr->cam.x < stats.pos.x) {
 		mapr->cam.x += cam_dx;
@@ -755,12 +758,12 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 	}
 
 	// make the current square solid
-	mapr->collider.block(stats.pos.x, stats.pos.y, false);
+	mapr->collider.block(stats.pos.x, stats.pos.y, !MapCollision::IS_ALLY);
 
 	if (stats.state_ticks == 0 && stats.hold_state)
 		stats.hold_state = false;
 
-	if (stats.cur_state != AVATAR_ATTACK && stats.charge_speed != 0.0f)
+	if (stats.cur_state != StatBlock::AVATAR_ATTACK && stats.charge_speed != 0.0f)
 		stats.charge_speed = 0.0f;
 }
 
@@ -778,7 +781,7 @@ void Avatar::transform() {
 		charmed_stats->load(el.type);
 	}
 	else {
-		logError("Avatar: Could not transform into creature type '%s'", stats.transform_type.c_str());
+		Utils::logError("Avatar: Could not transform into creature type '%s'", stats.transform_type.c_str());
 		stats.transform_type = "";
 		return;
 	}
@@ -811,10 +814,10 @@ void Avatar::transform() {
 	animationSet = anim->getAnimationSet(charmed_stats->animations);
 	delete activeAnimation;
 	activeAnimation = animationSet->getAnimation("");
-	stats.cur_state = AVATAR_STANCE;
+	stats.cur_state = StatBlock::AVATAR_STANCE;
 
 	// base stats
-	for (unsigned int i=0; i<STAT_COUNT; ++i) {
+	for (unsigned int i=0; i<Stats::COUNT; ++i) {
 		stats.starting[i] = std::max(stats.starting[i], charmed_stats->starting[i]);
 	}
 
@@ -823,7 +826,7 @@ void Avatar::transform() {
 		stats.vulnerable[i] = std::min(stats.vulnerable[i], charmed_stats->vulnerable[i]);
 	}
 
-	loadSounds(charmed_stats);
+	loadSoundsFromStatBlock(charmed_stats);
 	loadStepFX("NULL");
 
 	stats.applyEffects();
@@ -838,8 +841,8 @@ void Avatar::untransform() {
 
 	// For timed transformations, move the player to the last valid tile when untransforming
 	mapr->collider.unblock(stats.pos.x, stats.pos.y);
-	if (!mapr->collider.is_valid_position(stats.pos.x,stats.pos.y,MOVEMENT_NORMAL, true)) {
-		logMsg(msg->get("Transformation expired. You have been moved back to a safe place."), true);
+	if (!mapr->collider.isValidPosition(stats.pos.x, stats.pos.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_HERO)) {
+		logMsg(msg->get("Transformation expired. You have been moved back to a safe place."), MSG_NORMAL);
 		if (transform_map != mapr->getFilename()) {
 			mapr->teleportation = true;
 			mapr->teleport_mapname = transform_map;
@@ -852,7 +855,7 @@ void Avatar::untransform() {
 			stats.pos.y = floorf(transform_pos.y) + 0.5f;
 		}
 	}
-	mapr->collider.block(stats.pos.x, stats.pos.y, false);
+	mapr->collider.block(stats.pos.x, stats.pos.y, !MapCollision::IS_ALLY);
 
 	stats.transformed = false;
 	transform_triggered = true;
@@ -875,13 +878,13 @@ void Avatar::untransform() {
 	animationSet = anim->getAnimationSet("animations/hero.txt");
 	delete activeAnimation;
 	activeAnimation = animationSet->getAnimation("");
-	stats.cur_state = AVATAR_STANCE;
+	stats.cur_state = StatBlock::AVATAR_STANCE;
 
 	// This is a bit of a hack.
 	// In order to switch to the stance animation, we can't already be in a stance animation
 	setAnimation("run");
 
-	for (unsigned int i=0; i<STAT_COUNT; ++i) {
+	for (unsigned int i=0; i<Stats::COUNT; ++i) {
 		stats.starting[i] = hero_stats->starting[i];
 	}
 
@@ -963,8 +966,8 @@ void Avatar::addRenders(std::vector<Renderable> &r) {
 	}
 }
 
-void Avatar::logMsg(const std::string& str, bool prevent_spam) {
-	log_msg.push(std::pair<std::string, bool>(str, prevent_spam));
+void Avatar::logMsg(const std::string& str, int type) {
+	log_msg.push(std::pair<std::string, int>(str, type));
 }
 
 Avatar::~Avatar() {

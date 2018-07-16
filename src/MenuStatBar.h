@@ -34,8 +34,14 @@ class WidgetLabel;
 
 class MenuStatBar : public Menu {
 private:
+	enum {
+		HORIZONTAL = 0,
+		VERTICAL = 1
+	};
+
 	Sprite *bar;
 	WidgetLabel *label;
+	unsigned long stat_min;
 	unsigned long stat_cur;
 	unsigned long stat_max;
 	Rect bar_pos;
@@ -43,7 +49,6 @@ private:
 	bool orientation;
 	bool custom_text_pos;
 	std::string custom_string;
-	Color color_normal;
 	std::string bar_gfx;
 	std::string bar_gfx_background;
 
@@ -51,7 +56,8 @@ public:
 	explicit MenuStatBar(const std::string& type);
 	~MenuStatBar();
 	void loadGraphics();
-	void update(unsigned long _stat_cur, unsigned long _stat_max, const std::string& _custom_string = "");
+	void update(unsigned long _stat_min, unsigned long _stat_cur, unsigned long _stat_max);
+	void setCustomString(const std::string& _custom_string);
 	void render();
 };
 

@@ -30,6 +30,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CombatText.h"
 #include "CommonIncludes.h"
 #include "DeviceList.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "GameStateConfigBase.h"
@@ -44,6 +45,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedResources.h"
 #include "SoundManager.h"
 #include "Stats.h"
+#include "TooltipManager.h"
 #include "UtilsFileSystem.h"
 #include "UtilsParsing.h"
 #include "Version.h"
@@ -52,62 +54,59 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "WidgetListBox.h"
 #include "WidgetSlider.h"
 #include "WidgetTabControl.h"
-#include "WidgetTooltip.h"
 
 GameStateConfigBase::GameStateConfigBase (bool do_init)
 	: GameState()
 	, child_widget()
-	, ok_button(new WidgetButton())
-	, defaults_button(new WidgetButton())
-	, cancel_button(new WidgetButton())
+	, ok_button(new WidgetButton(WidgetButton::DEFAULT_FILE))
+	, defaults_button(new WidgetButton(WidgetButton::DEFAULT_FILE))
+	, cancel_button(new WidgetButton(WidgetButton::DEFAULT_FILE))
 	, background(NULL)
-	, combat_text_cb(new WidgetCheckBox())
+	, combat_text_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, combat_text_lb(new WidgetLabel())
-	, show_fps_cb(new WidgetCheckBox())
+	, show_fps_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, show_fps_lb(new WidgetLabel())
-	, hardware_cursor_cb(new WidgetCheckBox())
+	, hardware_cursor_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, hardware_cursor_lb(new WidgetLabel())
-	, colorblind_cb(new WidgetCheckBox())
+	, colorblind_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, colorblind_lb(new WidgetLabel())
-	, dev_mode_cb(new WidgetCheckBox())
+	, dev_mode_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, dev_mode_lb(new WidgetLabel())
-	, loot_tooltips_cb(new WidgetCheckBox())
+	, loot_tooltips_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, loot_tooltips_lb(new WidgetLabel())
-	, statbar_labels_cb(new WidgetCheckBox())
+	, statbar_labels_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, statbar_labels_lb(new WidgetLabel())
-	, auto_equip_cb(new WidgetCheckBox())
+	, auto_equip_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, auto_equip_lb(new WidgetLabel())
-	, subtitles_cb(new WidgetCheckBox())
+	, subtitles_cb(new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE))
 	, subtitles_lb(new WidgetLabel())
-	, music_volume_sl(new WidgetSlider())
+	, music_volume_sl(new WidgetSlider(WidgetSlider::DEFAULT_FILE))
 	, music_volume_lb(new WidgetLabel())
-	, sound_volume_sl(new WidgetSlider())
+	, sound_volume_sl(new WidgetSlider(WidgetSlider::DEFAULT_FILE))
 	, sound_volume_lb(new WidgetLabel())
-	, activemods_lstb(new WidgetListBox(10))
+	, activemods_lstb(new WidgetListBox(10, WidgetListBox::DEFAULT_FILE))
 	, activemods_lb(new WidgetLabel())
-	, inactivemods_lstb(new WidgetListBox(10))
+	, inactivemods_lstb(new WidgetListBox(10, WidgetListBox::DEFAULT_FILE))
 	, inactivemods_lb(new WidgetLabel())
-	, language_lstb(new WidgetListBox(10))
+	, language_lstb(new WidgetListBox(10, WidgetListBox::DEFAULT_FILE))
 	, language_lb(new WidgetLabel())
 	, activemods_shiftup_btn(new WidgetButton("images/menus/buttons/up.png"))
 	, activemods_shiftdown_btn(new WidgetButton("images/menus/buttons/down.png"))
-	, activemods_deactivate_btn(new WidgetButton())
-	, inactivemods_activate_btn(new WidgetButton())
+	, activemods_deactivate_btn(new WidgetButton(WidgetButton::DEFAULT_FILE))
+	, inactivemods_activate_btn(new WidgetButton(WidgetButton::DEFAULT_FILE))
 	, defaults_confirm(new MenuConfirm(msg->get("Defaults"), msg->get("Reset ALL settings?")))
-	, tip(new WidgetTooltip())
-	, tip_buf()
 	, active_tab(0)
 	, frame(0,0)
 	, frame_offset(11,8)
 	, tab_offset(3,0)
-	, new_render_device(RENDER_DEVICE)
+	, new_render_device(settings->render_device_name)
 {
 
 	// don't save settings if we close the game while in this menu
 	save_settings_on_exit = false;
 
 	Image *graphics;
-	graphics = render_device->loadImage("images/menus/config.png");
+	graphics = render_device->loadImage("images/menus/config.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		background = graphics->createSprite();
 		graphics->unref();
@@ -124,7 +123,7 @@ GameStateConfigBase::GameStateConfigBase (bool do_init)
 	// Finish Mods ListBoxes setup
 	activemods_lstb->multi_select = true;
 	for (unsigned int i = 0; i < mods->mod_list.size() ; i++) {
-		if (mods->mod_list[i].name != FALLBACK_MOD)
+		if (mods->mod_list[i].name != mods->FALLBACK_MOD)
 			activemods_lstb->append(mods->mod_list[i].name,createModTooltip(&mods->mod_list[i]));
 	}
 
@@ -137,7 +136,7 @@ GameStateConfigBase::GameStateConfigBase (bool do_init)
 				break;
 			}
 		}
-		if (!skip_mod && mods->mod_dirs[i] != FALLBACK_MOD) {
+		if (!skip_mod && mods->mod_dirs[i] != mods->FALLBACK_MOD) {
 			Mod temp_mod = mods->loadMod(mods->mod_dirs[i]);
 			inactivemods_lstb->append(mods->mod_dirs[i],createModTooltip(&temp_mod));
 		}
@@ -185,15 +184,15 @@ void GameStateConfigBase::readConfig() {
 	//Load the menu configuration from file
 
 	FileParser infile;
-	if (infile.open("menus/config.txt")) {
+	if (infile.open("menus/config.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (parseKeyButtons(infile))
 				continue;
 
-			int x1 = popFirstInt(infile.val);
-			int y1 = popFirstInt(infile.val);
-			int x2 = popFirstInt(infile.val);
-			int y2 = popFirstInt(infile.val);
+			int x1 = Parse::popFirstInt(infile.val);
+			int y1 = Parse::popFirstInt(infile.val);
+			int x2 = Parse::popFirstInt(infile.val);
+			int y2 = Parse::popFirstInt(infile.val);
 
 			if (parseKey(infile, x1, y1, x2, y2))
 				continue;
@@ -212,23 +211,23 @@ bool GameStateConfigBase::parseKeyButtons(FileParser &infile) {
 
 	if (infile.key == "button_ok") {
 		// @ATTR button_ok|int, int, alignment : X, Y, Alignment|Position of the "OK" button.
-		int x = popFirstInt(infile.val);
-		int y = popFirstInt(infile.val);
-		ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+		int x = Parse::popFirstInt(infile.val);
+		int y = Parse::popFirstInt(infile.val);
+		int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 		ok_button->setBasePos(x, y, a);
 	}
 	else if (infile.key == "button_defaults") {
 		// @ATTR button_defaults|int, int, alignment : X, Y, Alignment|Position of the "Defaults" button.
-		int x = popFirstInt(infile.val);
-		int y = popFirstInt(infile.val);
-		ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+		int x = Parse::popFirstInt(infile.val);
+		int y = Parse::popFirstInt(infile.val);
+		int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 		defaults_button->setBasePos(x, y, a);
 	}
 	else if (infile.key == "button_cancel") {
 		// @ATTR button_cancel|int, int, alignment : X, Y, Alignment|Position of the "Cancel" button.
-		int x = popFirstInt(infile.val);
-		int y = popFirstInt(infile.val);
-		ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+		int x = Parse::popFirstInt(infile.val);
+		int y = Parse::popFirstInt(infile.val);
+		int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 		cancel_button->setBasePos(x, y, a);
 	}
 	else {
@@ -256,16 +255,16 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 	}
 	else if (infile.key == "music_volume") {
 		// @ATTR music_volume|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Music Volume" slider relative to the frame.
-		placeLabeledWidget(music_volume_lb, music_volume_sl, x1, y1, x2, y2, msg->get("Music Volume"), JUSTIFY_RIGHT);
+		placeLabeledWidget(music_volume_lb, music_volume_sl, x1, y1, x2, y2, msg->get("Music Volume"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "sound_volume") {
 		// @ATTR sound_volume|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Sound Volume" slider relative to the frame.
-		placeLabeledWidget(sound_volume_lb, sound_volume_sl, x1, y1, x2, y2, msg->get("Sound Volume"), JUSTIFY_RIGHT);
+		placeLabeledWidget(sound_volume_lb, sound_volume_sl, x1, y1, x2, y2, msg->get("Sound Volume"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "language") {
 		// @ATTR language|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Language" list box relative to the frame.
 		placeLabeledWidget(language_lb, language_lstb, x1, y1, x2, y2, msg->get("Language"));
-		language_lb->setJustify(JUSTIFY_CENTER);
+		language_lb->setJustify(FontEngine::JUSTIFY_CENTER);
 	}
 	else if (infile.key == "language_height") {
 		// @ATTR language_height|int|Number of visible rows for the "Language" list box.
@@ -273,44 +272,44 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 	}
 	else if (infile.key == "combat_text") {
 		// @ATTR combat_text|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Show combat text" checkbox relative to the frame.
-		placeLabeledWidget(combat_text_lb, combat_text_cb, x1, y1, x2, y2, msg->get("Show combat text"), JUSTIFY_RIGHT);
+		placeLabeledWidget(combat_text_lb, combat_text_cb, x1, y1, x2, y2, msg->get("Show combat text"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "show_fps") {
 		// @ATTR show_fps|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Show FPS" checkbox relative to the frame.
-		placeLabeledWidget(show_fps_lb, show_fps_cb, x1, y1, x2, y2, msg->get("Show FPS"), JUSTIFY_RIGHT);
+		placeLabeledWidget(show_fps_lb, show_fps_cb, x1, y1, x2, y2, msg->get("Show FPS"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "colorblind") {
 		// @ATTR colorblind|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Colorblind Mode" checkbox relative to the frame.
-		placeLabeledWidget(colorblind_lb, colorblind_cb, x1, y1, x2, y2, msg->get("Colorblind Mode"), JUSTIFY_RIGHT);
+		placeLabeledWidget(colorblind_lb, colorblind_cb, x1, y1, x2, y2, msg->get("Colorblind Mode"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "hardware_cursor") {
 		// @ATTR hardware_cursor|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Hardware mouse cursor" checkbox relative to the frame.
-		placeLabeledWidget(hardware_cursor_lb, hardware_cursor_cb, x1, y1, x2, y2, msg->get("Hardware mouse cursor"), JUSTIFY_RIGHT);
+		placeLabeledWidget(hardware_cursor_lb, hardware_cursor_cb, x1, y1, x2, y2, msg->get("Hardware mouse cursor"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "dev_mode") {
 		// @ATTR dev_mode|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Developer Mode" checkbox relative to the frame.
-		placeLabeledWidget(dev_mode_lb, dev_mode_cb, x1, y1, x2, y2, msg->get("Developer Mode"), JUSTIFY_RIGHT);
+		placeLabeledWidget(dev_mode_lb, dev_mode_cb, x1, y1, x2, y2, msg->get("Developer Mode"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "loot_tooltips") {
 		// @ATTR loot_tooltips|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Always show loot labels" checkbox relative to the frame.
-		placeLabeledWidget(loot_tooltips_lb, loot_tooltips_cb, x1, y1, x2, y2, msg->get("Always show loot labels"), JUSTIFY_RIGHT);
+		placeLabeledWidget(loot_tooltips_lb, loot_tooltips_cb, x1, y1, x2, y2, msg->get("Always show loot labels"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "statbar_labels") {
 		// @ATTR statbar_labels|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Always show stat bar labels" checkbox relative to the frame.
-		placeLabeledWidget(statbar_labels_lb, statbar_labels_cb, x1, y1, x2, y2, msg->get("Always show stat bar labels"), JUSTIFY_RIGHT);
+		placeLabeledWidget(statbar_labels_lb, statbar_labels_cb, x1, y1, x2, y2, msg->get("Always show stat bar labels"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "auto_equip") {
 		// @ATTR auto_equip|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Automatically equip items" checkbox relative to the frame.
-		placeLabeledWidget(auto_equip_lb, auto_equip_cb, x1, y1, x2, y2, msg->get("Automatically equip items"), JUSTIFY_RIGHT);
+		placeLabeledWidget(auto_equip_lb, auto_equip_cb, x1, y1, x2, y2, msg->get("Automatically equip items"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "subtitles") {
 		// @ATTR subtitles|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Subtitles" checkbox relative to the frame.
-		placeLabeledWidget(subtitles_lb, subtitles_cb, x1, y1, x2, y2, msg->get("Subtitles"), JUSTIFY_RIGHT);
+		placeLabeledWidget(subtitles_lb, subtitles_cb, x1, y1, x2, y2, msg->get("Subtitles"), FontEngine::JUSTIFY_RIGHT);
 	}
 	else if (infile.key == "activemods") {
 		// @ATTR activemods|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Active Mods" list box relative to the frame.
 		placeLabeledWidget(activemods_lb, activemods_lstb, x1, y1, x2, y2, msg->get("Active Mods"));
-		activemods_lb->setJustify(JUSTIFY_CENTER);
+		activemods_lb->setJustify(FontEngine::JUSTIFY_CENTER);
 	}
 	else if (infile.key == "activemods_height") {
 		// @ATTR activemods_height|int|Number of visible rows for the "Active Mods" list box.
@@ -319,7 +318,7 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 	else if (infile.key == "inactivemods") {
 		// @ATTR inactivemods|int, int, int, int : Label X, Label Y, Widget X, Widget Y|Position of the "Available Mods" list box relative to the frame.
 		placeLabeledWidget(inactivemods_lb, inactivemods_lstb, x1, y1, x2, y2, msg->get("Available Mods"));
-		inactivemods_lb->setJustify(JUSTIFY_CENTER);
+		inactivemods_lb->setJustify(FontEngine::JUSTIFY_CENTER);
 	}
 	else if (infile.key == "inactivemods_height") {
 		// @ATTR inactivemods_height|int|Number of visible rows for the "Available Mods" list box.
@@ -327,24 +326,24 @@ bool GameStateConfigBase::parseKey(FileParser &infile, int &x1, int &y1, int &x2
 	}
 	else if (infile.key == "activemods_shiftup") {
 		// @ATTR activemods_shiftup|point|Position of the button to shift mods up in "Active Mods" relative to the frame.
-		activemods_shiftup_btn->setBasePos(x1, y1);
+		activemods_shiftup_btn->setBasePos(x1, y1, Utils::ALIGN_TOPLEFT);
 		activemods_shiftup_btn->refresh();
 	}
 	else if (infile.key == "activemods_shiftdown") {
 		// @ATTR activemods_shiftdown|point|Position of the button to shift mods down in "Active Mods" relative to the frame.
-		activemods_shiftdown_btn->setBasePos(x1, y1);
+		activemods_shiftdown_btn->setBasePos(x1, y1, Utils::ALIGN_TOPLEFT);
 		activemods_shiftdown_btn->refresh();
 	}
 	else if (infile.key == "activemods_deactivate") {
 		// @ATTR activemods_deactivate|point|Position of the "Disable" button relative to the frame.
 		activemods_deactivate_btn->label = msg->get("<< Disable");
-		activemods_deactivate_btn->setBasePos(x1, y1);
+		activemods_deactivate_btn->setBasePos(x1, y1, Utils::ALIGN_TOPLEFT);
 		activemods_deactivate_btn->refresh();
 	}
 	else if (infile.key == "inactivemods_activate") {
 		// @ATTR inactivemods_activate|point|Position of the "Enable" button relative to the frame.
 		inactivemods_activate_btn->label = msg->get("Enable >>");
-		inactivemods_activate_btn->setBasePos(x1, y1);
+		inactivemods_activate_btn->setBasePos(x1, y1, Utils::ALIGN_TOPLEFT);
 		inactivemods_activate_btn->refresh();
 	}
 	else {
@@ -503,11 +502,11 @@ void GameStateConfigBase::update() {
 }
 
 void GameStateConfigBase::updateAudio() {
-	if (AUDIO) {
-		music_volume_sl->set(0,128,MUSIC_VOLUME);
-		snd->setVolumeMusic(MUSIC_VOLUME);
-		sound_volume_sl->set(0,128,SOUND_VOLUME);
-		snd->setVolumeSFX(SOUND_VOLUME);
+	if (settings->audio) {
+		music_volume_sl->set(0, 128, settings->music_volume);
+		snd->setVolumeMusic(settings->music_volume);
+		sound_volume_sl->set(0, 128, settings->sound_volume);
+		snd->setVolumeSFX(settings->sound_volume);
 	}
 	else {
 		music_volume_sl->set(0,128,0);
@@ -516,15 +515,15 @@ void GameStateConfigBase::updateAudio() {
 }
 
 void GameStateConfigBase::updateInterface() {
-	combat_text_cb->setChecked(COMBAT_TEXT);
-	show_fps_cb->setChecked(SHOW_FPS);
-	colorblind_cb->setChecked(COLORBLIND);
-	hardware_cursor_cb->setChecked(HARDWARE_CURSOR);
-	dev_mode_cb->setChecked(DEV_MODE);
-	loot_tooltips_cb->setChecked(LOOT_TOOLTIPS);
-	statbar_labels_cb->setChecked(STATBAR_LABELS);
-	auto_equip_cb->setChecked(AUTO_EQUIP);
-	subtitles_cb->setChecked(SUBTITLES);
+	combat_text_cb->setChecked(settings->combat_text);
+	show_fps_cb->setChecked(settings->show_fps);
+	colorblind_cb->setChecked(settings->colorblind);
+	hardware_cursor_cb->setChecked(settings->hardware_cursor);
+	dev_mode_cb->setChecked(settings->dev_mode);
+	loot_tooltips_cb->setChecked(settings->loot_tooltips);
+	statbar_labels_cb->setChecked(settings->statbar_labels);
+	auto_equip_cb->setChecked(settings->auto_equip);
+	subtitles_cb->setChecked(settings->subtitles);
 
 	refreshLanguages();
 }
@@ -559,10 +558,10 @@ void GameStateConfigBase::logic() {
 		tablist.setNextTabList(&tablist_interface);
 		logicInterface();
 
-		if (platform_options.force_hardware_cursor) {
+		if (platform.force_hardware_cursor) {
 			// for some platforms, hardware mouse cursor can not be turned off
-			HARDWARE_CURSOR = true;
-			hardware_cursor_cb->setChecked(HARDWARE_CURSOR);
+			settings->hardware_cursor = true;
+			hardware_cursor_cb->setChecked(settings->hardware_cursor);
 		}
 	}
 	else if (active_tab == MODS_TAB) {
@@ -598,7 +597,7 @@ bool GameStateConfigBase::logicMain() {
 		defaults_confirm->visible = true;
 		return true;
 	}
-	else if (cancel_button->checkClick() || (inpt->pressing[CANCEL] && !inpt->lock[CANCEL])) {
+	else if (cancel_button->checkClick() || (inpt->pressing[Input::CANCEL] && !inpt->lock[Input::CANCEL])) {
 		logicCancel();
 
 		// GameStateConfigBase deconstructed, proceed with caution
@@ -611,9 +610,9 @@ bool GameStateConfigBase::logicMain() {
 void GameStateConfigBase::logicDefaults() {
 	defaults_confirm->logic();
 	if (defaults_confirm->confirmClicked) {
-		FULLSCREEN = false;
-		loadDefaults();
-		loadMiscSettings();
+		settings->fullscreen = false;
+		settings->loadDefaults();
+		eset->load();
 		inpt->defaultQwertyKeyBindings();
 		inpt->defaultJoystickBindings();
 		update();
@@ -630,17 +629,16 @@ void GameStateConfigBase::logicAccept() {
 		reload_backgrounds = true;
 		delete mods;
 		mods = new ModManager(NULL);
-		loadTilesetSettings();
-		PREV_SAVE_SLOT = -1;
+		settings->prev_save_slot = -1;
 	}
 	delete msg;
 	msg = new MessageEngine();
 	inpt->saveKeyBindings();
 	inpt->setKeybindNames();
-	loadMiscSettings();
-	setStatNames();
+	eset->load();
+	Stats::init();
 	refreshFont();
-	if ((ENABLE_JOYSTICK) && (inpt->getNumJoysticks() > 0)) {
+	if ((settings->enable_joystick) && (inpt->getNumJoysticks() > 0)) {
 		inpt->initJoystick();
 	}
 	cleanup();
@@ -652,27 +650,30 @@ void GameStateConfigBase::logicAccept() {
 		loading_tip = NULL;
 	}
 
+	delete tooltipm;
+
 	// we can't replace the render device in-place, so soft-reset the game
-	if (new_render_device != RENDER_DEVICE) {
-		RENDER_DEVICE = new_render_device;
+	if (new_render_device != settings->render_device_name) {
+		settings->render_device_name = new_render_device;
 		inpt->done = true;
-		SOFT_RESET = true;
+		settings->soft_reset = true;
 	}
 
 	render_device->createContext();
-	saveSettings();
+	tooltipm = new TooltipManager();
+	settings->saveSettings();
 	setRequestedGameState(new GameStateTitle());
 }
 
 void GameStateConfigBase::logicCancel() {
-	inpt->lock[CANCEL] = true;
-	loadSettings();
+	inpt->lock[Input::CANCEL] = true;
+	settings->loadSettings();
 	inpt->loadKeyBindings();
 	delete msg;
 	msg = new MessageEngine();
 	inpt->setKeybindNames();
-	loadMiscSettings();
-	setStatNames();
+	eset->load();
+	Stats::init();
 	refreshFont();
 	update();
 	cleanup();
@@ -683,52 +684,52 @@ void GameStateConfigBase::logicCancel() {
 }
 
 void GameStateConfigBase::logicAudio() {
-	if (AUDIO) {
+	if (settings->audio) {
 		if (music_volume_sl->checkClick()) {
-			if (MUSIC_VOLUME == 0)
+			if (settings->music_volume == 0)
 				reload_music = true;
-			MUSIC_VOLUME = static_cast<short>(music_volume_sl->getValue());
-			snd->setVolumeMusic(MUSIC_VOLUME);
+			settings->music_volume = static_cast<short>(music_volume_sl->getValue());
+			snd->setVolumeMusic(settings->music_volume);
 		}
 		else if (sound_volume_sl->checkClick()) {
-			SOUND_VOLUME = static_cast<short>(sound_volume_sl->getValue());
-			snd->setVolumeSFX(SOUND_VOLUME);
+			settings->sound_volume = static_cast<short>(sound_volume_sl->getValue());
+			snd->setVolumeSFX(settings->sound_volume);
 		}
 	}
 }
 
 void GameStateConfigBase::logicInterface() {
 	if (combat_text_cb->checkClick()) {
-		COMBAT_TEXT = combat_text_cb->isChecked();
+		settings->combat_text = combat_text_cb->isChecked();
 	}
 	else if (language_lstb->checkClick()) {
 		int lang_id = language_lstb->getSelected();
 		if (lang_id != -1)
-			LANGUAGE = language_ISO[lang_id];
+			settings->language = language_ISO[lang_id];
 	}
 	else if (show_fps_cb->checkClick()) {
-		SHOW_FPS = show_fps_cb->isChecked();
+		settings->show_fps = show_fps_cb->isChecked();
 	}
 	else if (colorblind_cb->checkClick()) {
-		COLORBLIND = colorblind_cb->isChecked();
+		settings->colorblind = colorblind_cb->isChecked();
 	}
 	else if (hardware_cursor_cb->checkClick()) {
-		HARDWARE_CURSOR = hardware_cursor_cb->isChecked();
+		settings->hardware_cursor = hardware_cursor_cb->isChecked();
 	}
 	else if (dev_mode_cb->checkClick()) {
-		DEV_MODE = dev_mode_cb->isChecked();
+		settings->dev_mode = dev_mode_cb->isChecked();
 	}
 	else if (loot_tooltips_cb->checkClick()) {
-		LOOT_TOOLTIPS = loot_tooltips_cb->isChecked();
+		settings->loot_tooltips = loot_tooltips_cb->isChecked();
 	}
 	else if (statbar_labels_cb->checkClick()) {
-		STATBAR_LABELS = statbar_labels_cb->isChecked();
+		settings->statbar_labels = statbar_labels_cb->isChecked();
 	}
 	else if (auto_equip_cb->checkClick()) {
-		AUTO_EQUIP = auto_equip_cb->isChecked();
+		settings->auto_equip = auto_equip_cb->isChecked();
 	}
 	else if (subtitles_cb->checkClick()) {
-		SUBTITLES = subtitles_cb->isChecked();
+		settings->subtitles = subtitles_cb->isChecked();
 	}
 }
 
@@ -761,8 +762,8 @@ void GameStateConfigBase::render() {
 
 	int tabheight = tab_control->getTabHeight();
 	Rect	pos;
-	pos.x = (VIEW_W-FRAME_W)/2;
-	pos.y = (VIEW_H-FRAME_H)/2 + tabheight - tabheight/16;
+	pos.x = (settings->view_w - eset->resolutions.frame_w)/2;
+	pos.y = (settings->view_h - eset->resolutions.frame_h)/2 + tabheight - tabheight/16;
 
 	if (background) {
 		background->setDest(pos);
@@ -778,20 +779,6 @@ void GameStateConfigBase::render() {
 
 	renderTabContents();
 	renderDialogs();
-
-	// Get tooltips for listboxes
-	// This isn't very elegant right now
-	// In the future, we'll want to get tooltips for all widget types
-	TooltipData tip_new;
-	renderTooltips(tip_new);
-
-	if (!tip_new.isEmpty()) {
-		if (!tip_new.compare(&tip_buf)) {
-			tip_buf.clear();
-			tip_buf = tip_new;
-		}
-		tip->render(tip_buf, inpt->mouse, STYLE_FLOAT);
-	}
 }
 
 void GameStateConfigBase::renderTabContents() {
@@ -806,37 +793,31 @@ void GameStateConfigBase::renderDialogs() {
 		defaults_confirm->render();
 }
 
-void GameStateConfigBase::renderTooltips(TooltipData& tip_new) {
-	if (active_tab == INTERFACE_TAB && tip_new.isEmpty()) tip_new = language_lstb->checkTooltip(inpt->mouse);
-	if (active_tab == MODS_TAB && tip_new.isEmpty()) tip_new = activemods_lstb->checkTooltip(inpt->mouse);
-	if (active_tab == MODS_TAB && tip_new.isEmpty()) tip_new = inactivemods_lstb->checkTooltip(inpt->mouse);
-}
-
 void GameStateConfigBase::placeLabeledWidget(WidgetLabel *lb, Widget *w, int x1, int y1, int x2, int y2, std::string const& str, int justify) {
 	if (w) {
-		w->setBasePos(x2, y2);
+		w->setBasePos(x2, y2, Utils::ALIGN_TOPLEFT);
 	}
 
 	if (lb) {
-		lb->setBasePos(x1, y1);
-		lb->set(str);
+		lb->setBasePos(x1, y1, Utils::ALIGN_TOPLEFT);
+		lb->setText(str);
 		lb->setJustify(justify);
 	}
 }
 
 void GameStateConfigBase::refreshWidgets() {
-	tab_control->setMainArea(((VIEW_W - FRAME_W)/2) + tab_offset.x, ((VIEW_H - FRAME_H)/2) + tab_offset.y);
+	tab_control->setMainArea(((settings->view_w - eset->resolutions.frame_w)/2) + tab_offset.x, ((settings->view_h - eset->resolutions.frame_h)/2) + tab_offset.y);
 
-	frame.x = ((VIEW_W - FRAME_W)/2) + frame_offset.x;
-	frame.y = ((VIEW_H - FRAME_H)/2) + tab_control->getTabHeight() + frame_offset.y;
+	frame.x = ((settings->view_w - eset->resolutions.frame_w)/2) + frame_offset.x;
+	frame.y = ((settings->view_h - eset->resolutions.frame_h)/2) + tab_control->getTabHeight() + frame_offset.y;
 
 	for (unsigned i=0; i<child_widget.size(); ++i) {
 		child_widget[i]->setPos(frame.x, frame.y);
 	}
 
-	ok_button->setPos();
-	defaults_button->setPos();
-	cancel_button->setPos();
+	ok_button->setPos(0, 0);
+	defaults_button->setPos(0, 0);
+	cancel_button->setPos(0, 0);
 
 	defaults_confirm->align();
 }
@@ -851,7 +832,7 @@ void GameStateConfigBase::refreshLanguages() {
 	language_lstb->clear();
 
 	FileParser infile;
-	if (infile.open("engine/languages.txt")) {
+	if (infile.open("engine/languages.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		int i = 0;
 		while (infile.next()) {
 			std::string key = infile.key;
@@ -859,7 +840,7 @@ void GameStateConfigBase::refreshLanguages() {
 				language_ISO.push_back(key);
 				language_lstb->append(infile.val, "");
 
-				if (language_ISO.back() == LANGUAGE) {
+				if (language_ISO.back() == settings->language) {
 					language_lstb->select(i);
 				}
 
@@ -869,7 +850,7 @@ void GameStateConfigBase::refreshLanguages() {
 		infile.close();
 	}
 
-	language_lstb->refresh(WidgetListBox::GOTO_SELECTED);
+	language_lstb->jumpToSelected();
 }
 
 void GameStateConfigBase::refreshFont() {
@@ -891,7 +872,7 @@ void GameStateConfigBase::enableMods() {
 
 void GameStateConfigBase::disableMods() {
 	for (int i=0; i<activemods_lstb->getSize(); i++) {
-		if (activemods_lstb->isSelected(i) && activemods_lstb->getValue(i) != FALLBACK_MOD) {
+		if (activemods_lstb->isSelected(i) && activemods_lstb->getValue(i) != mods->FALLBACK_MOD) {
 			inactivemods_lstb->append(activemods_lstb->getValue(i),activemods_lstb->getTooltip(i));
 			activemods_lstb->remove(i);
 			i--;
@@ -901,11 +882,11 @@ void GameStateConfigBase::disableMods() {
 }
 
 bool GameStateConfigBase::setMods() {
-	// Save new mods list. Return true if modlist was changed. Else return false
+	// Save new mods list and return true if modlist was changed. Else return false
 
 	std::vector<Mod> temp_list = mods->mod_list;
 	mods->mod_list.clear();
-	mods->mod_list.push_back(mods->loadMod(FALLBACK_MOD));
+	mods->mod_list.push_back(mods->loadMod(mods->FALLBACK_MOD));
 
 	for (int i=0; i<activemods_lstb->getSize(); i++) {
 		if (activemods_lstb->getValue(i) != "")
@@ -913,19 +894,21 @@ bool GameStateConfigBase::setMods() {
 	}
 
 	mods->applyDepends();
-	mods->saveMods();
 
-	if (mods->mod_list != temp_list)
+	if (mods->mod_list != temp_list) {
+		mods->saveMods();
 		return true;
-	else
+	}
+	else {
 		return false;
+	}
 }
 
 std::string GameStateConfigBase::createModTooltip(Mod *mod) {
 	std::string ret = "";
 	if (mod) {
-		std::string mod_ver = (*mod->version == VERSION_MIN) ? "" : versionToString(*mod->version);
-		std::string engine_ver = createVersionReqString(*mod->engine_min_version, *mod->engine_max_version);
+		std::string mod_ver = (*mod->version == VersionInfo::MIN) ? "" : mod->version->getString();
+		std::string engine_ver = VersionInfo::createVersionReqString(*mod->engine_min_version, *mod->engine_max_version);
 
 		ret = mod->name + '\n';
 
@@ -940,7 +923,7 @@ std::string GameStateConfigBase::createModTooltip(Mod *mod) {
 			ret += '\n';
 			ret += msg->get("Version:") + ' ' + mod_ver;
 		}
-		if (mod->game != "" && mod->game != FALLBACK_GAME) {
+		if (mod->game != "" && mod->game != mods->FALLBACK_GAME) {
 			middle_section = true;
 			ret += '\n';
 			ret += msg->get("Game:") + ' ' + mod->game;
@@ -959,7 +942,7 @@ std::string GameStateConfigBase::createModTooltip(Mod *mod) {
 			ret += msg->get("Requires mods:") + '\n';
 			for (unsigned i=0; i<mod->depends.size(); ++i) {
 				ret += "-  " + mod->depends[i];
-				std::string depend_ver = createVersionReqString(*mod->depends_min[i], *mod->depends_max[i]);
+				std::string depend_ver = VersionInfo::createVersionReqString(*mod->depends_min[i], *mod->depends_max[i]);
 				if (depend_ver != "")
 					ret += " (" + depend_ver + ")";
 				if (i < mod->depends.size()-1)
@@ -977,12 +960,6 @@ void GameStateConfigBase::cleanup() {
 	if (background) {
 		delete background;
 		background = NULL;
-	}
-
-	tip_buf.clear();
-	if (tip != NULL) {
-		delete tip;
-		tip = NULL;
 	}
 
 	if (tab_control != NULL) {

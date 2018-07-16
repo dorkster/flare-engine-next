@@ -16,8 +16,10 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+#include "EngineSettings.h"
 #include "RenderDevice.h"
 #include "Settings.h"
+#include "SharedResources.h"
 
 #include <assert.h>
 #include <math.h>
@@ -58,11 +60,10 @@ int Image::getHeight() const {
 	return 0;
 }
 
-Sprite *Image::createSprite(bool clipToSize) {
+Sprite *Image::createSprite() {
 	Sprite *sprite;
 	sprite = new Sprite(this);
-	if (clipToSize)
-		sprite->setClip(0, 0, this->getWidth(), this->getHeight());
+	sprite->setClip(0, 0, this->getWidth(), this->getHeight());
 	return sprite;
 }
 
@@ -164,13 +165,16 @@ int Sprite::getGraphicsHeight() {
 }
 
 Image * Sprite::getGraphics() {
-	return static_cast<Image *>(image);
+	return image;
 }
 
 
 /*
  * RenderDevice
  */
+
+const unsigned char RenderDevice::BITS_PER_PIXEL = 32;
+
 RenderDevice::RenderDevice()
 	: fullscreen(false)
 	, hwsurface(false)
@@ -189,13 +193,45 @@ RenderDevice::RenderDevice()
 RenderDevice::~RenderDevice() {
 }
 
+int RenderDevice::createContext() {
+	int status = createContextInternal();
+
+	if (status == -1) {
+		// try previous setting first
+		settings->fullscreen = fullscreen;
+		settings->hwsurface = hwsurface;
+		settings->vsync = vsync;
+		settings->texture_filter = texture_filter;
+
+		status = createContextInternal();
+	}
+
+	if (status == -1) {
+		// last resort, try turning everything off
+		settings->fullscreen = false;
+		settings->hwsurface = false;
+		settings->vsync = false;
+		settings->texture_filter = false;
+
+		status = createContextInternal();
+	}
+
+	if (status == -1) {
+		// all attempts have failed, abort!
+		createContextError();
+		Utils::Exit(1);
+	}
+
+	return status;
+}
+
 void RenderDevice::destroyContext() {
 	if (!cache.empty()) {
 		IMAGE_CACHE_CONTAINER_ITER it;
-		logError("RenderDevice: Image cache still holding these images:");
+		Utils::logError("RenderDevice: Image cache still holding these images:");
 		it = cache.begin();
 		while (it != cache.end()) {
-			logError("%s %d", it->first.c_str(), it->second->getRefCount());
+			Utils::logError("%s %d", it->first.c_str(), it->second->getRefCount());
 			++it;
 		}
 	}
@@ -300,55 +336,55 @@ void RenderDevice::freeImage(Image *image) {
 }
 
 void RenderDevice::windowResizeInternal() {
-	unsigned short old_view_w = VIEW_W;
-	unsigned short old_view_h = VIEW_H;
-	unsigned short old_screen_w = SCREEN_W;
-	unsigned short old_screen_h = SCREEN_H;
+	unsigned short old_view_w = settings->view_w;
+	unsigned short old_view_h = settings->view_h;
+	unsigned short old_screen_w = settings->screen_w;
+	unsigned short old_screen_h = settings->screen_h;
 
-	getWindowSize(&SCREEN_W, &SCREEN_H);
+	getWindowSize(&settings->screen_w, &settings->screen_h);
 
 	unsigned short temp_screen_h;
-	if (DPI_SCALING && ddpi > 0 && VIRTUAL_DPI > 0) {
-		temp_screen_h = static_cast<unsigned short>(static_cast<float>(SCREEN_H) * (VIRTUAL_DPI / ddpi));
+	if (settings->dpi_scaling && ddpi > 0 && eset->resolutions.virtual_dpi > 0) {
+		temp_screen_h = static_cast<unsigned short>(static_cast<float>(settings->screen_h) * (eset->resolutions.virtual_dpi / ddpi));
 	}
 	else {
-		temp_screen_h = SCREEN_H;
+		temp_screen_h = settings->screen_h;
 	}
-	VIEW_H = temp_screen_h;
+	settings->view_h = temp_screen_h;
 
 	// scale virtual height when outside of VIRTUAL_HEIGHTS range
-	if (!VIRTUAL_HEIGHTS.empty()) {
-		if (temp_screen_h < VIRTUAL_HEIGHTS.front())
-			VIEW_H = VIRTUAL_HEIGHTS.front();
-		else if (temp_screen_h >= VIRTUAL_HEIGHTS.back())
-			VIEW_H = VIRTUAL_HEIGHTS.back();
+	if (!eset->resolutions.virtual_heights.empty()) {
+		if (temp_screen_h < eset->resolutions.virtual_heights.front())
+			settings->view_h = eset->resolutions.virtual_heights.front();
+		else if (temp_screen_h >= eset->resolutions.virtual_heights.back())
+			settings->view_h = eset->resolutions.virtual_heights.back();
 	}
 
-	VIEW_H_HALF = VIEW_H / 2;
+	settings->view_h_half = settings->view_h / 2;
 
-	VIEW_SCALING = static_cast<float>(VIEW_H) / static_cast<float>(SCREEN_H);
-	VIEW_W = static_cast<unsigned short>(static_cast<float>(SCREEN_W) * VIEW_SCALING);
+	settings->view_scaling = static_cast<float>(settings->view_h) / static_cast<float>(settings->screen_h);
+	settings->view_w = static_cast<unsigned short>(static_cast<float>(settings->screen_w) * settings->view_scaling);
 
 	// letterbox if too tall
-	if (VIEW_W < MIN_SCREEN_W) {
-		VIEW_W = MIN_SCREEN_W;
-		VIEW_SCALING = static_cast<float>(VIEW_W) / static_cast<float>(SCREEN_W);
+	if (settings->view_w < eset->resolutions.min_screen_w) {
+		settings->view_w = eset->resolutions.min_screen_w;
+		settings->view_scaling = static_cast<float>(settings->view_w) / static_cast<float>(settings->screen_w);
 	}
 
-	VIEW_W_HALF = VIEW_W/2;
+	settings->view_w_half = settings->view_w/2;
 
-	if (VIEW_W != old_view_w || VIEW_H != old_view_h) {
-		logInfo("RenderDevice: Internal render size is %dx%d", VIEW_W, VIEW_H);
+	if (settings->view_w != old_view_w || settings->view_h != old_view_h) {
+		Utils::logInfo("RenderDevice: Internal render size is %dx%d", settings->view_w, settings->view_h);
 	}
-	if (SCREEN_W != old_screen_w || SCREEN_H != old_screen_h) {
-		logInfo("RenderDevice: Window size changed to %dx%d", SCREEN_W, SCREEN_H);
+	if (settings->screen_w != old_screen_w || settings->screen_h != old_screen_h) {
+		Utils::logInfo("RenderDevice: Window size changed to %dx%d", settings->screen_w, settings->screen_h);
 	}
 }
 
 void RenderDevice::setBackgroundColor(Color color) {
 	// print out the color to avoid unused variable compiler warning
-	logInfo("RenderDevice: Trying to set background color to (%d,%d,%d,%d).", color.r, color.g, color.b, color.a);
-	logError("RenderDevice: Renderer does not support setting background color!");
+	Utils::logInfo("RenderDevice: Trying to set background color to (%d,%d,%d,%d).", color.r, color.g, color.b, color.a);
+	Utils::logError("RenderDevice: Renderer does not support setting background color!");
 }
 
 void RenderDevice::drawEllipse(int x0, int y0, int x1, int y1, const Color& color, float step) {

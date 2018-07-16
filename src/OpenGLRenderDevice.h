@@ -73,7 +73,6 @@ class OpenGLRenderDevice : public RenderDevice {
 public:
 
 	OpenGLRenderDevice();
-	int createContext(bool allow_fallback = true);
 
 	virtual int render(Renderable& r, Rect& dest);
 	virtual int render(Sprite* r);
@@ -91,9 +90,12 @@ public:
 	void resetGamma();
 	void updateTitleBar();
 
-	Image* loadImage(const std::string& filename,
-								const std::string& errormessage = "Couldn't load image",
-								bool IfNotFoundExit = false);
+	Image* loadImage(const std::string& filename, int error_type);
+
+protected:
+	int createContextInternal();
+	void createContextError();
+
 private:
 	void drawLine(int x0, int y0, int x1, int y1, const Color& color);
 	void getWindowSize(short unsigned *screen_w, short unsigned *screen_h);

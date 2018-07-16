@@ -22,10 +22,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #define MAP_H
 
 #include "CommonIncludes.h"
+#include "EventManager.h"
 #include "MapCollision.h"
 #include "Utils.h"
 
 class Event;
+class FileParser;
 class StatBlock;
 
 class Map_Group {
@@ -165,7 +167,7 @@ public:
 
 	// intemap_random queue
 	std::string intermap_random_filename;
-	std::queue<Event_Component> intermap_random_queue;
+	std::queue<EventComponent> intermap_random_queue;
 
 	// vars
 	std::string title;

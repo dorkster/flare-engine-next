@@ -26,9 +26,6 @@ mods in priority order when loading data files.
 #ifndef MOD_MANAGER_H
 #define MOD_MANAGER_H
 
-#define FALLBACK_MOD "default"
-#define FALLBACK_GAME "default"
-
 #include "CommonIncludes.h"
 
 class Version;
@@ -64,6 +61,11 @@ private:
 	const std::vector<std::string> *cmd_line_mods;
 
 public:
+	static const bool LIST_FULL_PATHS = true;
+
+	static const std::string FALLBACK_MOD;
+	static const std::string FALLBACK_GAME;
+
 	explicit ModManager(const std::vector<std::string> *_cmd_line_mods);
 	~ModManager();
 	Mod loadMod(const std::string& name);
@@ -83,7 +85,7 @@ public:
 	//
 	// Setting full_paths to false will populate the list with relative filenames,
 	// that can be passed to locate() later
-	std::vector<std::string> list(const std::string& path, bool full_paths = true);
+	std::vector<std::string> list(const std::string& path, bool full_paths);
 
 	std::vector<std::string> mod_dirs;
 	std::vector<Mod> mod_list;

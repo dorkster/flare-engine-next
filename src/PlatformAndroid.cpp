@@ -34,17 +34,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include <jni.h>
 
-PlatformOptions platform_options;
+Platform platform;
 
-void PlatformInit() {
-	platform_options.is_mobile_device = true;
-	platform_options.force_hardware_cursor = true;
-	platform_options.config_menu_type = CONFIG_MENU_TYPE_BASE;
-	platform_options.has_lock_file = false;
-	platform_options.default_renderer = "sdl_hardware";
-}
+namespace PlatformAndroid {
+	std::string getPackageName();
+	int isExitEvent(void *userdata, SDL_Event* event);
+};
 
-std::string AndroidGetPackageName()
+std::string PlatformAndroid::getPackageName()
 {
 	JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
 
@@ -63,30 +60,42 @@ std::string AndroidGetPackageName()
 	return result;
 }
 
-int AndroidIsExitEvent(void* userdata, SDL_Event* event) {
+int PlatformAndroid::isExitEvent(void* userdata, SDL_Event* event) {
 	if (userdata) {}; // avoid unused var compile warning
 
 	if (event->type == SDL_APP_TERMINATING) {
-		logInfo("Terminating app, saving...");
+		Utils::logInfo("Terminating app, saving...");
 		save_load->saveGame();
-		logInfo("Saved, ready to exit.");
+		Utils::logInfo("Saved, ready to exit.");
 		return 0;
 	}
 	return 1;
 }
 
-void PlatformSetPaths() {
+Platform::Platform()
+	: has_exit_button(true)
+	, is_mobile_device(true)
+	, force_hardware_cursor(true)
+	, has_lock_file(false)
+	, config_menu_type(CONFIG_MENU_TYPE_BASE)
+	, default_renderer("sdl_hardware") {
+}
+
+Platform::~Platform() {
+}
+
+void Platform::setPaths() {
 	/*
-	 * PATH_CONF
+	 * settings->path_conf
 	 * 1. INTERNAL_SD_CARD/Flare
 	 * 2. EXTERNAL_SD_CARD/Flare
 	 * 3. App internal storage (/data/...)
 	 *
-	 * PATH_DATA
+	 * settings->path_data
 	 * 1. App external storage (usually internal sd card)
 	 * 2. INTERNAL_SD_CARD/Flare
 	 *
-	 * PATH_USER
+	 * settings->path_user
 	 * 1. INTERNAL_SD_CARD/Flare
 	 * 2. EXTERNAL_SD_CARD/Flare
 	 */
@@ -103,68 +112,68 @@ void PlatformSetPaths() {
 	externalSDList.push_back("/storage/extSdCard");
 	externalSDList.push_back("/mnt/m_external_sd");
 
-	PATH_CONF = std::string(SDL_AndroidGetInternalStoragePath()) + "/config";
+	settings->path_conf = std::string(SDL_AndroidGetInternalStoragePath()) + "/config";
 
-	const std::string package_name = AndroidGetPackageName();
+	const std::string package_name = PlatformAndroid::getPackageName();
 	const std::string user_folder = "Android/data/" + package_name + "/files";
 
 	if (SDL_AndroidGetExternalStorageState() != 0) {
-		PATH_DATA = std::string(SDL_AndroidGetExternalStoragePath());
+		settings->path_data = std::string(SDL_AndroidGetExternalStoragePath());
 	}
 
 	for (int i = 0; i < internalSDList.size(); i++) {
-		if (pathExists(internalSDList[i])) {
-			PATH_USER = internalSDList[i] + "/Flare";
-			PATH_CONF = PATH_USER + "/config";
+		if (Filesystem::pathExists(internalSDList[i])) {
+			settings->path_user = internalSDList[i] + "/Flare";
+			settings->path_conf = settings->path_user + "/config";
 
-			if (PATH_DATA.empty())
-				PATH_DATA = internalSDList[i] + "/" + user_folder;
+			if (settings->path_data.empty())
+				settings->path_data = internalSDList[i] + "/" + user_folder;
 
 			break;
 		}
 	}
 
-	if (PATH_DATA.empty()) {
-		logError("Settings: Android external storage unavailable: %s", SDL_GetError());
+	if (settings->path_data.empty()) {
+		Utils::logError("Settings: Android external storage unavailable: %s", SDL_GetError());
 	}
 
-	if (PATH_USER.empty() || !pathExists(PATH_USER)) {
+	if (settings->path_user.empty() || !Filesystem::pathExists(settings->path_user)) {
 		for (int i = 0; i < externalSDList.size(); i++) {
-			if (pathExists(externalSDList[i])) {
-				PATH_USER = externalSDList[i] + "/Flare";
-				PATH_CONF = PATH_USER + "/config";
+			if (Filesystem::pathExists(externalSDList[i])) {
+				settings->path_user = externalSDList[i] + "/Flare";
+				settings->path_conf = settings->path_user + "/config";
 
 				break;
 			}
 		}
 	}
 
-	createDir(PATH_USER);
-	createDir(PATH_CONF);
-	createDir(PATH_USER + "/mods");
-	createDir(PATH_USER + "/saves");
+	Filesystem::createDir(settings->path_user);
+	Filesystem::createDir(settings->path_conf);
+	Filesystem::createDir(settings->path_user + "/mods");
+	Filesystem::createDir(settings->path_user + "/saves");
 
-	PATH_CONF += "/";
-	PATH_USER += "/";
-	PATH_DATA += "/";
+	settings->path_conf += "/";
+	settings->path_user += "/";
+	settings->path_data += "/";
 }
 
-void PlatformSetExitEventFilter() {
-	SDL_SetEventFilter(AndroidIsExitEvent, NULL);
+void Platform::setExitEventFilter() {
+	SDL_SetEventFilter(PlatformAndroid::isExitEvent, NULL);
 }
 
-bool PlatformDirCreate(const std::string& path) {
+bool Platform::dirCreate(const std::string& path) {
 	if (mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
-		std::string error_msg = "createDir (" + path + ")";
+		std::string error_msg = "Platform::dirCreate (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
 	return true;
 }
 
-bool PlatformDirRemove(const std::string& path) {
+bool Platform::dirRemove(const std::string& path) {
 	if (rmdir(path.c_str()) == -1) {
-		std::string error_msg = "removeDir (" + path + ")";
+		std::string error_msg = "Platform::dirRemove (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
@@ -172,10 +181,10 @@ bool PlatformDirRemove(const std::string& path) {
 }
 
 // unused
-void PlatformFSInit() {}
-bool PlatformFSCheckReady() { return true; }
-void PlatformFSCommit() {}
-void PlatformSetScreenSize() {}
+void Platform::FSInit() {}
+bool Platform::FSCheckReady() { return true; }
+void Platform::FSCommit() {}
+void Platform::setScreenSize() {}
 
 #endif // PLATFORM_CPP
 #endif // PLATFORM_CPP_INCLUDE

@@ -16,24 +16,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 /**
- * class WidgetSettings
+ * class SoundManager
  */
 
-#ifndef WIDGET_SETTINGS_H
-#define WIDGET_SETTINGS_H
+#include "SoundManager.h"
 
-#include "Utils.h"
+const std::string SoundManager::DEFAULT_CHANNEL = "__global__";
+const FPoint SoundManager::NO_POS = FPoint(0, 0);
 
-class WidgetSettings {
-public:
-	WidgetSettings();
-	~WidgetSettings();
-	void load();
-
-	Color selection_rect_color;
-	Point tab_padding;
-};
-
-extern WidgetSettings widget_settings;
-
-#endif

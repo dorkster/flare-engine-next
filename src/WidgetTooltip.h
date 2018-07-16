@@ -29,24 +29,21 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "TooltipData.h"
 #include "Utils.h"
 
-extern int TOOLTIP_CONTEXT;
-const int TOOLTIP_NONE = 0;
-const int TOOLTIP_MAP = 1;
-const int TOOLTIP_MENU = 2;
-
 class WidgetTooltip {
 public:
 	WidgetTooltip();
 	~WidgetTooltip();
-	Point calcPosition(STYLE style, const Point& pos, const Point& size);
-	void prerender(TooltipData&tip, const Point& pos, STYLE style);
-	void render(TooltipData &tip, const Point& pos, STYLE style);
+	Point calcPosition(uint8_t style, const Point& pos, const Point& size);
+	void prerender(TooltipData&tip, const Point& pos, uint8_t style);
+	void render(TooltipData &tip, const Point& pos, uint8_t style);
 	bool createBuffer(TooltipData &tip);
 
 	Rect bounds;
 
 private:
 	Image *background;
+	TooltipData data_buf;
+	Sprite* sprite_buf;
 };
 
 #endif

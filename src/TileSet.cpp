@@ -25,10 +25,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * TileSet storage and file loading
  */
 
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "ModManager.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "TileSet.h"
 #include "UtilsParsing.h"
@@ -65,7 +65,7 @@ void TileSet::loadGraphics(const std::string& filename, Sprite** sprite) {
 	if (filename.empty())
 		return;
 
-	Image *graphics = render_device->loadImage(filename);
+	Image *graphics = render_device->loadImage(filename, RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		*sprite = graphics->createSprite();
 		graphics->unref();
@@ -85,7 +85,7 @@ void TileSet::load(const std::string& filename) {
 	FileParser infile;
 
 	// @CLASS TileSet|Description of tilesets in tilesets/
-	if (infile.open(filename)) {
+	if (infile.open(filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if ((infile.new_section && infile.section == "tileset") || (sprites.empty() && infile.section.empty())) {
 				image_filenames.resize(image_filenames.size() + 1);
@@ -99,7 +99,7 @@ void TileSet::load(const std::string& filename) {
 			else if (infile.key == "tile") {
 				// @ATTR tileset.tile|int, int, int, int, int, int, int : Index, X, Y, Width, Height, X offset, Y offset|A single tile definition.
 
-				size_t index = popFirstInt(infile.val);
+				size_t index = Parse::popFirstInt(infile.val);
 
 				if (index >= tiles.size()) {
 					tiles.resize(index + 1);
@@ -109,14 +109,14 @@ void TileSet::load(const std::string& filename) {
 				}
 
 				Rect clip;
-				clip.x = popFirstInt(infile.val);
-				clip.y = popFirstInt(infile.val);
-				clip.w = popFirstInt(infile.val);
-				clip.h = popFirstInt(infile.val);
+				clip.x = Parse::popFirstInt(infile.val);
+				clip.y = Parse::popFirstInt(infile.val);
+				clip.w = Parse::popFirstInt(infile.val);
+				clip.h = Parse::popFirstInt(infile.val);
 
 				Point offset;
-				offset.x = popFirstInt(infile.val);
-				offset.y = popFirstInt(infile.val);
+				offset.x = Parse::popFirstInt(infile.val);
+				offset.y = Parse::popFirstInt(infile.val);
 
 				tile_images[index] = image_filenames.size() - 1;
 				tile_clips[index] = clip;
@@ -126,22 +126,22 @@ void TileSet::load(const std::string& filename) {
 				// @ATTR tileset.animation|list(int, int, int, duration) : Tile index, X, Y, duration|An animation for a tile. Durations are in 'ms' or 's'.
 
 				unsigned short frame = 0;
-				size_t index = popFirstInt(infile.val);
+				size_t index = Parse::popFirstInt(infile.val);
 
 				if (index >= anim.size())
 					anim.resize(index + 1);
 
-				std::string repeat_val = popFirstString(infile.val);
+				std::string repeat_val = Parse::popFirstString(infile.val);
 				while (repeat_val != "") {
 					anim[index].frames++;
 					anim[index].pos.resize(frame + 1);
 					anim[index].frame_duration.resize(frame + 1);
-					anim[index].pos[frame].x = toInt(repeat_val);
-					anim[index].pos[frame].y = popFirstInt(infile.val);
-					anim[index].frame_duration[frame] = static_cast<unsigned short>(parse_duration(popFirstString(infile.val)));
+					anim[index].pos[frame].x = Parse::toInt(repeat_val);
+					anim[index].pos[frame].y = Parse::popFirstInt(infile.val);
+					anim[index].frame_duration[frame] = static_cast<unsigned short>(Parse::toDuration(Parse::popFirstString(infile.val)));
 
 					frame++;
-					repeat_val = popFirstString(infile.val);
+					repeat_val = Parse::popFirstString(infile.val);
 				}
 			}
 			else {
@@ -165,8 +165,8 @@ void TileSet::load(const std::string& filename) {
 		tiles[i].tile->setClip(tile_clips[i]);
 		tiles[i].offset = tile_offsets[i];
 
-		max_size_x = std::max(max_size_x, (tiles[i].tile->getClip().w / TILE_W) + 1);
-		max_size_y = std::max(max_size_y, (tiles[i].tile->getClip().h / TILE_H) + 1);
+		max_size_x = std::max(max_size_x, (tiles[i].tile->getClip().w / eset->tileset.tile_w) + 1);
+		max_size_y = std::max(max_size_y, (tiles[i].tile->getClip().h / eset->tileset.tile_h) + 1);
 	}
 
 	current_filename = filename;

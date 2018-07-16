@@ -27,7 +27,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuLog.h"
 #include "MessageEngine.h"
 #include "ModManager.h"
-#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
@@ -45,23 +44,23 @@ MenuLog::MenuLog() {
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuLog|Description of menus/log.txt
-	if(infile.open("menus/log.txt")) {
+	if(infile.open("menus/log.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR label_title|label|Position of the "Log" text.
 			if(infile.key == "label_title") {
-				title = eatLabelInfo(infile.val);
+				label_log.setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR close|point|Position of the close button.
 			else if(infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				closeButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				closeButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR tab_area|rectangle|The position of the row of tabs, followed by the dimensions of the log text area.
 			else if(infile.key == "tab_area") {
-				tab_area = toRect(infile.val);
+				tab_area = Parse::toRect(infile.val);
 			}
 			else {
 				infile.error("MenuLog: '%s' is not a valid key.", infile.key.c_str());
@@ -70,15 +69,18 @@ MenuLog::MenuLog() {
 		infile.close();
 	}
 
+	label_log.setText(msg->get("Log"));
+	label_log.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
 	// Initialize the tab control.
 	tabControl = new WidgetTabControl();
 	tablist.add(tabControl);
 
 	// Store the amount of displayed log messages on each log, and the maximum.
-	tablist_log.resize(LOG_TYPE_COUNT);
-	for (unsigned i=0; i<LOG_TYPE_COUNT; i++) {
+	tablist_log.resize(TYPE_COUNT);
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		log[i] = new WidgetLog(tab_area.w,tab_area.h);
-		log[i]->setBasePos(tab_area.x, tab_area.y + tabControl->getTabHeight());
+		log[i]->setBasePos(tab_area.x, tab_area.y + tabControl->getTabHeight(), Utils::ALIGN_TOPLEFT);
 
 		tablist_log[i].add(log[i]->getWidget());
 		tablist_log[i].setPrevTabList(&tablist);
@@ -86,8 +88,8 @@ MenuLog::MenuLog() {
 	}
 
 	// Define the header.
-	tabControl->setTabTitle(LOG_TYPE_MESSAGES, msg->get("Notes"));
-	tabControl->setTabTitle(LOG_TYPE_QUESTS, msg->get("Quests"));
+	tabControl->setTabTitle(TYPE_MESSAGES, msg->get("Notes"));
+	tabControl->setTabTitle(TYPE_QUESTS, msg->get("Quests"));
 
 	setBackground("images/menus/log.png");
 
@@ -101,9 +103,9 @@ void MenuLog::align() {
 
 	closeButton->setPos(window_area.x, window_area.y);
 
-	label_log.set(window_area.x+title.x, window_area.y+title.y, title.justify, title.valign, msg->get("Log"), font->getColor("menu_normal"), title.font_style);
+	label_log.setPos(window_area.x, window_area.y);
 
-	for (unsigned i=0; i<LOG_TYPE_COUNT; i++) {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		log[i]->setPos(window_area.x, window_area.y);
 	}
 }
@@ -116,7 +118,7 @@ void MenuLog::logic() {
 
 	tablist.logic();
 	// make shure keyboard navigation leads us to correct tab
-	for (unsigned i = 0; i < LOG_TYPE_COUNT; i++) {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		if (tabControl->getActiveTab() == static_cast<int>(i)) {
 			tablist.setNextTabList(&tablist_log[i]);
 		}
@@ -125,7 +127,7 @@ void MenuLog::logic() {
 
 	if (closeButton->checkClick()) {
 		visible = false;
-		snd->play(sfx_close);
+		snd->play(sfx_close, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 	}
 
 	tabControl->logic();
@@ -147,7 +149,7 @@ void MenuLog::render() {
 	closeButton->render();
 
 	// Text overlay.
-	if (!title.hidden) label_log.render();
+	label_log.render();
 
 	// Tab control.
 	tabControl->render();
@@ -160,8 +162,16 @@ void MenuLog::render() {
 /**
  * Add a new message to the log.
  */
-void MenuLog::add(const std::string& s, int log_type, bool prevent_spam, Color* color, int style) {
-	log[log_type]->add(substituteVarsInString(s, pc), prevent_spam, color, style);
+void MenuLog::add(const std::string& s, int log_type, int msg_type) {
+	log[log_type]->add(Utils::substituteVarsInString(s, pc), msg_type);
+}
+
+void MenuLog::setNextColor(const Color& color, int log_type) {
+	log[log_type]->setNextColor(color);
+}
+
+void MenuLog::setNextStyle(int style, int log_type) {
+	log[log_type]->setNextStyle(style);
 }
 
 /**
@@ -172,13 +182,14 @@ void MenuLog::remove(int msg_index, int log_type) {
 }
 
 void MenuLog::clear(int log_type) {
-	if (log_type == LOG_TYPE_ALL) {
-		for (unsigned i=0; i<LOG_TYPE_COUNT; i++) {
-			log[i]->clear();
-		}
-	}
-	else {
+	if (log_type >= 0 && log_type < TYPE_COUNT) {
 		log[log_type]->clear();
+	}
+}
+
+void MenuLog::clearAll() {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
+		log[i]->clear();
 	}
 }
 
@@ -187,7 +198,7 @@ void MenuLog::addSeparator(int log_type) {
 }
 
 void MenuLog::setNextTabList(TabList *tl) {
-	for (unsigned i=0; i<LOG_TYPE_COUNT; ++i) {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		tablist_log[i].setNextTabList(tl);
 	}
 }
@@ -197,7 +208,7 @@ TabList* MenuLog::getCurrentTabList() {
 		return (&tablist);
 	}
 	else {
-		for (unsigned i=0; i<LOG_TYPE_COUNT; ++i) {
+		for (size_t i = 0; i < TYPE_COUNT; ++i) {
 			if (tablist_log[i].getCurrent() != -1)
 				return (&tablist_log[i]);
 		}
@@ -208,13 +219,13 @@ TabList* MenuLog::getCurrentTabList() {
 
 void MenuLog::defocusTabLists() {
 	tablist.defocus();
-	for (unsigned i=0; i<LOG_TYPE_COUNT; ++i) {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		tablist_log[i].defocus();
 	}
 }
 
 MenuLog::~MenuLog() {
-	for (unsigned i=0; i<LOG_TYPE_COUNT; i++) {
+	for (size_t i = 0; i < TYPE_COUNT; ++i) {
 		delete log[i];
 	}
 

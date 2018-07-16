@@ -31,6 +31,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CursorManager.h"
 #include "Enemy.h"
 #include "EnemyManager.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "InputState.h"
 #include "LootManager.h"
@@ -38,6 +39,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Menu.h"
 #include "ModManager.h"
 #include "RenderDevice.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
@@ -50,67 +52,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <math.h>
 
 LootManager::LootManager()
-	: sfx_loot(0)
-	, drop_max(1)
-	, drop_radius(1)
-	, autopickup_range(INTERACT_RANGE)
+	: tip(new WidgetTooltip())
+	, sfx_loot(snd->load(eset->loot.sfx_loot, "LootManager dropping loot"))
 	, hero(NULL)
-	, tooltip_margin(0)
 {
-	tip = new WidgetTooltip();
-
-	FileParser infile;
-	// load loot animation settings from engine config file
-	// @CLASS Loot|Description of engine/loot.txt
-	if (infile.open("engine/loot.txt")) {
-		while (infile.next()) {
-			if (infile.key == "tooltip_margin") {
-				// @ATTR tooltip_margin|int|Vertical offset of the loot tooltip from the loot itself.
-				tooltip_margin = toInt(infile.val);
-			}
-			else if (infile.key == "autopickup_currency") {
-				// @ATTR autopickup_currency|bool|Enable autopickup for currency
-				AUTOPICKUP_CURRENCY = toBool(infile.val);
-			}
-			else if (infile.key == "autopickup_range") {
-				// @ATTR autopickup_range|float|Minimum distance the player must be from loot to trigger autopickup.
-				autopickup_range = toFloat(infile.val);
-			}
-			else if (infile.key == "currency_name") {
-				// This key is parsed in loadMiscSettings() in Settings.cpp
-			}
-			else if (infile.key == "vendor_ratio") {
-				// @ATTR vendor_ratio|int|Percentage of item buying price to use as selling price. Also used as the buyback price until the player leaves the map.
-				VENDOR_RATIO = static_cast<float>(toInt(infile.val)) / 100.0f;
-			}
-			else if (infile.key == "vendor_ratio_buyback") {
-				// @ATTR vendor_ratio_buyback|int|Percentage of item buying price to use as the buying price for previously sold items.
-				VENDOR_RATIO_BUYBACK = static_cast<float>(toInt(infile.val)) / 100.0f;
-			}
-			else if (infile.key == "sfx_loot") {
-				// @ATTR sfx_loot|filename|Filename of a sound effect to play for dropping loot.
-				sfx_loot =  snd->load(infile.val, "LootManager dropping loot");
-			}
-			else if (infile.key == "drop_max") {
-				// @ATTR drop_max|int|The maximum number of random item stacks that can drop at once
-				drop_max = std::max(toInt(infile.val), 1);
-			}
-			else if (infile.key == "drop_radius") {
-				// @ATTR drop_radius|int|The distance (in tiles) away from the origin that loot can drop
-				drop_radius = std::max(toInt(infile.val), 1);
-			}
-			else {
-				infile.error("LootManager: '%s' is not a valid key.", infile.key.c_str());
-			}
-		}
-		infile.close();
-	}
-
-	// reset current map loot
-	loot.clear();
-
 	loadGraphics();
-
 	loadLootTables();
 }
 
@@ -173,7 +119,7 @@ void LootManager::logic() {
  * Show all tooltips for loot on the floor
  */
 void LootManager::renderTooltips(const FPoint& cam) {
-	if (!SHOW_HUD) return;
+	if (!settings->show_hud) return;
 
 	Point dest;
 	bool tooltip_below = true;
@@ -183,21 +129,21 @@ void LootManager::renderTooltips(const FPoint& cam) {
 		it->tip_visible = false;
 
 		if (it->on_ground) {
-			Point p = map_to_screen(it->pos.x, it->pos.y, cam.x, cam.y);
+			Point p = Utils::mapToScreen(it->pos.x, it->pos.y, cam.x, cam.y);
 			dest.x = p.x;
-			dest.y = p.y + TILE_H_HALF;
+			dest.y = p.y + eset->tileset.tile_h_half;
 
 			// adjust dest.y so that the tooltip floats above the item
-			dest.y -= tooltip_margin;
+			dest.y -= eset->loot.tooltip_margin;
 
 			// set hitbox for mouse hover
 			Rect hover;
-			hover.x = p.x - TILE_W_HALF;
-			hover.y = p.y - TILE_H_HALF;
-			hover.w = TILE_W;
-			hover.h = TILE_H;
+			hover.x = p.x - eset->tileset.tile_w_half;
+			hover.y = p.y - eset->tileset.tile_h_half;
+			hover.w = eset->tileset.tile_w;
+			hover.h = eset->tileset.tile_h;
 
-			if ((LOOT_TOOLTIPS && !inpt->pressing[ALT]) || (!LOOT_TOOLTIPS && inpt->pressing[ALT]) || isWithinRect(hover, inpt->mouse)) {
+			if ((settings->loot_tooltips && !inpt->pressing[Input::ALT]) || (!settings->loot_tooltips && inpt->pressing[Input::ALT]) || Utils::isWithinRect(hover, inpt->mouse)) {
 				it->tip_visible = true;
 
 				// create tooltip data if needed
@@ -208,14 +154,14 @@ void LootManager::renderTooltips(const FPoint& cam) {
 				}
 
 				// try to prevent tooltips from overlapping
-				tip->prerender(it->tip, dest, STYLE_TOPLABEL);
+				tip->prerender(it->tip, dest, TooltipData::STYLE_TOPLABEL);
 				std::vector<Loot>::iterator test_it;
 				for (test_it = loot.begin(); test_it != it; ) {
-					if (rectsOverlap(test_it->tip_bounds, tip->bounds)) {
+					if (Utils::rectsOverlap(test_it->tip_bounds, tip->bounds)) {
 						if (tooltip_below)
-							dest.y = test_it->tip_bounds.y + test_it->tip_bounds.h + TOOLTIP_OFFSET;
+							dest.y = test_it->tip_bounds.y + test_it->tip_bounds.h + eset->tooltips.offset;
 						else
-							dest.y = test_it->tip_bounds.y - test_it->tip_bounds.h + TOOLTIP_OFFSET;
+							dest.y = test_it->tip_bounds.y - test_it->tip_bounds.h + eset->tooltips.offset;
 
 						tip->bounds.y = dest.y;
 					}
@@ -223,11 +169,11 @@ void LootManager::renderTooltips(const FPoint& cam) {
 					++test_it;
 				}
 
-				tip->render(it->tip, dest, STYLE_TOPLABEL);
+				tip->render(it->tip, dest, TooltipData::STYLE_TOPLABEL);
 				it->tip_bounds = tip->bounds;
 
 				// only display one tooltip if we got it from hovering
-				if (!LOOT_TOOLTIPS && !inpt->pressing[ALT])
+				if (!settings->loot_tooltips && !inpt->pressing[Input::ALT])
 					break;
 			}
 		}
@@ -248,8 +194,8 @@ void LootManager::checkEnemiesForLoot() {
 
 		if (e->stats.quest_loot_id != 0) {
 			// quest loot
-			Event_Component ec;
-			ec.type = EC_LOOT;
+			EventComponent ec;
+			ec.type = EventComponent::LOOT;
 			ec.c = e->stats.quest_loot_id;
 			ec.a = ec.b = 1;
 			ec.z = 0;
@@ -260,14 +206,14 @@ void LootManager::checkEnemiesForLoot() {
 		if (!e->stats.loot_table.empty()) {
 			unsigned drops;
 			if (e->stats.loot_count.y != 0) {
-				drops = randBetween(e->stats.loot_count.x, e->stats.loot_count.y);
+				drops = Math::randBetween(e->stats.loot_count.x, e->stats.loot_count.y);
 			}
 			else {
-				drops = randBetween(1, drop_max);
+				drops = Math::randBetween(1, eset->loot.drop_max);
 			}
 
 			for (unsigned j=0; j<drops; ++j) {
-				checkLoot(e->stats.loot_table, &e->stats.pos);
+				checkLoot(e->stats.loot_table, &e->stats.pos, NULL);
 			}
 
 			e->stats.loot_table.clear();
@@ -283,14 +229,14 @@ void LootManager::checkMapForLoot() {
 	if (!mapr->loot.empty()) {
 		unsigned drops;
 		if (mapr->loot_count.y != 0) {
-			drops = randBetween(mapr->loot_count.x, mapr->loot_count.y);
+			drops = Math::randBetween(mapr->loot_count.x, mapr->loot_count.y);
 		}
 		else {
-			drops = randBetween(1, drop_max);
+			drops = Math::randBetween(1, eset->loot.drop_max);
 		}
 
 		for (unsigned i=0; i<drops; ++i) {
-			checkLoot(mapr->loot);
+			checkLoot(mapr->loot, NULL, NULL);
 		}
 
 		mapr->loot.clear();
@@ -303,16 +249,16 @@ void LootManager::addEnemyLoot(Enemy *e) {
 	enemiesDroppingLoot.push_back(e);
 }
 
-void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *pos, std::vector<ItemStack> *itemstack_vec) {
+void LootManager::checkLoot(std::vector<EventComponent> &loot_table, FPoint *pos, std::vector<ItemStack> *itemstack_vec) {
 	if (hero == NULL) {
-		logError("LootManager: checkLoot() failed, no hero.");
+		Utils::logError("LootManager: checkLoot() failed, no hero.");
 		return;
 	}
 
 	FPoint p;
-	Event_Component *ec;
+	EventComponent *ec;
 	ItemStack new_loot;
-	std::vector<Event_Component*> possible_ids;
+	std::vector<EventComponent*> possible_ids;
 
 	int chance = rand() % 100;
 
@@ -322,7 +268,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 		if (ec->z == 0) {
 			Point src;
 			if (pos) {
-				src = FPointToPoint(*pos);
+				src = Point(*pos);
 			}
 			else {
 				src.x = ec->x;
@@ -331,27 +277,27 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 			p.x = static_cast<float>(src.x) + 0.5f;
 			p.y = static_cast<float>(src.y) + 0.5f;
 
-			if (!mapr->collider.is_valid_position(p.x, p.y, MOVEMENT_NORMAL, false)) {
-				p = mapr->collider.get_random_neighbor(src, drop_radius);
+			if (!mapr->collider.isValidPosition(p.x, p.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_NORMAL)) {
+				p = mapr->collider.getRandomNeighbor(src, eset->loot.drop_radius, !MapCollision::IGNORE_BLOCKED);
 
-				if (!mapr->collider.is_valid_position(p.x, p.y, MOVEMENT_NORMAL, false)) {
+				if (!mapr->collider.isValidPosition(p.x, p.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_NORMAL)) {
 					p = hero->pos;
 				}
 				else {
 					if (src.x == static_cast<int>(p.x) && src.y == static_cast<int>(p.y))
 						p = hero->pos;
 
-					mapr->collider.block(p.x, p.y, false);
-					tiles_to_unblock.push_back(FPointToPoint(p));
+					mapr->collider.block(p.x, p.y, !MapCollision::IS_ALLY);
+					tiles_to_unblock.push_back(Point(p));
 				}
 			}
 
-			new_loot.quantity = randBetween(ec->a,ec->b);
+			new_loot.quantity = Math::randBetween(ec->a,ec->b);
 
 			// an item id of 0 means we should drop currency instead
-			if (ec->c == 0 || ec->c == CURRENCY_ID) {
-				new_loot.item = CURRENCY_ID;
-				new_loot.quantity = new_loot.quantity * (100 + hero->get(STAT_CURRENCY_FIND)) / 100;
+			if (ec->c == 0 || ec->c == eset->misc.currency_id) {
+				new_loot.item = eset->misc.currency_id;
+				new_loot.quantity = new_loot.quantity * (100 + hero->get(Stats::CURRENCY_FIND)) / 100;
 			}
 			else {
 				new_loot.item = ec->c;
@@ -360,21 +306,21 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 			if (itemstack_vec)
 				itemstack_vec->push_back(new_loot);
 			else
-				addLoot(new_loot, p);
+				addLoot(new_loot, p, !DROPPED_BY_HERO);
 
 			loot_table.erase(loot_table.begin()+i-1);
 		}
 	}
 
 	// now pick up to 1 random item to drop
-	int threshold = hero->get(STAT_ITEM_FIND) + 100;
+	int threshold = hero->get(Stats::ITEM_FIND) + 100;
 	for (unsigned i = 0; i < loot_table.size(); i++) {
 		ec = &loot_table[i];
 
 		int real_chance = ec->z;
 
-		if (ec->c != 0 && ec->c != CURRENCY_ID) {
-			real_chance = static_cast<int>(static_cast<float>(ec->z) * static_cast<float>(hero->get(STAT_ITEM_FIND) + 100) / 100.f);
+		if (ec->c != 0 && ec->c != eset->misc.currency_id) {
+			real_chance = static_cast<int>(static_cast<float>(ec->z) * static_cast<float>(hero->get(Stats::ITEM_FIND) + 100) / 100.f);
 		}
 
 		if (real_chance >= chance) {
@@ -400,7 +346,7 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 
 		Point src;
 		if (pos) {
-			src = FPointToPoint(*pos);
+			src = Point(*pos);
 		}
 		else {
 			src.x = ec->x;
@@ -409,27 +355,27 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 		p.x = static_cast<float>(src.x) + 0.5f;
 		p.y = static_cast<float>(src.y) + 0.5f;
 
-		if (!mapr->collider.is_valid_position(p.x, p.y, MOVEMENT_NORMAL, false)) {
-			p = mapr->collider.get_random_neighbor(src, drop_radius);
+		if (!mapr->collider.isValidPosition(p.x, p.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_NORMAL)) {
+			p = mapr->collider.getRandomNeighbor(src, eset->loot.drop_radius, !MapCollision::IGNORE_BLOCKED);
 
-			if (!mapr->collider.is_valid_position(p.x, p.y, MOVEMENT_NORMAL, false)) {
+			if (!mapr->collider.isValidPosition(p.x, p.y, MapCollision::MOVE_NORMAL, MapCollision::COLLIDE_NORMAL)) {
 				p = hero->pos;
 			}
 			else {
 				if (src.x == static_cast<int>(p.x) && src.y == static_cast<int>(p.y))
 					p = hero->pos;
 
-				mapr->collider.block(p.x, p.y, false);
-				tiles_to_unblock.push_back(FPointToPoint(p));
+				mapr->collider.block(p.x, p.y, !MapCollision::IS_ALLY);
+				tiles_to_unblock.push_back(Point(p));
 			}
 		}
 
-		new_loot.quantity = randBetween(ec->a,ec->b);
+		new_loot.quantity = Math::randBetween(ec->a,ec->b);
 
 		// an item id of 0 means we should drop currency instead
-		if (ec->c == 0 || ec->c == CURRENCY_ID) {
-			new_loot.item = CURRENCY_ID;
-			new_loot.quantity = new_loot.quantity * (100 + hero->get(STAT_CURRENCY_FIND)) / 100;
+		if (ec->c == 0 || ec->c == eset->misc.currency_id) {
+			new_loot.item = eset->misc.currency_id;
+			new_loot.quantity = new_loot.quantity * (100 + hero->get(Stats::CURRENCY_FIND)) / 100;
 		}
 		else {
 			new_loot.item = ec->c;
@@ -438,13 +384,13 @@ void LootManager::checkLoot(std::vector<Event_Component> &loot_table, FPoint *po
 		if (itemstack_vec)
 			itemstack_vec->push_back(new_loot);
 		else
-			addLoot(new_loot, p);
+			addLoot(new_loot, p, !DROPPED_BY_HERO);
 	}
 }
 
 void LootManager::addLoot(ItemStack stack, const FPoint& pos, bool dropped_by_hero) {
 	if (static_cast<size_t>(stack.item) >= items->items.size()) {
-		logError("LootManager: Loot item with id %d is not valid.", stack.item);
+		Utils::logError("LootManager: Loot item with id %d is not valid.", stack.item);
 		return;
 	}
 
@@ -452,7 +398,7 @@ void LootManager::addLoot(ItemStack stack, const FPoint& pos, bool dropped_by_he
 	ld.stack = stack;
 	ld.pos.x = pos.x;
 	ld.pos.y = pos.y;
-	alignFPoint(&ld.pos);
+	ld.pos.align(); // prevent "rounding jitter"
 	ld.dropped_by_hero = dropped_by_hero;
 
 	if (!items->items[stack.item].loot_animation.empty()) {
@@ -474,7 +420,7 @@ void LootManager::addLoot(ItemStack stack, const FPoint& pos, bool dropped_by_he
 	}
 
 	loot.push_back(ld);
-	snd->play(sfx_loot, GLOBAL_VIRTUAL_CHANNEL, pos, false);
+	snd->play(sfx_loot, snd->DEFAULT_CHANNEL, pos, false);
 }
 
 /**
@@ -495,19 +441,19 @@ ItemStack LootManager::checkPickup(const Point& mouse, const FPoint& cam, const 
 			--it;
 
 			// loot close enough to pickup?
-			if (fabs(hero_pos.x - it->pos.x) < INTERACT_RANGE && fabs(hero_pos.y - it->pos.y) < INTERACT_RANGE && !it->isFlying()) {
-				Point p = map_to_screen(it->pos.x, it->pos.y, cam.x, cam.y);
+			if (fabs(hero_pos.x - it->pos.x) < eset->misc.interact_range && fabs(hero_pos.y - it->pos.y) < eset->misc.interact_range && !it->isFlying()) {
+				Point p = Utils::mapToScreen(it->pos.x, it->pos.y, cam.x, cam.y);
 
-				r.x = p.x - TILE_W_HALF;
-				r.y = p.y - TILE_H_HALF;
-				r.w = TILE_W;
-				r.h = TILE_H;
+				r.x = p.x - eset->tileset.tile_w_half;
+				r.y = p.y - eset->tileset.tile_h_half;
+				r.w = eset->tileset.tile_w;
+				r.h = eset->tileset.tile_h;
 
 				// clicked in pickup hotspot?
-				if ((it->tip_visible && isWithinRect(it->tip_bounds, mouse)) || isWithinRect(r, mouse)) {
-					curs->setCursor(CURSOR_INTERACT);
-					if (inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) {
-						inpt->lock[MAIN1] = true;
+				if ((it->tip_visible && Utils::isWithinRect(it->tip_bounds, mouse)) || Utils::isWithinRect(r, mouse)) {
+					curs->setCursor(CursorManager::CURSOR_INTERACT);
+					if (inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1]) {
+						inpt->lock[Input::MAIN1] = true;
 						if (!it->stack.empty()) {
 							loot_stack = it->stack;
 							it = loot.erase(it);
@@ -520,10 +466,10 @@ ItemStack LootManager::checkPickup(const Point& mouse, const FPoint& cam, const 
 	}
 
 	// check pressing Enter/Return
-	if (inpt->pressing[ACCEPT] && !inpt->lock[ACCEPT]) {
+	if (inpt->pressing[Input::ACCEPT] && !inpt->lock[Input::ACCEPT]) {
 		loot_stack = checkNearestPickup(hero_pos);
 		if (!loot_stack.empty()) {
-			inpt->lock[ACCEPT] = true;
+			inpt->lock[Input::ACCEPT] = true;
 		}
 	}
 
@@ -540,8 +486,8 @@ ItemStack LootManager::checkAutoPickup(const FPoint& hero_pos) {
 	std::vector<Loot>::iterator it;
 	for (it = loot.end(); it != loot.begin(); ) {
 		--it;
-		if (!it->dropped_by_hero && fabs(hero_pos.x - it->pos.x) < autopickup_range && fabs(hero_pos.y - it->pos.y) < autopickup_range && !it->isFlying()) {
-			if (it->stack.item == CURRENCY_ID && AUTOPICKUP_CURRENCY) {
+		if (!it->dropped_by_hero && fabs(hero_pos.x - it->pos.x) < eset->loot.autopickup_range && fabs(hero_pos.y - it->pos.y) < eset->loot.autopickup_range && !it->isFlying()) {
+			if (it->stack.item == eset->misc.currency_id && eset->loot.autopickup_currency) {
 				loot_stack = it->stack;
 				it = loot.erase(it);
 				return loot_stack;
@@ -562,8 +508,8 @@ ItemStack LootManager::checkNearestPickup(const FPoint& hero_pos) {
 	for (it = loot.end(); it != loot.begin(); ) {
 		--it;
 
-		float distance = calcDist(hero_pos, it->pos);
-		if (distance < INTERACT_RANGE && distance < best_distance) {
+		float distance = Utils::calcDist(hero_pos, it->pos);
+		if (distance < eset->misc.interact_range && distance < best_distance) {
 			best_distance = distance;
 			nearest = it;
 		}
@@ -591,17 +537,17 @@ void LootManager::addRenders(std::vector<Renderable> &ren, std::vector<Renderabl
 	}
 }
 
-void LootManager::parseLoot(std::string &val, Event_Component *e, std::vector<Event_Component> *ec_list) {
+void LootManager::parseLoot(std::string &val, EventComponent *e, std::vector<EventComponent> *ec_list) {
 	if (e == NULL) return;
 
 	std::string chance;
 	bool first_is_filename = false;
-	e->s = popFirstString(val);
+	e->s = Parse::popFirstString(val);
 
 	if (e->s == "currency")
-		e->c = CURRENCY_ID;
-	else if (toInt(e->s, -1) != -1)
-		e->c = toInt(e->s);
+		e->c = eset->misc.currency_id;
+	else if (Parse::toInt(e->s, -1) != -1)
+		e->c = Parse::toInt(e->s);
 	else if (ec_list) {
 		// load entire loot table
 		std::string filename = e->s;
@@ -616,78 +562,78 @@ void LootManager::parseLoot(std::string &val, Event_Component *e, std::vector<Ev
 
 	if (!first_is_filename) {
 		// make sure the type is "loot"
-		e->type = EC_LOOT;
+		e->type = EventComponent::LOOT;
 
 		// drop chance
-		chance = popFirstString(val);
+		chance = Parse::popFirstString(val);
 		if (chance == "fixed") e->z = 0;
-		else e->z = toInt(chance);
+		else e->z = Parse::toInt(chance);
 
 		// quantity min/max
-		e->a = std::max(popFirstInt(val), 1);
-		e->b = std::max(popFirstInt(val), e->a);
+		e->a = std::max(Parse::popFirstInt(val), 1);
+		e->b = std::max(Parse::popFirstInt(val), e->a);
 	}
 
 	// add repeating loot
 	if (ec_list) {
-		std::string repeat_val = popFirstString(val);
+		std::string repeat_val = Parse::popFirstString(val);
 		while (repeat_val != "") {
-			ec_list->push_back(Event_Component());
-			Event_Component *ec = &ec_list->back();
-			ec->type = EC_LOOT;
+			ec_list->push_back(EventComponent());
+			EventComponent *ec = &ec_list->back();
+			ec->type = EventComponent::LOOT;
 
 			ec->s = repeat_val;
 			if (ec->s == "currency")
-				ec->c = CURRENCY_ID;
-			else if (toInt(ec->s, -1) != -1)
-				ec->c = toInt(ec->s);
+				ec->c = eset->misc.currency_id;
+			else if (Parse::toInt(ec->s, -1) != -1)
+				ec->c = Parse::toInt(ec->s);
 			else {
 				// remove the last event component, since getLootTable() will create a new one
 				ec_list->pop_back();
 
 				getLootTable(repeat_val, ec_list);
 
-				repeat_val = popFirstString(val);
+				repeat_val = Parse::popFirstString(val);
 				continue;
 			}
 
-			chance = popFirstString(val);
+			chance = Parse::popFirstString(val);
 			if (chance == "fixed") ec->z = 0;
-			else ec->z = toInt(chance);
+			else ec->z = Parse::toInt(chance);
 
-			ec->a = std::max(popFirstInt(val), 1);
-			ec->b = std::max(popFirstInt(val), ec->a);
+			ec->a = std::max(Parse::popFirstInt(val), 1);
+			ec->b = std::max(Parse::popFirstInt(val), ec->a);
 
-			repeat_val = popFirstString(val);
+			repeat_val = Parse::popFirstString(val);
 		}
 	}
 }
 
 void LootManager::loadLootTables() {
-	std::vector<std::string> filenames = mods->list("loot", false);
+	std::vector<std::string> filenames = mods->list("loot", !ModManager::LIST_FULL_PATHS);
 
 	for (unsigned i=0; i<filenames.size(); i++) {
 		FileParser infile;
-		if (!infile.open(filenames[i]))
+		if (!infile.open(filenames[i], FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 			continue;
 
-		std::vector<Event_Component> *ec_list = &loot_tables[filenames[i]];
-		Event_Component *ec = NULL;
+		std::vector<EventComponent> *ec_list = &loot_tables[filenames[i]];
+		EventComponent *ec = NULL;
 		bool skip_to_next = false;
 
 		while (infile.next()) {
 			if (infile.section == "") {
 				if (infile.key == "loot") {
-					ec_list->push_back(Event_Component());
+					ec_list->push_back(EventComponent());
 					ec = &ec_list->back();
 					parseLoot(infile.val, ec, ec_list);
 				}
 			}
 			else if (infile.section == "loot") {
 				if (infile.new_section) {
-					ec_list->push_back(Event_Component());
+					ec_list->push_back(EventComponent());
 					ec = &ec_list->back();
-					ec->type = EC_LOOT;
+					ec->type = EventComponent::LOOT;
 					skip_to_next = false;
 				}
 
@@ -698,9 +644,9 @@ void LootManager::loadLootTables() {
 					ec->s = infile.val;
 
 					if (ec->s == "currency")
-						ec->c = CURRENCY_ID;
-					else if (toInt(ec->s, -1) != -1)
-						ec->c = toInt(ec->s);
+						ec->c = eset->misc.currency_id;
+					else if (Parse::toInt(ec->s, -1) != -1)
+						ec->c = Parse::toInt(ec->s);
 					else {
 						skip_to_next = true;
 						infile.error("LootManager: Invalid item id for loot.");
@@ -710,11 +656,11 @@ void LootManager::loadLootTables() {
 					if (infile.val == "fixed")
 						ec->z = 0;
 					else
-						ec->z = toInt(infile.val);
+						ec->z = Parse::toInt(infile.val);
 				}
 				else if (infile.key == "quantity") {
-					ec->a = std::max(popFirstInt(infile.val), 1);
-					ec->b = std::max(popFirstInt(infile.val), ec->a);
+					ec->a = std::max(Parse::popFirstInt(infile.val), 1);
+					ec->b = std::max(Parse::popFirstInt(infile.val), ec->a);
 				}
 			}
 		}
@@ -723,14 +669,14 @@ void LootManager::loadLootTables() {
 	}
 }
 
-void LootManager::getLootTable(const std::string &filename, std::vector<Event_Component> *ec_list) {
+void LootManager::getLootTable(const std::string &filename, std::vector<EventComponent> *ec_list) {
 	if (!ec_list)
 		return;
 
-	std::map<std::string, std::vector<Event_Component> >::iterator it;
+	std::map<std::string, std::vector<EventComponent> >::iterator it;
 	for (it = loot_tables.begin(); it != loot_tables.end(); ++it) {
 		if (it->first == filename) {
-			std::vector<Event_Component> *loot_defs = &it->second;
+			std::vector<EventComponent> *loot_defs = &it->second;
 			for (unsigned i=0; i<loot_defs->size(); ++i) {
 				ec_list->push_back((*loot_defs)[i]);
 			}

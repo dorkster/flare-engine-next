@@ -32,7 +32,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuTalker.h"
 #include "NPC.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "SharedGameResources.h"
 #include "StatBlock.h"
@@ -49,7 +48,6 @@ MenuTalker::MenuTalker(MenuNPCActions *_npc_menu)
 	, event_cursor(0)
 	, font_who("font_regular")
 	, font_dialog("font_regular")
-	, color_normal(font->getColor("menu_normal"))
 	, npc(NULL)
 	, advanceButton(new WidgetButton("images/menus/buttons/right.png"))
 	, closeButton(new WidgetButton("images/menus/buttons/button_x.png")) {
@@ -59,31 +57,31 @@ MenuTalker::MenuTalker(MenuNPCActions *_npc_menu)
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuTalker|Description of menus/talker.txt
-	if(infile.open("menus/talker.txt")) {
+	if(infile.open("menus/talker.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR close|point|Position of the close button.
 			if(infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				closeButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				closeButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR advance|point|Position of the button to advance dialog.
 			else if(infile.key == "advance") {
-				Point pos = toPoint(infile.val);
-				advanceButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				advanceButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR dialogbox|rectangle|Position and dimensions of the text box graphics.
-			else if (infile.key == "dialogbox") dialog_pos = toRect(infile.val);
+			else if (infile.key == "dialogbox") dialog_pos = Parse::toRect(infile.val);
 			// @ATTR dialogtext|rectangle|Rectangle where the dialog text is placed.
-			else if (infile.key == "dialogtext") text_pos = toRect(infile.val);
+			else if (infile.key == "dialogtext") text_pos = Parse::toRect(infile.val);
 			// @ATTR text_offset|point|Margins for the left/right and top/bottom of the dialog text.
-			else if (infile.key == "text_offset") text_offset = toPoint(infile.val);
+			else if (infile.key == "text_offset") text_offset = Parse::toPoint(infile.val);
 			// @ATTR portrait_he|rectangle|Position and dimensions of the NPC portrait graphics.
-			else if (infile.key == "portrait_he") portrait_he = toRect(infile.val);
+			else if (infile.key == "portrait_he") portrait_he = Parse::toRect(infile.val);
 			// @ATTR portrait_you|rectangle|Position and dimensions of the player's portrait graphics.
-			else if (infile.key == "portrait_you") portrait_you = toRect(infile.val);
+			else if (infile.key == "portrait_you") portrait_you = Parse::toRect(infile.val);
 			// @ATTR font_who|predefined_string|Font style to use for the name of the currently talking person.
 			else if (infile.key == "font_who") font_who = infile.val;
 			// @ATTR font_dialog|predefined_string|Font style to use for the dialog text.
@@ -95,10 +93,11 @@ MenuTalker::MenuTalker(MenuNPCActions *_npc_menu)
 	}
 
 	label_name = new WidgetLabel();
-	label_name->setBasePos(text_pos.x + text_offset.x, text_pos.y + text_offset.y);
+	label_name->setBasePos(text_pos.x + text_offset.x, text_pos.y + text_offset.y, Utils::ALIGN_TOPLEFT);
+	label_name->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	textbox = new WidgetScrollBox(text_pos.w, text_pos.h-(text_offset.y*2));
-	textbox->setBasePos(text_pos.x, text_pos.y + text_offset.y);
+	textbox->setBasePos(text_pos.x, text_pos.y + text_offset.y, Utils::ALIGN_TOPLEFT);
 
 	align();
 }
@@ -111,7 +110,7 @@ void MenuTalker::align() {
 
 	label_name->setPos(window_area.x, window_area.y);
 
-	textbox->setPos(window_area.x, window_area.y + label_name->bounds.h);
+	textbox->setPos(window_area.x, window_area.y + label_name->getBounds()->h);
 	textbox->pos.h = text_pos.h - (text_offset.y*2);
 }
 
@@ -139,7 +138,7 @@ void MenuTalker::logic() {
 
 	// determine active button
 	if (static_cast<unsigned>(dialog_node) < npc->dialog.size() && !npc->dialog[dialog_node].empty() && event_cursor < npc->dialog[dialog_node].size()-1) {
-		if (npc->dialog[dialog_node][event_cursor+1].type != EC_NONE) {
+		if (npc->dialog[dialog_node][event_cursor+1].type != EventComponent::NONE) {
 			advanceButton->enabled = true;
 		}
 		else {
@@ -157,8 +156,8 @@ void MenuTalker::logic() {
 		event_cursor++;
 		more = npc->processDialog(dialog_node, event_cursor);
 	}
-	else if	(inpt->pressing[ACCEPT] && !inpt->lock[ACCEPT]) {
-		inpt->lock[ACCEPT] = true;
+	else if	(inpt->pressing[Input::ACCEPT] && !inpt->lock[Input::ACCEPT]) {
+		inpt->lock[Input::ACCEPT] = true;
 		// pressed next/more
 		npc->processEvent(dialog_node, event_cursor);
 		event_cursor++;
@@ -193,20 +192,21 @@ void MenuTalker::createBuffer() {
 	std::string line;
 
 	// speaker name
-	EVENT_COMPONENT_TYPE etype = npc->dialog[dialog_node][event_cursor].type;
+	int etype = npc->dialog[dialog_node][event_cursor].type;
 	std::string who;
 
-	if (etype == EC_NPC_DIALOG_THEM) {
+	if (etype == EventComponent::NPC_DIALOG_THEM) {
 		who = npc->name;
 	}
-	else if (etype == EC_NPC_DIALOG_YOU) {
+	else if (etype == EventComponent::NPC_DIALOG_YOU) {
 		who = hero_name;
 	}
 
-	label_name->set(window_area.x+text_pos.x+text_offset.x, window_area.y+text_pos.y+text_offset.y, JUSTIFY_LEFT, VALIGN_TOP, who, color_normal, font_who);
+	label_name->setText(who);
+	label_name->setFont(font_who);
 
 
-	line = substituteVarsInString(npc->dialog[dialog_node][event_cursor].s, pc);
+	line = Utils::substituteVarsInString(npc->dialog[dialog_node][event_cursor].s, pc);
 
 	// render dialog text to the scrollbox buffer
 	Point line_size = font->calc_size(line,textbox->pos.w-(text_offset.x*2));
@@ -216,10 +216,10 @@ void MenuTalker::createBuffer() {
 		line,
 		text_offset.x,
 		0,
-		JUSTIFY_LEFT,
+		FontEngine::JUSTIFY_LEFT,
 		textbox->contents->getGraphics(),
 		text_pos.w - text_offset.x*2,
-		color_normal
+		font->getColor(FontEngine::COLOR_MENU_NORMAL)
 	);
 
 	align();
@@ -247,8 +247,8 @@ void MenuTalker::render() {
 
 	if (static_cast<unsigned>(dialog_node) < npc->dialog.size() && event_cursor < npc->dialog[dialog_node].size()) {
 		// show active portrait
-		EVENT_COMPONENT_TYPE etype = npc->dialog[dialog_node][event_cursor].type;
-		if (etype == EC_NPC_DIALOG_THEM) {
+		int etype = npc->dialog[dialog_node][event_cursor].type;
+		if (etype == EventComponent::NPC_DIALOG_THEM) {
 			if (npc->npc_portrait) {
 				src.w = dest.w = portrait_he.w;
 				src.h = dest.h = portrait_he.h;
@@ -260,7 +260,7 @@ void MenuTalker::render() {
 				render_device->render(npc->npc_portrait);
 			}
 		}
-		else if (etype == EC_NPC_DIALOG_YOU) {
+		else if (etype == EventComponent::NPC_DIALOG_YOU) {
 			if (npc->hero_portrait) {
 				src.w = dest.w = portrait_you.w;
 				src.h = dest.h = portrait_you.h;
@@ -288,7 +288,7 @@ void MenuTalker::render() {
 
 	// show advance button if there are more event components, or close button if not
 	if (static_cast<unsigned>(dialog_node) < npc->dialog.size() && !npc->dialog[dialog_node].empty() && event_cursor < npc->dialog[dialog_node].size()-1) {
-		if (npc->dialog[dialog_node][event_cursor+1].type != EC_NONE) {
+		if (npc->dialog[dialog_node][event_cursor+1].type != EventComponent::NONE) {
 			advanceButton->render();
 		}
 		else {
@@ -310,7 +310,7 @@ void MenuTalker::setHero(StatBlock &stats) {
 	if (stats.gfx_portrait == "") return;
 
 	Image *graphics;
-	graphics = render_device->loadImage(stats.gfx_portrait, "Couldn't load portrait");
+	graphics = render_device->loadImage(stats.gfx_portrait, RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		portrait = graphics->createSprite();
 		graphics->unref();

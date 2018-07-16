@@ -27,6 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <string.h>
 
 #include "CursorManager.h"
+#include "EngineSettings.h"
 #include "IconManager.h"
 #include "InputState.h"
 #include "MessageEngine.h"
@@ -75,7 +76,7 @@ void SDLSoftwareImage::drawPixel(int x, int y, const Color& color) {
 
 	int bpp = surface->format->BytesPerPixel;
 	/* Here p is the address to the pixel we want to set */
-	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+	Uint8 *p = static_cast<Uint8*>(surface->pixels) + y * surface->pitch + x * bpp;
 
 	if (SDL_MUSTLOCK(surface)) {
 		SDL_LockSurface(surface);
@@ -86,7 +87,7 @@ void SDLSoftwareImage::drawPixel(int x, int y, const Color& color) {
 			break;
 
 		case 2:
-			*(Uint16 *)p = static_cast<Uint16>(pixel);
+			*(reinterpret_cast<Uint16*>(p)) = static_cast<Uint16>(pixel);
 			break;
 
 		case 3:
@@ -102,7 +103,7 @@ void SDLSoftwareImage::drawPixel(int x, int y, const Color& color) {
 			break;
 
 		case 4:
-			*(Uint32 *)p = pixel;
+			*(reinterpret_cast<Uint32*>(p)) = pixel;
 			break;
 	}
 	if (SDL_MUSTLOCK(surface)) {
@@ -156,32 +157,32 @@ SDLSoftwareRenderDevice::SDLSoftwareRenderDevice()
 	, titlebar_icon(NULL)
 	, title(NULL)
 	, background_color(0) {
-	logInfo("RenderDevice: Using SDLSoftwareRenderDevice (software, SDL 2, %s)", SDL_GetCurrentVideoDriver());
+	Utils::logInfo("RenderDevice: Using SDLSoftwareRenderDevice (software, SDL 2, %s)", SDL_GetCurrentVideoDriver());
 
-	fullscreen = FULLSCREEN;
-	hwsurface = HWSURFACE;
-	vsync = VSYNC;
-	texture_filter = TEXTURE_FILTER;
+	fullscreen = settings->fullscreen;
+	hwsurface = settings->hwsurface;
+	vsync = settings->vsync;
+	texture_filter = settings->texture_filter;
 
-	min_screen.x = MIN_SCREEN_W;
-	min_screen.y = MIN_SCREEN_H;
+	min_screen.x = eset->resolutions.min_screen_w;
+	min_screen.y = eset->resolutions.min_screen_h;
 
 	SDL_DisplayMode desktop;
 	if (SDL_GetDesktopDisplayMode(0, &desktop) == 0) {
 		// we only support display #0
-		logInfo("RenderDevice: %d display(s), using display 0 (%dx%d @ %dhz)", SDL_GetNumVideoDisplays(), desktop.w, desktop.h, desktop.refresh_rate);
+		Utils::logInfo("RenderDevice: %d display(s), using display 0 (%dx%d @ %dhz)", SDL_GetNumVideoDisplays(), desktop.w, desktop.h, desktop.refresh_rate);
 	}
 }
 
-int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
-	bool settings_changed = (fullscreen != FULLSCREEN || hwsurface != HWSURFACE || vsync != VSYNC || texture_filter != TEXTURE_FILTER);
+int SDLSoftwareRenderDevice::createContextInternal() {
+	bool settings_changed = (fullscreen != settings->fullscreen || hwsurface != settings->hwsurface || vsync != settings->vsync || texture_filter != settings->texture_filter);
 
 	Uint32 w_flags = 0;
 	Uint32 r_flags = 0;
-	int window_w = SCREEN_W;
-	int window_h = SCREEN_H;
+	int window_w = settings->screen_w;
+	int window_h = settings->screen_h;
 
-	if (FULLSCREEN) {
+	if (settings->fullscreen) {
 		w_flags = w_flags | SDL_WINDOW_FULLSCREEN_DESKTOP;
 
 		// make the window the same size as the desktop resolution
@@ -193,20 +194,20 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 	}
 	else if (fullscreen && is_initialized) {
 		// if the game was previously in fullscreen, resize the window when returning to windowed mode
-		window_w = MIN_SCREEN_W;
-		window_h = MIN_SCREEN_H;
+		window_w = eset->resolutions.min_screen_w;
+		window_h = eset->resolutions.min_screen_h;
 	}
 
 	w_flags = w_flags | SDL_WINDOW_RESIZABLE;
 
-	if (HWSURFACE) {
+	if (settings->hwsurface) {
 		r_flags = r_flags | SDL_RENDERER_ACCELERATED;
 	}
 	else {
 		r_flags = r_flags | SDL_RENDERER_SOFTWARE;
-		VSYNC = false; // can't have software mode & vsync at the same time
+		settings->vsync = false; // can't have software mode & vsync at the same time
 	}
-	if (VSYNC) r_flags = r_flags | SDL_RENDERER_PRESENTVSYNC;
+	if (settings->vsync) r_flags = r_flags | SDL_RENDERER_PRESENTVSYNC;
 
 	if (settings_changed || !is_initialized) {
 		destroyContext();
@@ -215,7 +216,7 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 		if (window) {
 			renderer = SDL_CreateRenderer(window, -1, r_flags);
 			if (renderer) {
-				if (TEXTURE_FILTER && !IGNORE_TEXTURE_FILTER)
+				if (settings->texture_filter && !eset->resolutions.ignore_texture_filter)
 					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 				else
 					SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
@@ -223,71 +224,41 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 				windowResize();
 			}
 
-			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+			SDL_SetWindowMinimumSize(window, eset->resolutions.min_screen_w, eset->resolutions.min_screen_h);
 			// setting minimum size might move the window, so set position again
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		}
 
-		bool window_created = window != NULL && renderer != NULL && screen != NULL && texture != NULL;
-
-		if (!window_created) {
-			if (allow_fallback) {
-				// try previous setting first
-				FULLSCREEN = fullscreen;
-				HWSURFACE = hwsurface;
-				VSYNC = vsync;
-				TEXTURE_FILTER = texture_filter;
-				if (createContext(false) == -1) {
-					// last resort, try turning everything off
-					FULLSCREEN = false;
-					HWSURFACE = false;
-					VSYNC = false;
-					TEXTURE_FILTER = false;
-					int last_resort = createContext(false);
-					if (last_resort == -1 && !is_initialized) {
-						// If this is the first attempt and it failed we are not
-						// getting anywhere.
-						logError("SDLSoftwareRenderDevice: createContext() failed: %s", SDL_GetError());
-						logErrorDialog("SDLSoftwareRenderDevice: createContext() failed: %s", SDL_GetError());
-						Exit(1);
-					}
-					return last_resort;
-				}
-				else {
-					return 0;
-				}
-			}
-		}
-		else {
+		if (window && renderer && screen && texture) {
 			if (!is_initialized) {
 				// save the system gamma levels if we just created the window
 				SDL_GetWindowGammaRamp(window, gamma_r, gamma_g, gamma_b);
-				logInfo("RenderDevice: Window size is %dx%d", SCREEN_W, SCREEN_H);
+				Utils::logInfo("RenderDevice: Window size is %dx%d", settings->screen_w, settings->screen_h);
 			}
 
-			fullscreen = FULLSCREEN;
-			hwsurface = HWSURFACE;
-			vsync = VSYNC;
-			texture_filter = TEXTURE_FILTER;
+			fullscreen = settings->fullscreen;
+			hwsurface = settings->hwsurface;
+			vsync = settings->vsync;
+			texture_filter = settings->texture_filter;
 			is_initialized = true;
 
-			logInfo("RenderDevice: Fullscreen=%d, Hardware surfaces=%d, Vsync=%d, Texture Filter=%d", fullscreen, hwsurface, vsync, texture_filter);
+			Utils::logInfo("RenderDevice: Fullscreen=%d, Hardware surfaces=%d, Vsync=%d, Texture Filter=%d", fullscreen, hwsurface, vsync, texture_filter);
 
 #if SDL_VERSION_ATLEAST(2, 0, 4)
 			SDL_GetDisplayDPI(0, &ddpi, 0, 0);
-			logInfo("RenderDevice: Display DPI is %f", ddpi);
+			Utils::logInfo("RenderDevice: Display DPI is %f", ddpi);
 #else
-			logError("RenderDevice: The SDL version used to compile Flare does not support SDL_GetDisplayDPI(). The virtual_dpi setting will be ignored.");
+			Utils::logError("RenderDevice: The SDL version used to compile Flare does not support SDL_GetDisplayDPI(). The virtual_dpi setting will be ignored.");
 #endif
 		}
 	}
 
 	if (is_initialized) {
 		// update minimum window size if it has changed
-		if (min_screen.x != MIN_SCREEN_W || min_screen.y != MIN_SCREEN_H) {
-			min_screen.x = MIN_SCREEN_W;
-			min_screen.y = MIN_SCREEN_H;
-			SDL_SetWindowMinimumSize(window, MIN_SCREEN_W, MIN_SCREEN_H);
+		if (min_screen.x != eset->resolutions.min_screen_w || min_screen.y != eset->resolutions.min_screen_h) {
+			min_screen.x = eset->resolutions.min_screen_w;
+			min_screen.y = eset->resolutions.min_screen_h;
+			SDL_SetWindowMinimumSize(window, eset->resolutions.min_screen_w, eset->resolutions.min_screen_h);
 			SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 		}
 
@@ -302,16 +273,21 @@ int SDLSoftwareRenderDevice::createContext(bool allow_fallback) {
 		delete curs;
 		curs = new CursorManager();
 
-		if (CHANGE_GAMMA)
-			setGamma(GAMMA);
+		if (settings->change_gamma)
+			setGamma(settings->gamma);
 		else {
 			resetGamma();
-			CHANGE_GAMMA = false;
-			GAMMA = 1.0;
+			settings->change_gamma = false;
+			settings->gamma = 1.0;
 		}
 	}
 
 	return (is_initialized ? 0 : -1);
+}
+
+void SDLSoftwareRenderDevice::createContextError() {
+	Utils::logError("SDLSoftwareRenderDevice: createContext() failed: %s", SDL_GetError());
+	Utils::logErrorDialog("SDLSoftwareRenderDevice: createContext() failed: %s", SDL_GetError());
 }
 
 int SDLSoftwareRenderDevice::render(Renderable& r, Rect& dest) {
@@ -320,10 +296,10 @@ int SDLSoftwareRenderDevice::render(Renderable& r, Rect& dest) {
 
 	SDL_Surface *surface = static_cast<SDLSoftwareImage *>(r.image)->surface;
 
-	if (r.blend_mode == RENDERABLE_BLEND_ADD) {
+	if (r.blend_mode == Renderable::BLEND_ADD) {
 		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_ADD);
 	}
-	else { // RENDERABLE_BLEND_NORMAL
+	else { // Renderable::BLEND_NORMAL
 		SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_BLEND);
 	}
 
@@ -380,7 +356,7 @@ void SDLSoftwareRenderDevice::drawPixel(int x, int y, const Color& color) {
 
 	int bpp = screen->format->BytesPerPixel;
 	/* Here p is the address to the pixel we want to set */
-	Uint8 *p = (Uint8 *)screen->pixels + y * screen->pitch + x * bpp;
+	Uint8 *p = static_cast<Uint8*>(screen->pixels) + y * screen->pitch + x * bpp;
 
 	if (SDL_MUSTLOCK(screen)) {
 		SDL_LockSurface(screen);
@@ -391,7 +367,7 @@ void SDLSoftwareRenderDevice::drawPixel(int x, int y, const Color& color) {
 			break;
 
 		case 2:
-			*(Uint16 *)p = static_cast<Uint16>(pixel);
+			*(reinterpret_cast<Uint16*>(p)) = static_cast<Uint16>(pixel);
 			break;
 
 		case 3:
@@ -407,7 +383,7 @@ void SDLSoftwareRenderDevice::drawPixel(int x, int y, const Color& color) {
 			break;
 
 		case 4:
-			*(Uint32 *)p = pixel;
+			*(reinterpret_cast<Uint32*>(p)) = pixel;
 			break;
 	}
 	if (SDL_MUSTLOCK(screen)) {
@@ -426,7 +402,7 @@ void SDLSoftwareRenderDevice::drawLine(int x0, int y0, int x1, int y1, const Col
 
 	do {
 		//skip draw if outside screen
-		if (x0 > 0 && y0 > 0 && x0 < VIEW_W && y0 < VIEW_H) {
+		if (x0 > 0 && y0 > 0 && x0 < settings->view_w && y0 < settings->view_h) {
 			this->drawPixel(x0,y0,color);
 		}
 
@@ -535,7 +511,7 @@ Image *SDLSoftwareRenderDevice::createImage(int width, int height) {
 	image->surface = SDL_CreateRGBSurface(0, width, height, BITS_PER_PIXEL, rmask, gmask, bmask, amask);
 
 	if(image->surface == NULL) {
-		logError("SDLSoftwareRenderDevice: CreateRGBSurface failed: %s", SDL_GetError());
+		Utils::logError("SDLSoftwareRenderDevice: CreateRGBSurface failed: %s", SDL_GetError());
 		delete image;
 		return NULL;
 	}
@@ -564,14 +540,14 @@ void SDLSoftwareRenderDevice::updateTitleBar() {
 
 	if (!window) return;
 
-	title = strdup(msg->get(WINDOW_TITLE).c_str());
+	title = strdup(msg->get(eset->misc.window_title).c_str());
 	titlebar_icon = IMG_Load(mods->locate("images/logo/icon.png").c_str());
 
 	if (title) SDL_SetWindowTitle(window, title);
 	if (titlebar_icon) SDL_SetWindowIcon(window, titlebar_icon);
 }
 
-Image *SDLSoftwareRenderDevice::loadImage(const std::string& filename, const std::string& errormessage, bool IfNotFoundExit) {
+Image *SDLSoftwareRenderDevice::loadImage(const std::string& filename, int error_type) {
 	// lookup image in cache
 	Image *img;
 	img = cacheLookup(filename);
@@ -582,14 +558,16 @@ Image *SDLSoftwareRenderDevice::loadImage(const std::string& filename, const std
 	image = NULL;
 	SDL_Surface *cleanup = IMG_Load(mods->locate(filename).c_str());
 	if(!cleanup) {
-		if (!errormessage.empty())
-			logError("SDLSoftwareRenderDevice: [%s] %s: %s", filename.c_str(), errormessage.c_str(), IMG_GetError());
-		if (IfNotFoundExit) {
-			if (!errormessage.empty())
-				logErrorDialog("SDLSoftwareRenderDevice: [%s] %s: %s", filename.c_str(), errormessage.c_str(), IMG_GetError());
+		if (error_type != ERROR_NONE)
+			Utils::logError("SDLSoftwareRenderDevice: Couldn't load image: '%s'. %s", filename.c_str(), IMG_GetError());
+
+		if (error_type == ERROR_EXIT) {
+			Utils::logErrorDialog("SDLSoftwareRenderDevice: Couldn't load image: '%s'.\n%s", filename.c_str(), IMG_GetError());
 			mods->resetModConfig();
-			Exit(1);
+			Utils::Exit(1);
 		}
+
+		return NULL;
 	}
 	else {
 		image = new SDLSoftwareImage(this);
@@ -626,7 +604,7 @@ void SDLSoftwareRenderDevice::getWindowSize(short unsigned *screen_w, short unsi
 void SDLSoftwareRenderDevice::windowResize() {
 	windowResizeInternal();
 
-	SDL_RenderSetLogicalSize(renderer, VIEW_W, VIEW_H);
+	SDL_RenderSetLogicalSize(renderer, settings->view_w, settings->view_h);
 
 	if (texture) SDL_DestroyTexture(texture);
 	if (screen) SDL_FreeSurface(screen);
@@ -634,10 +612,10 @@ void SDLSoftwareRenderDevice::windowResize() {
 	Uint32 rmask, gmask, bmask, amask;
 	int bpp = static_cast<int>(BITS_PER_PIXEL);
 	SDL_PixelFormatEnumToMasks(SDL_PIXELFORMAT_ARGB8888, &bpp, &rmask, &gmask, &bmask, &amask);
-	screen = SDL_CreateRGBSurface(0, VIEW_W, VIEW_H, bpp, rmask, gmask, bmask, amask);
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, VIEW_W, VIEW_H);
+	screen = SDL_CreateRGBSurface(0, settings->view_w, settings->view_h, bpp, rmask, gmask, bmask, amask);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, settings->view_w, settings->view_h);
 
-	updateScreenVars();
+	settings->updateScreenVars();
 }
 
 void SDLSoftwareRenderDevice::setBackgroundColor(Color color) {

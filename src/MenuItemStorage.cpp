@@ -23,6 +23,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * class MenuItemStorage
  */
 
+#include "EngineSettings.h"
 #include "ItemManager.h"
 #include "MenuItemStorage.h"
 #include "Settings.h"
@@ -50,17 +51,17 @@ void MenuItemStorage::initGrid(int _slot_number, const Rect& _area, int _nb_cols
 	grid_pos.x = _area.x;
 	grid_pos.y = _area.y;
 	for (int i = 0; i < _slot_number; i++) {
-		WidgetSlot *slot = new WidgetSlot();
+		WidgetSlot *slot = new WidgetSlot(WidgetSlot::NO_ICON, Input::ACCEPT);
 		slots.push_back(slot);
 	}
 	nb_cols = _nb_cols;
 	highlight = new bool[_slot_number];
 	for (int i=0; i<_slot_number; i++) {
 		highlight[i] = false;
-		slots[i]->pos.x = grid_area.x + (i % nb_cols * ICON_SIZE);
-		slots[i]->pos.y = grid_area.y + (i / nb_cols * ICON_SIZE);
-		slots[i]->pos.h = slots[i]->pos.w = ICON_SIZE;
-		slots[i]->setBasePos(slots[i]->pos.x, slots[i]->pos.y);
+		slots[i]->pos.x = grid_area.x + (i % nb_cols * eset->resolutions.icon_size);
+		slots[i]->pos.y = grid_area.y + (i / nb_cols * eset->resolutions.icon_size);
+		slots[i]->pos.h = slots[i]->pos.w = eset->resolutions.icon_size;
+		slots[i]->setBasePos(slots[i]->pos.x, slots[i]->pos.y, Utils::ALIGN_TOPLEFT);
 	}
 	loadGraphics();
 }
@@ -68,9 +69,9 @@ void MenuItemStorage::initGrid(int _slot_number, const Rect& _area, int _nb_cols
 void MenuItemStorage::initFromList(int _slot_number, const std::vector<Rect>& _area, const std::vector<std::string>& _slot_type) {
 	ItemStorage::init( _slot_number);
 	for (int i = 0; i < _slot_number; i++) {
-		WidgetSlot *slot = new WidgetSlot();
+		WidgetSlot *slot = new WidgetSlot(WidgetSlot::NO_ICON, Input::ACCEPT);
 		slot->pos = _area[i];
-		slot->setBasePos(slot->pos.x, slot->pos.y);
+		slot->setBasePos(slot->pos.x, slot->pos.y, Utils::ALIGN_TOPLEFT);
 		slots.push_back(slot);
 	}
 	nb_cols = 0;
@@ -94,14 +95,13 @@ void MenuItemStorage::setPos(int x, int y) {
 
 void MenuItemStorage::loadGraphics() {
 	Image *graphics;
-	graphics = render_device->loadImage("images/menus/attention_glow.png",
-			   "Couldn't load icon highlight image");
+	graphics = render_device->loadImage("images/menus/attention_glow.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		highlight_image = graphics->createSprite();
 		graphics->unref();
 	}
 
-	graphics = render_device->loadImage("images/menus/disabled.png");
+	graphics = render_device->loadImage("images/menus/disabled.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		overlay_disabled = graphics->createSprite();
 		graphics->unref();
@@ -112,7 +112,7 @@ void MenuItemStorage::loadGraphics() {
 void MenuItemStorage::render() {
 	Rect disabled_src;
 	disabled_src.x = disabled_src.y = 0;
-	disabled_src.w = disabled_src.h = ICON_SIZE;
+	disabled_src.w = disabled_src.h = eset->resolutions.icon_size;
 
 	for (int i=0; i<slot_number; i++) {
 		if (storage[i].item > 0) {
@@ -140,12 +140,12 @@ void MenuItemStorage::render() {
 }
 
 int MenuItemStorage::slotOver(const Point& position) {
-	if (isWithinRect(grid_area, position) && nb_cols > 0) {
+	if (Utils::isWithinRect(grid_area, position) && nb_cols > 0) {
 		return (position.x - grid_area.x) / slots[0]->pos.w + (position.y - grid_area.y) / slots[0]->pos.w * nb_cols;
 	}
 	else if (nb_cols == 0) {
 		for (unsigned int i=0; i<slots.size(); i++) {
-			if (isWithinRect(slots[i]->pos, position)) return i;
+			if (Utils::isWithinRect(slots[i]->pos, position)) return i;
 		}
 	}
 	return -1;
@@ -181,7 +181,7 @@ ItemStack MenuItemStorage::click(const Point& position) {
 
 	if (drag_prev_slot > -1) {
 		item = storage[drag_prev_slot];
-		if (TOUCHSCREEN) {
+		if (settings->touchscreen) {
 			if (!slots[drag_prev_slot]->in_focus && !item.empty()) {
 				slots[drag_prev_slot]->in_focus = true;
 				current_slot = slots[drag_prev_slot];
@@ -195,7 +195,7 @@ ItemStack MenuItemStorage::click(const Point& position) {
 			}
 		}
 		if (!item.empty()) {
-			if (item.quantity > 1 && !inpt->pressing[CTRL] && (inpt->pressing[SHIFT] || !inpt->usingMouse() || inpt->touch_locked)) {
+			if (item.quantity > 1 && !inpt->pressing[Input::CTRL] && (inpt->pressing[Input::SHIFT] || !inpt->usingMouse() || inpt->touch_locked)) {
 				// we use an external menu to let the player pick the desired quantity
 				// we will subtract from this stack after they've made their decision
 				return item;

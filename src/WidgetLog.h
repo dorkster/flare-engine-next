@@ -24,13 +24,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 
-const unsigned WIDGETLOG_MAX_MESSAGES = 50;
-
-enum {
-	WIDGETLOG_FONT_REGULAR = 0,
-	WIDGETLOG_FONT_BOLD = 1
-};
-
 class Widget;
 class WidgetScrollBox;
 
@@ -44,8 +37,6 @@ private:
 	int paragraph_spacing;
 	int padding;
 	unsigned max_messages;
-	Color color_normal;
-	Color color_disabled;
 
 	std::vector<std::string> messages;
 	std::vector<Color> colors;
@@ -54,24 +45,40 @@ private:
 
 	bool updated;
 
+	Color next_color;
+	int next_style;
+
 public:
+	enum {
+		FONT_REGULAR = 0,
+		FONT_BOLD = 1
+	};
+
+	enum {
+		MSG_NORMAL = 0,
+		MSG_UNIQUE = 1
+	};
+
+	static const unsigned MAX_MESSAGES = 50;
+
 	WidgetLog (int width, int height);
 	~WidgetLog ();
-	void setBasePos(int x, int y, ALIGNMENT a = ALIGN_TOPLEFT);
-	void setPos(int offset_x = 0, int offset_y = 0);
+	void setBasePos(int x, int y, int a);
+	void setPos(int offset_x, int offset_y);
 
 	void logic();
 	void render();
 
-	void setPosition(int x, int y);
 	Widget* getWidget() {
 		return reinterpret_cast<Widget*>(scroll_box);    // for adding to tablist
 	}
 
-	void add(const std::string &s, bool prevent_spam = true, Color* color = NULL, int style = WIDGETLOG_FONT_REGULAR);
+	void add(const std::string &s, int type);
+	void setNextColor(const Color& color);
+	void setNextStyle(int style);
 	void remove(unsigned msg_index);
 	void clear();
-	void setMaxMessages(unsigned count = 50);
+	void setMaxMessages(unsigned count);
 	void addSeparator();
 	bool isEmpty();
 };

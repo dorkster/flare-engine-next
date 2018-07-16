@@ -27,11 +27,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Avatar.h"
 #include "CampaignManager.h"
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
+#include "EventManager.h"
 #include "Menu.h"
 #include "MenuManager.h"
 #include "MenuInventory.h"
 #include "MessageEngine.h"
-#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "StatBlock.h"
@@ -49,7 +50,7 @@ void CampaignManager::setAll(const std::string& s) {
 	std::string str = s + ',';
 	std::string token;
 	while (str != "") {
-		token = popFirstString(str);
+		token = Parse::popFirstString(str);
 		if (token != "") this->setStatus(token);
 	}
 }
@@ -108,14 +109,14 @@ void CampaignManager::unsetStatus(const std::string& s) {
 }
 
 bool CampaignManager::checkCurrency(int quantity) {
-	return menu->inv->inventory[CARRIED].contain(CURRENCY_ID, quantity);
+	return menu->inv->inventory[MenuInventory::CARRIED].contain(eset->misc.currency_id, quantity);
 }
 
 bool CampaignManager::checkItem(int item_id) {
-	if (menu->inv->inventory[CARRIED].contain(item_id))
+	if (menu->inv->inventory[MenuInventory::CARRIED].contain(item_id, 1))
 		return true;
 	else
-		return menu->inv->inventory[EQUIPMENT].contain(item_id);
+		return menu->inv->inventory[MenuInventory::EQUIPMENT].contain(item_id, 1);
 }
 
 void CampaignManager::removeCurrency(int quantity) {
@@ -123,8 +124,8 @@ void CampaignManager::removeCurrency(int quantity) {
 
 	if (max_amount > 0) {
 		menu->inv->removeCurrency(max_amount);
-		pc->logMsg(msg->get("%d %s removed.", max_amount, CURRENCY), false);
-		items->playSound(CURRENCY_ID);
+		pc->logMsg(msg->get("%d %s removed.", max_amount, eset->loot.currency.c_str()), Avatar::MSG_UNIQUE);
+		items->playSound(eset->misc.currency_id);
 	}
 }
 
@@ -132,7 +133,7 @@ void CampaignManager::removeItem(int item_id) {
 	if (item_id < 0 || static_cast<unsigned>(item_id) >= items->items.size()) return;
 
 	if (menu->inv->remove(item_id)) {
-		pc->logMsg(msg->get("%s removed.", items->getItemName(item_id)), false);
+		pc->logMsg(msg->get("%s removed.", items->getItemName(item_id).c_str()), Avatar::MSG_UNIQUE);
 		items->playSound(item_id);
 	}
 }
@@ -141,97 +142,97 @@ void CampaignManager::rewardItem(ItemStack istack) {
 	if (istack.empty())
 		return;
 
-	menu->inv->add(istack, CARRIED, -1, true, true);
+	menu->inv->add(istack, MenuInventory::CARRIED, ItemStorage::NO_SLOT, MenuInventory::ADD_PLAY_SOUND, MenuInventory::ADD_AUTO_EQUIP);
 
-	if (istack.item != CURRENCY_ID) {
+	if (istack.item != eset->misc.currency_id) {
 		if (istack.quantity <= 1)
-			pc->logMsg(msg->get("You receive %s.", items->getItemName(istack.item)), false);
+			pc->logMsg(msg->get("You receive %s.", items->getItemName(istack.item).c_str()), Avatar::MSG_UNIQUE);
 		if (istack.quantity > 1)
-			pc->logMsg(msg->get("You receive %s x%d.", istack.quantity, items->getItemName(istack.item)), false);
+			pc->logMsg(msg->get("You receive %s x%d.", items->getItemName(istack.item).c_str(), istack.quantity), Avatar::MSG_UNIQUE);
 	}
 }
 
 void CampaignManager::rewardCurrency(int amount) {
 	ItemStack stack;
-	stack.item = CURRENCY_ID;
+	stack.item = eset->misc.currency_id;
 	stack.quantity = amount;
 
-	pc->logMsg(msg->get("You receive %d %s.", amount, CURRENCY), false);
+	pc->logMsg(msg->get("You receive %d %s.", amount, eset->loot.currency.c_str()), Avatar::MSG_UNIQUE);
 	rewardItem(stack);
 }
 
 void CampaignManager::rewardXP(int amount, bool show_message) {
-	bonus_xp += (static_cast<float>(amount) * (100.0f + static_cast<float>(pc->stats.get(STAT_XP_GAIN)))) / 100.0f;
+	bonus_xp += (static_cast<float>(amount) * (100.0f + static_cast<float>(pc->stats.get(Stats::XP_GAIN)))) / 100.0f;
 	pc->stats.addXP(static_cast<int>(bonus_xp));
 	bonus_xp -= static_cast<float>(static_cast<int>(bonus_xp));
 	pc->stats.refresh_stats = true;
-	if (show_message) pc->logMsg(msg->get("You receive %d XP.", amount), false);
+	if (show_message) pc->logMsg(msg->get("You receive %d XP.", amount), Avatar::MSG_UNIQUE);
 }
 
 void CampaignManager::restoreHPMP(const std::string& s) {
 	if (s == "hp") {
-		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
-		pc->logMsg(msg->get("HP restored."), false);
+		pc->stats.hp = pc->stats.get(Stats::HP_MAX);
+		pc->logMsg(msg->get("HP restored."), Avatar::MSG_UNIQUE);
 	}
 	else if (s == "mp") {
-		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
-		pc->logMsg(msg->get("MP restored."), false);
+		pc->stats.mp = pc->stats.get(Stats::MP_MAX);
+		pc->logMsg(msg->get("MP restored."), Avatar::MSG_UNIQUE);
 	}
 	else if (s == "hpmp") {
-		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
-		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
-		pc->logMsg(msg->get("HP and MP restored."), false);
+		pc->stats.hp = pc->stats.get(Stats::HP_MAX);
+		pc->stats.mp = pc->stats.get(Stats::MP_MAX);
+		pc->logMsg(msg->get("HP and MP restored."), Avatar::MSG_UNIQUE);
 	}
 	else if (s == "status") {
 		pc->stats.effects.clearNegativeEffects();
-		pc->logMsg(msg->get("Negative effects removed."), false);
+		pc->logMsg(msg->get("Negative effects removed."), Avatar::MSG_UNIQUE);
 	}
 	else if (s == "all") {
-		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
-		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
+		pc->stats.hp = pc->stats.get(Stats::HP_MAX);
+		pc->stats.mp = pc->stats.get(Stats::MP_MAX);
 		pc->stats.effects.clearNegativeEffects();
-		pc->logMsg(msg->get("HP and MP restored, negative effects removed"), false);
+		pc->logMsg(msg->get("HP and MP restored, negative effects removed"), Avatar::MSG_UNIQUE);
 	}
 }
 
-bool CampaignManager::checkAllRequirements(const Event_Component& ec) {
-	if (ec.type == EC_REQUIRES_STATUS) {
+bool CampaignManager::checkAllRequirements(const EventComponent& ec) {
+	if (ec.type == EventComponent::REQUIRES_STATUS) {
 		if (checkStatus(ec.s))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_NOT_STATUS) {
+	else if (ec.type == EventComponent::REQUIRES_NOT_STATUS) {
 		if (!checkStatus(ec.s))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_CURRENCY) {
+	else if (ec.type == EventComponent::REQUIRES_CURRENCY) {
 		if (checkCurrency(ec.x))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_NOT_CURRENCY) {
+	else if (ec.type == EventComponent::REQUIRES_NOT_CURRENCY) {
 		if (!checkCurrency(ec.x))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_ITEM) {
+	else if (ec.type == EventComponent::REQUIRES_ITEM) {
 		if (checkItem(ec.x))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_NOT_ITEM) {
+	else if (ec.type == EventComponent::REQUIRES_NOT_ITEM) {
 		if (!checkItem(ec.x))
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_LEVEL) {
+	else if (ec.type == EventComponent::REQUIRES_LEVEL) {
 		if (pc->stats.level >= ec.x)
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_NOT_LEVEL) {
+	else if (ec.type == EventComponent::REQUIRES_NOT_LEVEL) {
 		if (pc->stats.level < ec.x)
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_CLASS) {
+	else if (ec.type == EventComponent::REQUIRES_CLASS) {
 		if (pc->stats.character_class == ec.s)
 			return true;
 	}
-	else if (ec.type == EC_REQUIRES_NOT_CLASS) {
+	else if (ec.type == EventComponent::REQUIRES_NOT_CLASS) {
 		if (pc->stats.character_class != ec.s)
 			return true;
 	}

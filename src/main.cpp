@@ -28,6 +28,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "AnimationManager.h"
 #include "CombatText.h"
 #include "DeviceList.h"
+#include "EngineSettings.h"
 #include "GameSwitcher.h"
 #include "InputState.h"
 #include "MessageEngine.h"
@@ -39,9 +40,11 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedResources.h"
 #include "SoundManager.h"
 #include "Stats.h"
+#include "TooltipManager.h"
 #include "Utils.h"
 #include "UtilsFileSystem.h"
 #include "UtilsParsing.h"
+#include "Version.h"
 
 GameSwitcher *gswitch;
 
@@ -73,7 +76,7 @@ bool init_finished = false;
  * Game initialization.
  */
 static void init(const CmdLineArgs& cmd_line_args) {
-	PlatformInit();
+	settings = new Settings();
 
 	/**
 	 * Set system paths
@@ -81,18 +84,18 @@ static void init(const CmdLineArgs& cmd_line_args) {
 	 * PATH_USER is for user-specific data (e.g. save games)
 	 * PATH_DATA is for common game data (e.g. images, music)
 	 */
-	PlatformSetPaths();
+	platform.setPaths();
 
-	lockFileCheck();
+	Utils::lockFileCheck();
 
-	createLogFile();
-	logInfo(getVersionString().c_str());
+	Utils::createLogFile();
+	Utils::logInfo(VersionInfo::createVersionStringFull().c_str());
 
 	// SDL Inits
 	if ( SDL_Init (SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK) < 0 ) {
-		logError("main: Could not initialize SDL: %s", SDL_GetError());
-		logErrorDialog("main: Could not initialize SDL: %s", SDL_GetError());
-		Exit(1);
+		Utils::logError("main: Could not initialize SDL: %s", SDL_GetError());
+		Utils::logErrorDialog("main: Could not initialize SDL: %s", SDL_GetError());
+		Utils::Exit(1);
 	}
 
 	// Shared Resources set-up
@@ -100,17 +103,17 @@ static void init(const CmdLineArgs& cmd_line_args) {
 	mods = new ModManager(&(cmd_line_args.mod_list));
 
 	if (!mods->haveFallbackMod()) {
-		logError("main: Could not find the default mod in the following locations:");
-		if (pathExists(PATH_USER + "mods")) logError("%smods/", PATH_USER.c_str());
-		if (pathExists(PATH_DATA + "mods")) logError("%smods/", PATH_DATA.c_str());
-		logError("A copy of the default mod is in the \"mods\" directory of the flare-engine repo.");
-		logError("The repo is located at: https://github.com/clintbellanger/flare-engine");
-		logError("Try again after copying the default mod to one of the above directories. Exiting.");
-		logErrorDialog("main: Could not find the 'default' mod in the following locations:\n\n%smods/\n%smods/", PATH_USER.c_str(), PATH_DATA.c_str());
-		Exit(1);
+		Utils::logError("main: Could not find the default mod in the following locations:");
+		if (Filesystem::pathExists(settings->path_user + "mods")) Utils::logError("%smods/", settings->path_user.c_str());
+		if (Filesystem::pathExists(settings->path_data + "mods")) Utils::logError("%smods/", settings->path_data.c_str());
+		Utils::logError("A copy of the default mod is in the \"mods\" directory of the flare-engine repo.");
+		Utils::logError("The repo is located at: https://github.com/clintbellanger/flare-engine");
+		Utils::logError("Try again after copying the default mod to one of the above directories. Exiting.");
+		Utils::logErrorDialog("main: Could not find the 'default' mod in the following locations:\n\n%smods/\n%smods/", settings->path_user.c_str(), settings->path_data.c_str());
+		Utils::Exit(1);
 	}
 
-	loadSettings();
+	settings->loadSettings();
 
 	save_load = new SaveLoad();
 	msg = new MessageEngine();
@@ -120,35 +123,35 @@ static void init(const CmdLineArgs& cmd_line_args) {
 	inpt = getInputManager();
 	icons = NULL;
 
-	// Load tileset options (must be after ModManager is initialized)
-	loadTilesetSettings();
-
 	// Load miscellaneous settings
-	loadMiscSettings();
-	setStatNames();
+	eset = new EngineSettings();
+	eset->load();
+	Stats::init();
 
 	// platform-specific default screen size
-	PlatformSetScreenSize();
+	platform.setScreenSize();
 
 	// Create render Device and Rendering Context.
-	if (platform_options.default_renderer != "")
-		render_device = getRenderDevice(platform_options.default_renderer);
+	if (platform.default_renderer != "")
+		render_device = getRenderDevice(platform.default_renderer);
 	else if (cmd_line_args.render_device_name != "")
 		render_device = getRenderDevice(cmd_line_args.render_device_name);
 	else
-		render_device = getRenderDevice(RENDER_DEVICE);
+		render_device = getRenderDevice(settings->render_device_name);
 
 	int status = render_device->createContext();
 
 	if (status == -1) {
-		logError("main: Could not create rendering context: %s", SDL_GetError());
-		logErrorDialog("main: Could not create rendering context: %s", SDL_GetError());
-		Exit(1);
+		Utils::logError("main: Could not create rendering context: %s", SDL_GetError());
+		Utils::logErrorDialog("main: Could not create rendering context: %s", SDL_GetError());
+		Utils::Exit(1);
 	}
 
 	snd = getSoundManager();
 
 	inpt->initJoystick();
+
+	tooltipm = new TooltipManager();
 
 	gswitch = new GameSwitcher();
 }
@@ -160,7 +163,7 @@ static float getSecondsElapsed(uint64_t prev_ticks, uint64_t now_ticks) {
 static void mainLoop () {
 	bool done = false;
 
-	float seconds_per_frame = 1.f/static_cast<float>(MAX_FRAMES_PER_SEC);
+	float seconds_per_frame = 1.f/static_cast<float>(settings->max_frames_per_sec);
 
 	uint64_t prev_ticks = SDL_GetPerformanceCounter();
 	uint64_t logic_ticks = SDL_GetPerformanceCounter();
@@ -171,7 +174,7 @@ static void mainLoop () {
 		int loops = 0;
 		uint64_t now_ticks = SDL_GetPerformanceCounter();
 
-		while (now_ticks >= logic_ticks && loops < MAX_FRAMES_PER_SEC) {
+		while (now_ticks >= logic_ticks && loops < settings->max_frames_per_sec) {
 			// Frames where data loading happens (GameState switching and map loading)
 			// take a long time, so our loop here will think that the game "lagged" and
 			// try to compensate. To prevent this compensation, we mark those frames as
@@ -257,7 +260,7 @@ static void mainLoop () {
 }
 
 static void cleanup() {
-	lockFileWrite(-1);
+	Utils::lockFileWrite(-1);
 
 	delete gswitch;
 
@@ -269,6 +272,7 @@ static void cleanup() {
 	delete msg;
 	delete snd;
 	delete save_load;
+	delete eset;
 
 	if (render_device)
 		render_device->destroyContext();
@@ -340,49 +344,49 @@ int main(int argc, char *argv[]) {
 			debug_event = true;
 		}
 		else if (arg == "data-path") {
-			CUSTOM_PATH_DATA = parseArgValue(arg_full);
+			settings->custom_path_data = parseArgValue(arg_full);
 
 			// Expand leading tilde as home directory
-			if (CUSTOM_PATH_DATA == "~") {
-				CUSTOM_PATH_DATA = std::string(getenv("HOME")) + "/";
+			if (settings->custom_path_data == "~") {
+				settings->custom_path_data = std::string(getenv("HOME")) + "/";
 			}
-			else if (CUSTOM_PATH_DATA.substr(0,2) == "~/") {
-				std::string path_end = CUSTOM_PATH_DATA.substr(2);
-				CUSTOM_PATH_DATA = std::string(getenv("HOME")) + "/" + path_end;
+			else if (settings->custom_path_data.substr(0,2) == "~/") {
+				std::string path_end = settings->custom_path_data.substr(2);
+				settings->custom_path_data = std::string(getenv("HOME")) + "/" + path_end;
 			}
 
-			if (!CUSTOM_PATH_DATA.empty() && CUSTOM_PATH_DATA.at(CUSTOM_PATH_DATA.length()-1) != '/')
-				CUSTOM_PATH_DATA += "/";
+			if (!settings->custom_path_data.empty() && settings->custom_path_data.at(settings->custom_path_data.length()-1) != '/')
+				settings->custom_path_data += "/";
 
-			if (pathExists(CUSTOM_PATH_DATA)) {
-				logInfo("Custom data path: \"%s\"", CUSTOM_PATH_DATA.c_str());
+			if (Filesystem::pathExists(settings->custom_path_data)) {
+				Utils::logInfo("Custom data path: \"%s\"", settings->custom_path_data.c_str());
 			}
 			else {
-				logError("Invalid custom data path: \"%s\"", CUSTOM_PATH_DATA.c_str());
-				CUSTOM_PATH_DATA.clear();
+				Utils::logError("Invalid custom data path: \"%s\"", settings->custom_path_data.c_str());
+				settings->custom_path_data.clear();
 			}
 		}
 		else if (arg == "version") {
-			printf("%s\n", getVersionString().c_str());
+			printf("%s\n", VersionInfo::createVersionStringFull().c_str());
 			done = true;
 		}
 		else if (arg == "renderer") {
 			cmd_line_args.render_device_name = parseArgValue(arg_full);
 		}
 		else if (arg == "no-audio") {
-			AUDIO = false;
+			settings->audio = false;
 		}
 		else if (arg == "mods") {
 			std::string mod_list_str = parseArgValue(arg_full);
 			while (!mod_list_str.empty()) {
-				cmd_line_args.mod_list.push_back(popFirstString(mod_list_str));
+				cmd_line_args.mod_list.push_back(Parse::popFirstString(mod_list_str));
 			}
 		}
 		else if (arg == "load-slot") {
-			LOAD_SLOT = parseArgValue(arg_full);
+			settings->load_slot = parseArgValue(arg_full);
 		}
 		else if (arg == "load-script") {
-			LOAD_SCRIPT = parseArgValue(arg_full);
+			settings->load_script = parseArgValue(arg_full);
 		}
 		else if (arg == "help") {
 			printf("\
@@ -400,7 +404,7 @@ int main(int argc, char *argv[]) {
 			done = true;
 		}
 		else {
-			logError("'%s' is not a valid command line option. Try '--help' for a list of valid options.", argv[i]);
+			Utils::logError("'%s' is not a valid command line option. Try '--help' for a list of valid options.", argv[i]);
 		}
 	}
 
@@ -425,13 +429,15 @@ soft_reset:
 		cleanup();
 	}
 
-	if (SOFT_RESET) {
-		logInfo("main: Restarting Flare...");
-		SOFT_RESET = false;
+	if (settings->soft_reset) {
+		Utils::logInfo("main: Restarting Flare...");
+		settings->soft_reset = false;
 		done = false;
 		cmd_line_args = CmdLineArgs();
 		goto soft_reset;
 	}
+
+	delete settings;
 
 	return 0;
 }

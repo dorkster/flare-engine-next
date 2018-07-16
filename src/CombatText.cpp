@@ -48,32 +48,32 @@ Combat_Text_Item::~Combat_Text_Item() {
 }
 
 CombatText::CombatText() {
-	msg_color[COMBAT_MESSAGE_GIVEDMG] = font->getColor("combat_givedmg");
-	msg_color[COMBAT_MESSAGE_TAKEDMG] = font->getColor("combat_takedmg");
-	msg_color[COMBAT_MESSAGE_CRIT] = font->getColor("combat_crit");
-	msg_color[COMBAT_MESSAGE_BUFF] = font->getColor("combat_buff");
-	msg_color[COMBAT_MESSAGE_MISS] = font->getColor("combat_miss");
+	msg_color[MSG_GIVEDMG] = font->getColor(FontEngine::COLOR_COMBAT_GIVEDMG);
+	msg_color[MSG_TAKEDMG] = font->getColor(FontEngine::COLOR_COMBAT_TAKEDMG);
+	msg_color[MSG_CRIT] = font->getColor(FontEngine::COLOR_COMBAT_CRIT);
+	msg_color[MSG_BUFF] = font->getColor(FontEngine::COLOR_COMBAT_BUFF);
+	msg_color[MSG_MISS] = font->getColor(FontEngine::COLOR_COMBAT_MISS);
 
-	duration = MAX_FRAMES_PER_SEC; // 1 second
-	speed = 60.f / MAX_FRAMES_PER_SEC;
+	duration = settings->max_frames_per_sec; // 1 second
+	speed = 60.f / settings->max_frames_per_sec;
 	offset = 48; // average height of flare-game enemies, so a sensible default
 
 	// Load config settings
 	FileParser infile;
 	// @CLASS CombatText|Description of engine/combat_text.txt
-	if(infile.open("engine/combat_text.txt")) {
+	if(infile.open("engine/combat_text.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if(infile.key == "duration") {
 				// @ATTR duration|duration|Duration of the combat text in 'ms' or 's'.
-				duration = parse_duration(infile.val);
+				duration = Parse::toDuration(infile.val);
 			}
 			else if(infile.key == "speed") {
 				// @ATTR speed|int|Motion speed of the combat text.
-				speed = static_cast<float>(toInt(infile.val) * 60) / MAX_FRAMES_PER_SEC;
+				speed = static_cast<float>(Parse::toInt(infile.val) * 60) / settings->max_frames_per_sec;
 			}
 			else if (infile.key == "offset") {
 				// @ATTR offset|int|The vertical offset for the combat text's starting position.
-				offset = toInt(infile.val);
+				offset = Parse::toInt(infile.val);
 			}
 			else {
 				infile.error("CombatText: '%s' is not a valid key.",infile.key.c_str());
@@ -92,7 +92,7 @@ CombatText::~CombatText() {
 }
 
 void CombatText::addString(const std::string& message, const FPoint& location, int displaytype) {
-	if (COMBAT_TEXT) {
+	if (settings->combat_text) {
 		Combat_Text_Item *c = new Combat_Text_Item();
 		WidgetLabel *label = new WidgetLabel();
 		c->pos.x = location.x;
@@ -103,14 +103,18 @@ void CombatText::addString(const std::string& message, const FPoint& location, i
 		c->lifespan = duration;
 		c->displaytype = displaytype;
 
-		c->label->set(static_cast<int>(c->pos.x), static_cast<int>(c->pos.y), JUSTIFY_CENTER, VALIGN_BOTTOM, c->text, msg_color[c->displaytype]);
+		c->label->setPos(static_cast<int>(c->pos.x), static_cast<int>(c->pos.y));
+		c->label->setJustify(FontEngine::JUSTIFY_CENTER);
+		c->label->setVAlign(LabelInfo::VALIGN_BOTTOM);
+		c->label->setText(c->text);
+		c->label->setColor(msg_color[c->displaytype]);
 		combat_text.push_back(*c);
 		delete c;
 	}
 }
 
 void CombatText::addInt(int num, const FPoint& location, int displaytype) {
-	if (COMBAT_TEXT) {
+	if (settings->combat_text) {
 		std::stringstream ss;
 		ss << num;
 		addString(ss.str(), location, displaytype);
@@ -125,11 +129,10 @@ void CombatText::logic(const FPoint& _cam) {
 		it->floating_offset += speed;
 
 		Point scr_pos;
-		scr_pos = map_to_screen(it->pos.x, it->pos.y, cam.x, cam.y);
+		scr_pos = Utils::mapToScreen(it->pos.x, it->pos.y, cam.x, cam.y);
 		scr_pos.y -= static_cast<int>(it->floating_offset);
 
-		it->label->setX(scr_pos.x);
-		it->label->setY(scr_pos.y);
+		it->label->setPos(scr_pos.x, scr_pos.y);
 	}
 
 	// delete expired messages
@@ -140,7 +143,7 @@ void CombatText::logic(const FPoint& _cam) {
 }
 
 void CombatText::render() {
-	if (!SHOW_HUD) return;
+	if (!settings->show_hud) return;
 
 	for(std::vector<Combat_Text_Item>::iterator it = combat_text.begin(); it != combat_text.end(); ++it) {
 		if (it->lifespan > 0)

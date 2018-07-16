@@ -26,7 +26,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "Menu.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
 #include "Utils.h"
@@ -34,7 +33,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 Menu::Menu()
 	: visible(false)
-	, alignment(ALIGN_TOPLEFT)
+	, alignment(Utils::ALIGN_TOPLEFT)
 	, sfx_open(0)
 	, sfx_close(0)
 	, background(NULL) {
@@ -52,7 +51,7 @@ void Menu::setBackground(const std::string& background_image) {
 		background = NULL;
 	}
 
-	graphics = render_device->loadImage(background_image);
+	graphics = render_device->loadImage(background_image, RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		background = graphics->createSprite();
 		background->setClip(0,0,window_area.w,window_area.h);
@@ -82,7 +81,7 @@ void Menu::align() {
 	window_area.x = window_area_base.x;
 	window_area.y = window_area_base.y;
 
-	alignToScreenEdge(alignment, &window_area);
+	Utils::alignToScreenEdge(alignment, &window_area);
 
 	if (background) {
 		background->setClip(
@@ -110,12 +109,12 @@ bool Menu::parseMenuKey(const std::string &key, const std::string &val) {
 	if (key == "pos") {
 		// @ATTR pos|rectangle|Menu position and dimensions
 		value = value + ',';
-		window_area = toRect(value);
+		window_area = Parse::toRect(value);
 		setWindowPos(window_area.x, window_area.y);
 	}
 	else if (key == "align") {
 		// @ATTR align|alignment|Position relative to screen edges
-		alignment = parse_alignment(value);
+		alignment = Parse::toAlignment(value);
 	}
 	else if (key == "soundfx_open") {
 		// @ATTR soundfx_open|filename|Filename of a sound to play when opening this menu.

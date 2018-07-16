@@ -27,6 +27,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedResources.h"
 #include "WidgetScrollBar.h"
 
+const std::string WidgetScrollBar::DEFAULT_FILE = "images/menus/buttons/scrollbar_default.png";
+
 WidgetScrollBar::WidgetScrollBar(const std::string& _fileName)
 	: Widget()
 	, fileName(_fileName)
@@ -48,7 +50,7 @@ WidgetScrollBar::WidgetScrollBar(const std::string& _fileName)
 
 void WidgetScrollBar::loadArt() {
 	Image *graphics;
-	graphics = render_device->loadImage(fileName, "Couldn't load image", true);
+	graphics = render_device->loadImage(fileName, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		scrollbars = graphics->createSprite();
 		graphics->unref();
@@ -56,37 +58,36 @@ void WidgetScrollBar::loadArt() {
 }
 
 int WidgetScrollBar::checkClick() {
-	int r = checkClick(inpt->mouse.x,inpt->mouse.y);
-	return r;
+	return checkClickAt(inpt->mouse.x,inpt->mouse.y);
 }
 
 /**
  * Sets and releases the "pressed" visual state of the ScrollBar
  * If press and release, activate (return 1 for up, 2 for down)
  */
-int WidgetScrollBar::checkClick(int x, int y) {
+int WidgetScrollBar::checkClickAt(int x, int y) {
 	Point mouse = Point(x,y);
 
 	// main ScrollBar already in use, new click not allowed
-	//if (inpt->lock[MAIN1]) return 0;
+	//if (inpt->lock[Input::MAIN1]) return 0;
 
 	// main click released, so the ScrollBar state goes back to unpressed
-	if (pressed_up && !inpt->lock[MAIN1]) {
+	if (pressed_up && !inpt->lock[Input::MAIN1]) {
 		pressed_up = false;
-		if (isWithinRect(pos_up, mouse)) {
+		if (Utils::isWithinRect(pos_up, mouse)) {
 			// activate upon release
 			return 1;
 		}
 	}
-	if (pressed_down && !inpt->lock[MAIN1]) {
+	if (pressed_down && !inpt->lock[Input::MAIN1]) {
 		pressed_down = false;
-		if (isWithinRect(pos_down, mouse)) {
+		if (Utils::isWithinRect(pos_down, mouse)) {
 			// activate upon release
 			return 2;
 		}
 	}
 	if (pressed_knob) {
-		if (!inpt->lock[MAIN1]) {
+		if (!inpt->lock[Input::MAIN1]) {
 			pressed_knob = false;
 		}
 		int tmp = mouse.y - pos_up.y - pos_up.h;
@@ -103,17 +104,17 @@ int WidgetScrollBar::checkClick(int x, int y) {
 	pressed_knob = false;
 
 	// detect new click
-	if (inpt->pressing[MAIN1]) {
-		if (isWithinRect(pos_up, mouse)) {
-			inpt->lock[MAIN1] = true;
+	if (inpt->pressing[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos_up, mouse)) {
+			inpt->lock[Input::MAIN1] = true;
 			pressed_up = true;
 		}
-		else if (isWithinRect(pos_down, mouse)) {
-			inpt->lock[MAIN1] = true;
+		else if (Utils::isWithinRect(pos_down, mouse)) {
+			inpt->lock[Input::MAIN1] = true;
 			pressed_down = true;
 		}
-		else if (isWithinRect(pos_knob, mouse)) {
-			inpt->lock[MAIN1] = true;
+		else if (Utils::isWithinRect(pos_knob, mouse)) {
+			inpt->lock[Input::MAIN1] = true;
 			pressed_knob = true;
 		}
 

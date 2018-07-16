@@ -29,7 +29,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CommonIncludes.h"
 #include "ItemManager.h"
 
-class Event_Component;
+class EventComponent;
 class StatBlock;
 
 class CampaignManager {
@@ -50,12 +50,14 @@ public:
 	void rewardCurrency(int amount);
 	void rewardXP(int amount, bool show_message);
 	void restoreHPMP(const std::string& s);
-	bool checkAllRequirements(const Event_Component& ec);
+	bool checkAllRequirements(const EventComponent& ec);
 
 	std::vector<std::string> status;
 	std::queue<ItemStack> drop_stack;
 
 	float bonus_xp;		// Fractional XP points not yet awarded (e.g. killing 1 XP enemies with a +25% ring)
+
+	static const bool XP_SHOW_MSG = true;
 };
 
 

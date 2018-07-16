@@ -35,23 +35,28 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include <emscripten.h>
 
-PlatformOptions platform_options;
+Platform platform;
 
-void PlatformInit() {
-	platform_options.has_exit_button = false;
-	platform_options.config_menu_type = CONFIG_MENU_TYPE_DESKTOP_NO_VIDEO;
-	platform_options.has_lock_file = false;
-	platform_options.default_renderer = "sdl_hardware";
+Platform::Platform()
+	: has_exit_button(false)
+	, is_mobile_device(false)
+	, force_hardware_cursor(false)
+	, has_lock_file(false)
+	, config_menu_type(CONFIG_MENU_TYPE_DESKTOP_NO_VIDEO)
+	, default_renderer("sdl_hardware") {
 }
 
-void PlatformSetPaths() {
-	PATH_CONF = "/flare_data/config/";
-	createDir(PATH_CONF);
+Platform::~Platform() {
+}
 
-	PATH_USER = "/flare_data/userdata/";
-	createDir(PATH_USER);
-	createDir(PATH_USER + "mods/");
-	createDir(PATH_USER + "saves/");
+void Platform::setPaths() {
+	settings->path_conf = "/flare_data/config/";
+	Filesystem::createDir(settings->path_conf);
+
+	settings->path_user = "/flare_data/userdata/";
+	Filesystem::createDir(settings->path_user);
+	Filesystem::createDir(settings->path_user + "mods/");
+	Filesystem::createDir(settings->path_user + "saves/");
 
 	// data folder
 
@@ -59,37 +64,37 @@ void PlatformSetPaths() {
 	bool path_data = false;
 
 	// Check for the local data before trying installed ones.
-	if (pathExists("./mods")) {
-		if (!path_data) PATH_DATA = "./";
+	if (Filesystem::pathExists("./mods")) {
+		if (!path_data) settings->path_data = "./";
 		path_data = true;
 	}
 
 	// finally assume the local folder
-	if (!path_data)	PATH_DATA = "./";
+	if (!path_data)	settings->path_data = "./";
 }
 
-void PlatformSetExitEventFilter() {
+void Platform::setExitEventFilter() {
 }
 
-bool PlatformDirCreate(const std::string& path) {
+bool Platform::dirCreate(const std::string& path) {
 	if (mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
-		std::string error_msg = "createDir (" + path + ")";
+		std::string error_msg = "Platform::dirCreate (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
 	return true;
 }
 
-bool PlatformDirRemove(const std::string& path) {
+bool Platform::dirRemove(const std::string& path) {
 	if (rmdir(path.c_str()) == -1) {
-		std::string error_msg = "removeDir (" + path + ")";
+		std::string error_msg = "Platform::dirRemove (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
 	return true;
 }
 
-void PlatformFSInit() {
+void Platform::FSInit() {
     EM_ASM(
         FS.mkdir('/flare_data');
         FS.mount(IDBFS,{},'/flare_data');
@@ -105,9 +110,9 @@ void PlatformFSInit() {
     );
 }
 
-bool PlatformFSCheckReady() {
+bool Platform::FSCheckReady() {
     if(emscripten_run_script_int("Module.syncdone") == 1) {
-        FILE *config_file = fopen(std::string(PATH_CONF + FILE_SETTINGS).c_str(),"r");
+        FILE *config_file = fopen(std::string(settings->path_conf + "settings.txt").c_str(),"r");
         if (config_file == NULL) {
             //persist Emscripten current data to Indexed Db
             EM_ASM(
@@ -119,7 +124,7 @@ bool PlatformFSCheckReady() {
                     Module.syncdone = 1;
                 });
             );
-			saveSettings();
+			settings->saveSettings();
 			return false;
         }
         else {
@@ -130,7 +135,7 @@ bool PlatformFSCheckReady() {
 	return false;
 }
 
-void PlatformFSCommit() {
+void Platform::FSCommit() {
     EM_ASM(
         //persist changes
         FS.syncfs(false,function (err) {
@@ -139,10 +144,10 @@ void PlatformFSCommit() {
     );
 }
 
-void PlatformSetScreenSize() {
+void Platform::setScreenSize() {
 	// can't change window size dynamically with Emscripten, so default to 16:9 aspect ratio
-	SCREEN_W = 854;
-	SCREEN_H = 480;
+	settings->screen_w = 854;
+	settings->screen_h = 480;
 }
 
 #endif // PLATFORM_CPP

@@ -28,17 +28,6 @@ class WidgetButton;
 class WidgetLabel;
 class WidgetScrollBox;
 
-enum {
-	CUTSCENE_STATIC = 0,
-	CUTSCENE_VSCROLL = 1
-};
-
-enum {
-	CUTSCENE_SCALE_NONE = 0,
-	CUTSCENE_SCALE_HEIGHT = 1,
-	CUTSCENE_SCALE_SCREEN = 2
-};
-
 class CutsceneSettings {
 public:
 	FPoint caption_margins;
@@ -81,7 +70,20 @@ public:
 
 class Scene {
 private:
-	CutsceneSettings settings;
+	// skip modes
+	enum {
+		SKIP_NONE = 0,
+		SKIP_SUBSCENE = 1,
+		SKIP_PREV = 2,
+		SKIP_NEXT = 3
+	};
+
+	static const int VSCROLL_SPEED = 8;
+
+	void clearArt();
+	void clearSound();
+
+	CutsceneSettings cutscene_settings;
 	int frame_counter;
 	int pause_frames;
 	std::string caption;
@@ -91,40 +93,65 @@ private:
 	Point art_size;
 	SoundID sid;
 	WidgetScrollBox *caption_box;
+	WidgetButton *button_prev;
 	WidgetButton *button_next;
 	WidgetButton *button_close;
 	WidgetButton *button_advance;
-	bool done;
 	int vscroll_offset;
 	int vscroll_ticks;
+	size_t sub_index;
+	size_t prev_sub_index;
 
 public:
+	// logic() return state
+	enum {
+		NO_CHANGE = 0,
+		PREV = 1,
+		NEXT = 2,
+		DONE = 3
+	};
+
 	Scene(const CutsceneSettings& _settings, short _cutscene_type);
 	Scene(const Scene& other);
 	Scene& operator=(const Scene& other);
 	~Scene();
 
 	void refreshWidgets();
-	bool logic();
+	void reset();
+	int logic();
 	void render();
 
 	short cutscene_type;
+	bool is_first_scene;
 	bool is_last_scene;
-	std::queue<SceneComponent> components;
+	std::vector<size_t> subscenes;
+	std::vector<SceneComponent> components;
 	std::vector<VScrollComponent> vscroll_components;
+
+	enum {
+		CUTSCENE_SCALE_NONE = 0,
+		CUTSCENE_SCALE_HEIGHT = 1,
+		CUTSCENE_SCALE_SCREEN = 2
+	};
+
+	enum {
+		CUTSCENE_STATIC = 0,
+		CUTSCENE_VSCROLL = 1
+	};
+
 };
 
 class GameStateCutscene : public GameState {
 private:
-	void init();
-
 	GameState *previous_gamestate;
 	std::string dest_map;
 	Point dest_pos;
 
-	std::queue<Scene*> scenes;
+	size_t scene_index;
+	std::vector<Scene*> scenes;
 	std::string music;
 	bool initialized;
+	int status;
 
 public:
 	explicit GameStateCutscene(GameState *game_state);

@@ -85,7 +85,7 @@ private:
 	void checkStash();
 	void checkCutscene();
 	void checkSaveEvent();
-	void updateActionBar(unsigned index = 0);
+	void updateActionBar(unsigned index);
 	void loadTitles();
 	void resetNPC();
 	bool checkPrimaryStat(const std::string& first, const std::string& second);
@@ -104,6 +104,8 @@ private:
 	int second_ticks;
 
 	bool is_first_map_load;
+
+	static const unsigned UPDATE_ACTIONBAR_ALL = 0;
 
 public:
 	GameStatePlay();

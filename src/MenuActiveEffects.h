@@ -69,7 +69,7 @@ public:
 	void loadGraphics();
 	void logic();
 	void render();
-	TooltipData checkTooltip(const Point& mouse);
+	void renderTooltips(const Point& position);
 };
 
 #endif

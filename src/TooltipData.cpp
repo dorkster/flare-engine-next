@@ -20,62 +20,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 #include "FontEngine.h"
-#include "RenderDevice.h"
 #include "SharedResources.h"
 #include "TooltipData.h"
 
 TooltipData::TooltipData()
-	: default_color(font->getColor("widget_normal"))
-	, tip_buffer(NULL)
 {}
 
-TooltipData::~TooltipData() {
-	clear();
-}
-
-TooltipData::TooltipData(const TooltipData &tdSource)
-	: default_color(tdSource.default_color)
-	, tip_buffer(NULL) {
-
-	// DO NOT copy the buffered text render
-	// Allow the new copy to create its own buffer
-	// Otherwise the same buffer will be deleted twice, causing a mem error
-
-	lines.clear();
-	colors.clear();
-
-	for (unsigned int i=0; i<tdSource.lines.size(); i++) {
-		lines.push_back(tdSource.lines[i]);
-		colors.push_back(tdSource.colors[i]);
-	}
-}
-
-TooltipData& TooltipData::operator= (const TooltipData &tdSource) {
-
-	// DO NOT copy the buffered text render
-	// Allow the new copy to create its own buffer
-	// Otherwise the same buffer will be deleted twice, causing a mem error
-
-	tip_buffer = NULL;
-	default_color = tdSource.default_color;
-	clear();
-
-	for (unsigned int i=0; i<tdSource.lines.size(); i++) {
-		lines.push_back(tdSource.lines[i]);
-		colors.push_back(tdSource.colors[i]);
-	}
-
-	return *this;
-}
-
-void TooltipData::clear() {
-	lines.clear();
-	colors.clear();
-	if (tip_buffer) {
-		delete tip_buffer;
-		tip_buffer = NULL;
-	}
-}
+TooltipData::~TooltipData()
+{}
 
 void TooltipData::addColoredText(const std::string &text, const Color& color) {
 	if (lines.empty() || !lines.back().empty()) {
@@ -104,10 +56,15 @@ void TooltipData::addColoredText(const std::string &text, const Color& color) {
 }
 
 void TooltipData::addText(const std::string &text) {
-	addColoredText(text, default_color);
+	addColoredText(text, font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 }
 
-bool TooltipData::isEmpty() {
+void TooltipData::clear() {
+	lines.clear();
+	colors.clear();
+}
+
+bool TooltipData::isEmpty() const {
 	return lines.empty();
 }
 
@@ -117,14 +74,15 @@ bool TooltipData::compareFirstLine(const std::string &text) {
 	return true;
 }
 
-bool TooltipData::compare(const TooltipData *tip) {
-	if (lines.size() != tip->lines.size())
+bool TooltipData::compare(const TooltipData& tip) {
+	if (lines.size() != tip.lines.size())
 		return false;
 
-	for (unsigned int i=0; i<lines.size(); i++) {
-		if (lines[i] != tip->lines[i] || colors[i] != tip->colors[i])
+	for (size_t i = 0; i < lines.size(); ++i) {
+		if (lines[i] != tip.lines[i] || colors[i] != tip.colors[i])
 			return false;
 	}
+
 	return true;
 }
 

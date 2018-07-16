@@ -21,12 +21,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #ifndef TOOLTIPDATA_H
 #define TOOLTIPDATA_H
 
+#include "CommonIncludes.h"
 #include "Utils.h"
-
-enum STYLE {
-	STYLE_FLOAT,
-	STYLE_TOPLABEL
-};
 
 /**
  * TooltipData contains the text and line colors for one tool tip.
@@ -40,30 +36,29 @@ enum STYLE {
  */
 class TooltipData {
 public:
+	enum {
+		STYLE_FLOAT = 0,
+		STYLE_TOPLABEL = 1
+	};
+
 	std::vector<std::string> lines;
 	std::vector<Color> colors;
-	Color default_color;
-	Sprite *tip_buffer;
 
 	TooltipData();
 	~TooltipData();
-
-	TooltipData(const TooltipData &tdSource);
-	TooltipData& operator= (const TooltipData &tdSource);
-
-	void clear();
 
 	// add text with support for new lines
 	void addColoredText(const std::string &text, const Color& color);
 	void addText(const std::string &text);
 
-	bool isEmpty();
+	void clear();
+	bool isEmpty() const;
 
 	// compare the first line
 	bool compareFirstLine(const std::string &text);
 
 	// compare all lines
-	bool compare(const TooltipData *tip);
+	bool compare(const TooltipData& tip);
 };
 
 #endif // TOOLTIPDATA_H

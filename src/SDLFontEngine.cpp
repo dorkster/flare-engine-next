@@ -37,16 +37,16 @@ SDLFontStyle::SDLFontStyle() : FontStyle(), ttfont(NULL) {
 SDLFontEngine::SDLFontEngine() : FontEngine(), active_font(NULL) {
 	// Initiate SDL_ttf
 	if(!TTF_WasInit() && TTF_Init()==-1) {
-		logError("SDLFontEngine: TTF_Init: %s", TTF_GetError());
-		logErrorDialog("SDLFontEngine: TTF_Init: %s", TTF_GetError());
+		Utils::logError("SDLFontEngine: TTF_Init: %s", TTF_GetError());
+		Utils::logErrorDialog("SDLFontEngine: TTF_Init: %s", TTF_GetError());
 		mods->resetModConfig();
-		Exit(2);
+		Utils::Exit(2);
 	}
 
 	// load the fonts
 	// @CLASS SDLFontEngine: Font settings|Description of engine/font_settings.txt
 	FileParser infile;
-	if (infile.open("engine/font_settings.txt")) {
+	if (infile.open("engine/font_settings.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		bool is_fallback = false;
 		while (infile.next()) {
 			if (infile.new_section && infile.section == "font") {
@@ -80,16 +80,16 @@ SDLFontEngine::SDLFontEngine() : FontEngine(), active_font(NULL) {
 			else if (infile.key == "style") {
 				// @ATTR font.style|repeatable(["default", predefined_string], filename, int, bool) : Language, Font file, Point size, Blending|Filename, point size, and blend mode of the font to use for this language. Language can be "default" or a 2-letter region code.
 
-				std::string lang = popFirstString(infile.val);
+				std::string lang = Parse::popFirstString(infile.val);
 
-				if ((lang == "default" && style->path == "") || lang == LANGUAGE) {
-					style->path = popFirstString(infile.val);
-					style->ptsize = popFirstInt(infile.val);
-					style->blend = toBool(popFirstString(infile.val));
+				if ((lang == "default" && style->path == "") || lang == settings->language) {
+					style->path = Parse::popFirstString(infile.val);
+					style->ptsize = Parse::popFirstInt(infile.val);
+					style->blend = Parse::toBool(Parse::popFirstString(infile.val));
 
 					style->ttfont = TTF_OpenFont(mods->locate("fonts/" + style->path).c_str(), style->ptsize);
 					if(style->ttfont == NULL) {
-						logError("FontEngine: TTF_OpenFont: %s", TTF_GetError());
+						Utils::logError("FontEngine: TTF_OpenFont: %s", TTF_GetError());
 					}
 					else {
 						int lineskip = TTF_FontLineSkip(style->ttfont);
@@ -102,35 +102,13 @@ SDLFontEngine::SDLFontEngine() : FontEngine(), active_font(NULL) {
 		infile.close();
 	}
 
-	// set the font colors
-	// @CLASS SDLFontEngine: Font colors|Description of engine/font_colors.txt
-	Color color;
-	if (infile.open("engine/font_colors.txt")) {
-		while (infile.next()) {
-			// @ATTR menu_normal|color|Basic menu text color. Recommended: white.
-			// @ATTR menu_bonus|color|Positive menu text color. Recommended: green.
-			// @ATTR menu_penalty|color|Negative menu text color. Recommended: red.
-			// @ATTR widget_normal|color|Basic widget text color. Recommended: white.
-			// @ATTR widget_disabled|color|Disabled widget text color. Recommended: grey.
-			// @ATTR combat_givedmg|color|Enemy damage text color. Recommended: white.
-			// @ATTR combat_takedmg|color|Player damage text color. Recommended: red.
-			// @ATTR combat_crit|color|Enemy critical damage text color. Recommended: yellow.
-			// @ATTR requirements_no_met|color|Unmet requirements text color. Recommended: red.
-			// @ATTR item_bonus|color|Item bonus text color. Recommended: green.
-			// @ATTR item_penalty|color|Item penalty text color. Recommended: red.
-			// @ATTR item_flavor|color|Item flavor text color. Recommended: grey.
-			color_map[infile.key] = toRGB(infile.val);
-		}
-		infile.close();
-	}
-
 	// Attempt to set the default active font
 	setFont("font_regular");
 	if (!active_font) {
-		logError("FontEngine: Unable to determine default font!");
-		logErrorDialog("FontEngine: Unable to determine default font!");
+		Utils::logError("FontEngine: Unable to determine default font!");
+		Utils::logErrorDialog("FontEngine: Unable to determine default font!");
 		mods->resetModConfig();
-		Exit(1);
+		Utils::Exit(1);
 	}
 }
 

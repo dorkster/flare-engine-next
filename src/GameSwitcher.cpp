@@ -43,6 +43,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Settings.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
+#include "TooltipManager.h"
 #include "Utils.h"
 #include "UtilsParsing.h"
 #include "WidgetLabel.h"
@@ -78,13 +79,13 @@ GameSwitcher::GameSwitcher()
 }
 
 void GameSwitcher::loadMusic() {
-	if (!AUDIO) return;
+	if (!settings->audio) return;
 
-	if (MUSIC_VOLUME > 0) {
+	if (settings->music_volume > 0) {
 		std::string music_filename = "";
 		FileParser infile;
 		// @CLASS GameSwitcher: Default music|Description of engine/default_music.txt
-		if (infile.open("engine/default_music.txt", true, "")) {
+		if (infile.open("engine/default_music.txt", FileParser::MOD_FILE, FileParser::ERROR_NONE)) {
 			while (infile.next()) {
 				// @ATTR music|filename|Filename of a music file to play during game states that don't already have music.
 				if (infile.key == "music") music_filename = infile.val;
@@ -107,7 +108,7 @@ void GameSwitcher::loadBackgroundList() {
 
 	FileParser infile;
 	// @CLASS GameSwitcher: Background images|Description of engine/menu_backgrounds.txt
-	if (infile.open("engine/menu_backgrounds.txt", true, "")) {
+	if (infile.open("engine/menu_backgrounds.txt", FileParser::MOD_FILE, FileParser::ERROR_NONE)) {
 		while (infile.next()) {
 			// @ATTR background|repeatable(filename)|Filename of a background image to be added to the pool of random menu backgrounds
 			if (infile.key == "background") background_list.push_back(infile.val);
@@ -125,14 +126,14 @@ void GameSwitcher::loadBackgroundImage() {
 	// load the background image
 	size_t index = static_cast<size_t>(rand()) % background_list.size();
 	background_filename = background_list[index];
-	background_image = render_device->loadImage(background_filename);
+	background_image = render_device->loadImage(background_filename, RenderDevice::ERROR_NORMAL);
 	refreshBackground();
 }
 
 void GameSwitcher::refreshBackground() {
 	if (background_image) {
 		background_image->ref();
-		Rect dest = resizeToScreen(background_image->getWidth(), background_image->getHeight(), true, ALIGN_CENTER);
+		Rect dest = Utils::resizeToScreen(background_image->getWidth(), background_image->getHeight(), true, Utils::ALIGN_CENTER);
 
 		Image *resized = background_image->resize(dest.w, dest.h);
 		if (resized) {
@@ -163,6 +164,9 @@ void GameSwitcher::freeBackground() {
 void GameSwitcher::logic() {
 	// reset the mouse cursor
 	curs->logic();
+
+	// reset the global tooltip
+	tooltipm->clear();
 
 	// Check if a the game state is to be changed and change it if necessary, deleting the old state
 	GameState* newState = currentState->getRequestedGameState();
@@ -207,17 +211,19 @@ void GameSwitcher::logic() {
 }
 
 void GameSwitcher::showFPS(float fps) {
-	if (SHOW_FPS && SHOW_HUD) {
+	if (settings->show_fps && settings->show_hud) {
 		if (!label_fps) label_fps = new WidgetLabel();
 		if (fps_ticks == 0) {
-			fps_ticks = MAX_FRAMES_PER_SEC / 4;
+			fps_ticks = settings->max_frames_per_sec / 4;
 
 			float avg_fps = (fps + last_fps) / 2.f;
 			last_fps = fps;
-			std::string sfps = floatToString(avg_fps, 2) + std::string (" fps");
+			std::string sfps = Utils::floatToString(avg_fps, 2) + std::string (" fps");
 			Rect pos = fps_position;
-			alignToScreenEdge(fps_corner, &pos);
-			label_fps->set(pos.x, pos.y, JUSTIFY_LEFT, VALIGN_TOP, sfps, fps_color);
+			Utils::alignToScreenEdge(fps_corner, &pos);
+			label_fps->setPos(pos.x, pos.y);
+			label_fps->setText(sfps);
+			label_fps->setColor(fps_color);
 		}
 		label_fps->render();
 		fps_ticks--;
@@ -228,17 +234,17 @@ void GameSwitcher::loadFPS() {
 	// Load FPS rendering settings
 	FileParser infile;
 	// @CLASS GameSwitcher: FPS counter|Description of menus/fps.txt
-	if (infile.open("menus/fps.txt")) {
+	if (infile.open("menus/fps.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			// @ATTR position|int, int, alignment : X, Y, Alignment|Position of the fps counter.
 			if(infile.key == "position") {
-				fps_position.x = popFirstInt(infile.val);
-				fps_position.y = popFirstInt(infile.val);
-				fps_corner = parse_alignment(popFirstString(infile.val));
+				fps_position.x = Parse::popFirstInt(infile.val);
+				fps_position.y = Parse::popFirstInt(infile.val);
+				fps_corner = Parse::toAlignment(Parse::popFirstString(infile.val));
 			}
 			// @ATTR color|color|Color of the fps counter text.
 			else if(infile.key == "color") {
-				fps_color = toRGB(infile.val);
+				fps_color = Parse::toRGB(infile.val);
 			}
 			else {
 				infile.error("GameSwitcher: '%s' is not a valid key.", infile.key.c_str());
@@ -279,12 +285,13 @@ void GameSwitcher::render() {
 	}
 
 	currentState->render();
+	tooltipm->render();
 	curs->render();
 }
 
 void GameSwitcher::saveUserSettings() {
 	if (currentState && currentState->save_settings_on_exit)
-		saveSettings();
+		settings->saveSettings();
 }
 
 GameSwitcher::~GameSwitcher() {

@@ -23,7 +23,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "FontEngine.h"
 #include "InputState.h"
 #include "MenuConfirm.h"
-#include "Settings.h"
 #include "SharedResources.h"
 #include "WidgetButton.h"
 
@@ -40,7 +39,7 @@ MenuConfirm::MenuConfirm(const std::string& _buttonMsg, const std::string& _boxM
 
 	// Load config settings
 	FileParser infile;
-	if(infile.open("menus/confirm.txt")) {
+	if(infile.open("menus/confirm.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
@@ -52,8 +51,10 @@ MenuConfirm::MenuConfirm(const std::string& _buttonMsg, const std::string& _boxM
 	// Text to display in confirmation box
 	boxMsg = _boxMsg;
 
+	tablist.ignore_no_mouse = true;
+
 	if (hasConfirmButton) {
-		buttonConfirm = new WidgetButton();
+		buttonConfirm = new WidgetButton(WidgetButton::DEFAULT_FILE);
 		buttonConfirm->label = _buttonMsg;
 		tablist.add(buttonConfirm);
 	}
@@ -68,14 +69,18 @@ MenuConfirm::MenuConfirm(const std::string& _buttonMsg, const std::string& _boxM
 void MenuConfirm::align() {
 	Menu::align();
 
+	label.setJustify(FontEngine::JUSTIFY_CENTER);
+	label.setText(boxMsg);
+	label.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
 	if (hasConfirmButton) {
 		buttonConfirm->pos.x = window_area.x + window_area.w/2 - buttonConfirm->pos.w/2;
 		buttonConfirm->pos.y = window_area.y + window_area.h/2;
 		buttonConfirm->refresh();
-		label.set(window_area.x + window_area.w/2, window_area.y + window_area.h - (buttonConfirm->pos.h * 2), JUSTIFY_CENTER, VALIGN_TOP, boxMsg, font->getColor("menu_normal"));
+		label.setPos(window_area.x + window_area.w/2, window_area.y + window_area.h - (buttonConfirm->pos.h * 2));
 	}
 	else {
-		label.set(window_area.x + window_area.w/2, window_area.y + (window_area.h / 4), JUSTIFY_CENTER, VALIGN_TOP, boxMsg, font->getColor("menu_normal"));
+		label.setPos(window_area.x + window_area.w/2, window_area.y + (window_area.h / 4));
 	}
 
 	buttonClose->pos.x = window_area.x + window_area.w;
@@ -84,7 +89,7 @@ void MenuConfirm::align() {
 
 void MenuConfirm::logic() {
 	if (visible) {
-		tablist.logic(true);
+		tablist.logic();
 		confirmClicked = false;
 
 		if (hasConfirmButton && buttonConfirm->checkClick()) {
@@ -98,7 +103,7 @@ void MenuConfirm::logic() {
 
 		// check if the mouse cursor is hovering over the close button
 		// this is for the confirm dialog that shows when changing keybinds
-		isWithinButtons = isWithinRect(buttonClose->pos, inpt->mouse) || (hasConfirmButton && isWithinRect(buttonConfirm->pos, inpt->mouse));
+		isWithinButtons = Utils::isWithinRect(buttonClose->pos, inpt->mouse) || (hasConfirmButton && Utils::isWithinRect(buttonConfirm->pos, inpt->mouse));
 	}
 }
 

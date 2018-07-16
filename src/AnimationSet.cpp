@@ -25,7 +25,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "ModManager.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
-#include "Settings.h"
 #include "Utils.h"
 #include "UtilsParsing.h"
 
@@ -60,7 +59,7 @@ AnimationSet::AnimationSet(const std::string &animationname)
 	, parent(NULL)
 	, animations()
 	, sprite(NULL) {
-	defaultAnimation = new Animation("default", "play_once", NULL, RENDERABLE_BLEND_NORMAL, 255, Color(255,255,255));
+	defaultAnimation = new Animation("default", "play_once", NULL, Renderable::BLEND_NORMAL, 255, Color(255,255,255));
 	defaultAnimation->setupUncompressed(Point(), Point(), 0, 1, 0);
 }
 
@@ -70,14 +69,14 @@ void AnimationSet::load() {
 
 	FileParser parser;
 	// @CLASS AnimationSet|Description of animations in animations/
-	if (!parser.open(name, true, "Error loading animation definition: " + name))
+	if (!parser.open(name, FileParser::MOD_FILE, FileParser::ERROR_NORMAL))
 		return;
 
 	std::string _name = "";
 	unsigned short position = 0;
 	unsigned short frames = 0;
 	unsigned short duration = 0;
-	uint8_t blend_mode = RENDERABLE_BLEND_NORMAL;
+	uint8_t blend_mode = Renderable::BLEND_NORMAL;
 	uint8_t alpha_mod = 255;
 	Color color_mod = Color(255,255,255);
 	Point render_size;
@@ -115,42 +114,42 @@ void AnimationSet::load() {
 				// @ATTR image|filename|Filename of sprite-sheet image.
 				if (sprite != NULL) {
 					parser.error("AnimationSet: Multiple images specified. Dragons be here!");
-					logErrorDialog("AnimationSet: Multiple images specified. Dragons be here!");
+					Utils::logErrorDialog("AnimationSet: Multiple images specified. Dragons be here!");
 					mods->resetModConfig();
-					Exit(128);
+					Utils::Exit(128);
 				}
 
-				sprite = render_device->loadImage(parser.val);
+				sprite = render_device->loadImage(parser.val, RenderDevice::ERROR_NORMAL);
 			}
 			else if (parser.key == "render_size") {
 				// @ATTR render_size|int, int : Width, Height|Width and height of animation.
-				render_size.x = popFirstInt(parser.val);
-				render_size.y = popFirstInt(parser.val);
+				render_size.x = Parse::popFirstInt(parser.val);
+				render_size.y = Parse::popFirstInt(parser.val);
 			}
 			else if (parser.key == "render_offset") {
 				// @ATTR render_offset|int, int : X offset, Y offset|Render x/y offset.
-				render_offset.x = popFirstInt(parser.val);
-				render_offset.y = popFirstInt(parser.val);
+				render_offset.x = Parse::popFirstInt(parser.val);
+				render_offset.y = Parse::popFirstInt(parser.val);
 			}
 			else if (parser.key == "blend_mode") {
 				// @ATTR blend_mode|["normal", "add"]|The type of blending used when rendering this animation.
-				std::string bmode_str = popFirstString(parser.val);
+				std::string bmode_str = Parse::popFirstString(parser.val);
 				if (bmode_str == "normal")
-					blend_mode = RENDERABLE_BLEND_NORMAL;
+					blend_mode = Renderable::BLEND_NORMAL;
 				else if (bmode_str == "add")
-					blend_mode = RENDERABLE_BLEND_ADD;
+					blend_mode = Renderable::BLEND_ADD;
 				else {
 					parser.error("AnimationSet: '%s' is not a valid blend mode.", parser.key.c_str());
-					blend_mode = RENDERABLE_BLEND_NORMAL;
+					blend_mode = Renderable::BLEND_NORMAL;
 				}
 			}
 			else if (parser.key == "alpha_mod") {
 				// @ATTR alpha_mod|int|Changes the default alpha of this animation. 255 is fully opaque.
-				alpha_mod = static_cast<uint8_t>(popFirstInt(parser.val));
+				alpha_mod = static_cast<uint8_t>(Parse::popFirstInt(parser.val));
 			}
 			else if (parser.key == "color_mod") {
 				// @ATTR color_mod|color|Changes the default color mod of this animation. "255,255,255" is no color mod.
-				color_mod = toRGB(parser.val);
+				color_mod = Parse::toRGB(parser.val);
 			}
 			else {
 				parser.error("AnimationSet: '%s' is not a valid key.", parser.key.c_str());
@@ -159,11 +158,11 @@ void AnimationSet::load() {
 		else {
 			if (parser.key == "position") {
 				// @ATTR animation.position|int|Number of frames to the right to use as the first frame. Unpacked animations only.
-				position = static_cast<unsigned short>(toInt(parser.val));
+				position = static_cast<unsigned short>(Parse::toInt(parser.val));
 			}
 			else if (parser.key == "frames") {
 				// @ATTR animation.frames|int|The total number of frames
-				frames = static_cast<unsigned short>(toInt(parser.val));
+				frames = static_cast<unsigned short>(Parse::toInt(parser.val));
 				if (parent && frames != parent_anim_frames) {
 					parser.error("AnimationSet: Frame count %d != %d for matching animation in %s", frames, parent_anim_frames, parent->getName().c_str());
 					frames = parent_anim_frames;
@@ -171,7 +170,7 @@ void AnimationSet::load() {
 			}
 			else if (parser.key == "duration") {
 				// @ATTR animation.duration|duration|The duration of the entire animation in 'ms' or 's'.
-				duration = static_cast<unsigned short>(parse_duration(parser.val));
+				duration = static_cast<unsigned short>(Parse::toDuration(parser.val));
 			}
 			else if (parser.key == "type")
 				// @ATTR animation.type|["play_once", "back_forth", "looped"]|How to loop (or not loop) this animation.
@@ -179,14 +178,14 @@ void AnimationSet::load() {
 			else if (parser.key == "active_frame") {
 				// @ATTR animation.active_frame|[list(int), "all"]|A list of frames marked as "active". Also, "all" can be used to mark all frames as active.
 				active_frames.clear();
-				std::string nv = popFirstString(parser.val);
+				std::string nv = Parse::popFirstString(parser.val);
 				if (nv == "all") {
 					active_frames.push_back(-1);
 				}
 				else {
 					while (nv != "") {
-						active_frames.push_back(static_cast<short>(toInt(nv)));
-						nv = popFirstString(parser.val);
+						active_frames.push_back(static_cast<short>(Parse::toInt(nv)));
+						nv = Parse::popFirstString(parser.val);
 					}
 					std::sort(active_frames.begin(), active_frames.end());
 					active_frames.erase(std::unique(active_frames.begin(), active_frames.end()), active_frames.end());
@@ -206,14 +205,14 @@ void AnimationSet::load() {
 				// frame = index, direction, x, y, w, h, offsetx, offsety
 				Rect r;
 				Point offset;
-				const unsigned short index = static_cast<unsigned short>(popFirstInt(parser.val));
-				const unsigned short direction = static_cast<unsigned short>(parse_direction(popFirstString(parser.val)));
-				r.x = popFirstInt(parser.val);
-				r.y = popFirstInt(parser.val);
-				r.w = popFirstInt(parser.val);
-				r.h = popFirstInt(parser.val);
-				offset.x = popFirstInt(parser.val);
-				offset.y = popFirstInt(parser.val);
+				const unsigned short index = static_cast<unsigned short>(Parse::popFirstInt(parser.val));
+				const unsigned short direction = static_cast<unsigned short>(Parse::toDirection(Parse::popFirstString(parser.val)));
+				r.x = Parse::popFirstInt(parser.val);
+				r.y = Parse::popFirstInt(parser.val);
+				r.w = Parse::popFirstInt(parser.val);
+				r.h = Parse::popFirstInt(parser.val);
+				offset.x = Parse::popFirstInt(parser.val);
+				offset.y = Parse::popFirstInt(parser.val);
 				newanim->addFrame(index, direction, r, offset);
 			}
 			else {

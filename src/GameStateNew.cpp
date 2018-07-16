@@ -27,6 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "Avatar.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "GameStateNew.h"
@@ -40,14 +41,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
-#include "TooltipData.h"
 #include "UtilsParsing.h"
 #include "WidgetButton.h"
 #include "WidgetCheckBox.h"
 #include "WidgetInput.h"
 #include "WidgetLabel.h"
 #include "WidgetListBox.h"
-#include "WidgetTooltip.h"
 
 GameStateNew::GameStateNew()
 	: GameState()
@@ -60,10 +59,10 @@ GameStateNew::GameStateNew()
 	, game_slot(0)
 {
 	// set up buttons
-	button_exit = new WidgetButton();
+	button_exit = new WidgetButton(WidgetButton::DEFAULT_FILE);
 	button_exit->label = msg->get("Cancel");
 
-	button_create = new WidgetButton();
+	button_create = new WidgetButton(WidgetButton::DEFAULT_FILE);
 	button_create->label = msg->get("Create");
 	button_create->enabled = false;
 	button_create->refresh();
@@ -71,98 +70,113 @@ GameStateNew::GameStateNew()
 	button_prev = new WidgetButton("images/menus/buttons/left.png");
 	button_next = new WidgetButton("images/menus/buttons/right.png");
 
-	input_name = new WidgetInput();
+	input_name = new WidgetInput(WidgetInput::DEFAULT_FILE);
 	input_name->max_length = 20;
 
-	button_permadeath = new WidgetCheckBox();
-	if (DEATH_PENALTY_PERMADEATH) {
+	button_permadeath = new WidgetCheckBox(WidgetCheckBox::DEFAULT_FILE);
+	if (eset->death_penalty.permadeath) {
 		button_permadeath->enabled = false;
 		button_permadeath->setChecked(true);
 	}
 
-	class_list = new WidgetListBox (12);
+	class_list = new WidgetListBox(12, WidgetListBox::DEFAULT_FILE);
 	class_list->can_deselect = false;
 
-	tip = new WidgetTooltip();
+	// set up labels
+	label_portrait = new WidgetLabel();
+	label_portrait->setText(msg->get("Choose a Portrait"));
+	label_portrait->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+	label_name = new WidgetLabel();
+	label_name->setText(msg->get("Choose a Name"));
+	label_name->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+	label_permadeath = new WidgetLabel();
+	label_permadeath->setText(msg->get("Permadeath?"));
+	label_permadeath->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+	label_classlist = new WidgetLabel();
+	label_classlist->setText(msg->get("Choose a Class"));
+	label_classlist->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	// Read positions from config file
 	FileParser infile;
 
 	// @CLASS GameStateNew: Layout|Description of menus/gamenew.txt
-	if (infile.open("menus/gamenew.txt")) {
+	if (infile.open("menus/gamenew.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			// @ATTR button_prev|int, int, alignment : X, Y, Alignment|Position of button to choose the previous preset hero.
 			if (infile.key == "button_prev") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_prev->setBasePos(x, y, a);
 			}
 			// @ATTR button_next|int, int, alignment : X, Y, Alignment|Position of button to choose the next preset hero.
 			else if (infile.key == "button_next") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_next->setBasePos(x, y, a);
 			}
 			// @ATTR button_exit|int, int, alignment : X, Y, Alignment|Position of "Cancel" button.
 			else if (infile.key == "button_exit") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_exit->setBasePos(x, y, a);
 			}
 			// @ATTR button_create|int, int, alignment : X, Y, Alignment|Position of "Create" button.
 			else if (infile.key == "button_create") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_create->setBasePos(x, y, a);
 			}
 			// @ATTR button_permadeath|int, int, alignment : X, Y, Alignment|Position of checkbox for toggling permadeath.
 			else if (infile.key == "button_permadeath") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				button_permadeath->setBasePos(x, y, a);
 			}
 			// @ATTR name_input|int, int, alignment : X, Y, Alignment|Position of the hero name textbox.
 			else if (infile.key == "name_input") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				input_name->setBasePos(x, y, a);
 			}
 			// @ATTR portrait_label|label|Label for the "Choose a Portrait" text.
 			else if (infile.key == "portrait_label") {
-				portrait_label = eatLabelInfo(infile.val);
+				label_portrait->setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR name_label|label|Label for the "Choose a Name" text.
 			else if (infile.key == "name_label") {
-				name_label = eatLabelInfo(infile.val);
+				label_name->setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR permadeath_label|label|Label for the "Permadeath?" text.
 			else if (infile.key == "permadeath_label") {
-				permadeath_label = eatLabelInfo(infile.val);
+				label_permadeath->setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR classlist_label|label|Label for the "Choose a Class" text.
 			else if (infile.key == "classlist_label") {
-				classlist_label = eatLabelInfo(infile.val);
+				label_classlist->setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR portrait|rectangle|Position and dimensions of the portrait image.
 			else if (infile.key == "portrait") {
-				portrait_pos = toRect(infile.val);
+				portrait_pos = Parse::toRect(infile.val);
 			}
 			// @ATTR class_list|int, int, alignment : X, Y, Alignment|Position of the class list.
 			else if (infile.key == "class_list") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				ALIGNMENT a = parse_alignment(popFirstString(infile.val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				int a = Parse::toAlignment(Parse::popFirstString(infile.val));
 				class_list->setBasePos(x, y, a);
 			}
 			// @ATTR show_classlist|bool|Allows hiding the class list.
 			else if (infile.key == "show_classlist") {
-				show_classlist = toBool(infile.val);
+				show_classlist = Parse::toBool(infile.val);
 			}
 			else {
 				infile.error("GameStateNew: '%s' is not a valid key.", infile.key.c_str());
@@ -171,31 +185,12 @@ GameStateNew::GameStateNew()
 		infile.close();
 	}
 
-	// set up labels
-	color_normal = font->getColor("menu_normal");
-
-	label_portrait = new WidgetLabel();
-	label_portrait->setBasePos(portrait_label.x, portrait_label.y);
-	label_portrait->set(portrait_label.x, portrait_label.y, portrait_label.justify, portrait_label.valign, msg->get("Choose a Portrait"), color_normal, portrait_label.font_style);
-
-	label_name = new WidgetLabel();
-	label_name->setBasePos(name_label.x, name_label.y);
-	label_name->set(name_label.x, name_label.y, name_label.justify, name_label.valign, msg->get("Choose a Name"), color_normal, name_label.font_style);
-
-	label_permadeath = new WidgetLabel();
-	label_permadeath->setBasePos(permadeath_label.x, permadeath_label.y);
-	label_permadeath->set(permadeath_label.x, permadeath_label.y, permadeath_label.justify, permadeath_label.valign, msg->get("Permadeath?"), color_normal, permadeath_label.font_style);
-
-	label_classlist = new WidgetLabel();
-	label_classlist->setBasePos(classlist_label.x, classlist_label.y);
-	label_classlist->set(classlist_label.x, classlist_label.y, classlist_label.justify, classlist_label.valign, msg->get("Choose a Class"), color_normal, classlist_label.font_style);
-
 	// set up class list
-	for (unsigned i=0; i<HERO_CLASSES.size(); i++) {
-		class_list->append(msg->get(HERO_CLASSES[i].name),getClassTooltip(i));
+	for (unsigned i = 0; i < eset->hero_classes.list.size(); i++) {
+		class_list->append(msg->get(eset->hero_classes.list[i].name), getClassTooltip(i));
 	}
 
-	if (!HERO_CLASSES.empty())
+	if (!eset->hero_classes.list.empty())
 		class_list->select(0);
 
 	loadGraphics();
@@ -206,6 +201,7 @@ GameStateNew::GameStateNew()
 	setHeroOption(0);
 
 	// Set up tab list
+	tablist.ignore_no_mouse = true;
 	tablist.add(button_exit);
 	tablist.add(button_create);
 	tablist.add(input_name);
@@ -222,8 +218,7 @@ GameStateNew::GameStateNew()
 void GameStateNew::loadGraphics() {
 	Image *graphics;
 
-	graphics = render_device->loadImage("images/menus/portrait_border.png",
-			   "Couldn't load portrait border image", false);
+	graphics = render_device->loadImage("images/menus/portrait_border.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		portrait_border = graphics->createSprite();
 		graphics->unref();
@@ -238,7 +233,7 @@ void GameStateNew::loadPortrait(const std::string& portrait_filename) {
 		delete portrait_image;
 
 	portrait_image = NULL;
-	graphics = render_device->loadImage(portrait_filename);
+	graphics = render_device->loadImage(portrait_filename, RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		portrait_image = graphics->createSprite();
 		portrait_image->setDest(portrait_pos);
@@ -254,22 +249,22 @@ void GameStateNew::loadPortrait(const std::string& portrait_filename) {
 void GameStateNew::loadOptions(const std::string& filename) {
 	FileParser fin;
 	// @CLASS GameStateNew: Hero options|Description of engine/hero_options.txt
-	if (!fin.open("engine/" + filename)) return;
+	if (!fin.open("engine/" + filename, FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) return;
 
 	int cur_index = -1;
 	while (fin.next()) {
 		// @ATTR option|int, string, string, filename, string : Index, Base, Head, Portrait, Name|A default body, head, portrait, and name for a hero.
 		if (fin.key == "option") {
-			cur_index = std::max(0, popFirstInt(fin.val));
+			cur_index = std::max(0, Parse::popFirstInt(fin.val));
 
 			if (static_cast<size_t>(cur_index + 1) > hero_options.size()) {
 				hero_options.resize(cur_index + 1);
 			}
 
-			hero_options[cur_index].base = popFirstString(fin.val);
-			hero_options[cur_index].head = popFirstString(fin.val);
-			hero_options[cur_index].portrait = popFirstString(fin.val);
-			hero_options[cur_index].name = msg->get(popFirstString(fin.val));
+			hero_options[cur_index].base = Parse::popFirstString(fin.val);
+			hero_options[cur_index].head = Parse::popFirstString(fin.val);
+			hero_options[cur_index].portrait = Parse::popFirstString(fin.val);
+			hero_options[cur_index].name = msg->get(Parse::popFirstString(fin.val));
 
 			all_options.push_back(cur_index);
 		}
@@ -301,8 +296,8 @@ void GameStateNew::setHeroOption(int dir) {
 	// get the available options from the currently selected class
 	int class_index;
 	if ( (class_index = class_list->getSelected()) != -1) {
-		if (static_cast<size_t>(class_index) < HERO_CLASSES.size() && !HERO_CLASSES[class_index].options.empty()) {
-			available_options = &(HERO_CLASSES[class_index].options);
+		if (static_cast<size_t>(class_index) < eset->hero_classes.list.size() && !eset->hero_classes.list[class_index].options.empty()) {
+			available_options = &(eset->hero_classes.list[class_index].options);
 		}
 	}
 
@@ -347,7 +342,7 @@ void GameStateNew::logic() {
 		refreshWidgets();
 
 	if (!input_name->edit_mode)
-		tablist.logic(true);
+		tablist.logic();
 
 	input_name->logic();
 
@@ -370,9 +365,9 @@ void GameStateNew::logic() {
 		}
 	}
 
-	if ((inpt->pressing[CANCEL] && !inpt->lock[CANCEL]) || button_exit->checkClick()) {
-		if (inpt->pressing[CANCEL])
-			inpt->lock[CANCEL] = true;
+	if ((inpt->pressing[Input::CANCEL] && !inpt->lock[Input::CANCEL]) || button_exit->checkClick()) {
+		if (inpt->pressing[Input::CANCEL])
+			inpt->lock[Input::CANCEL] = true;
 		delete_items = false;
 		showLoading();
 		setRequestedGameState(new GameStateLoad());
@@ -409,20 +404,20 @@ void GameStateNew::logic() {
 }
 
 void GameStateNew::refreshWidgets() {
-	button_exit->setPos();
-	button_create->setPos();
+	button_exit->setPos(0, 0);
+	button_create->setPos(0, 0);
 
-	button_prev->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	button_next->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	button_permadeath->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	class_list->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
+	button_prev->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	button_next->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	button_permadeath->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	class_list->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
 
-	label_portrait->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	label_name->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	label_permadeath->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
-	label_classlist->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
+	label_portrait->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	label_name->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	label_permadeath->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
+	label_classlist->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
 
-	input_name->setPos((VIEW_W-FRAME_W)/2, (VIEW_H-FRAME_H)/2);
+	input_name->setPos((settings->view_w - eset->resolutions.frame_w)/2, (settings->view_h - eset->resolutions.frame_h)/2);
 }
 
 void GameStateNew::render() {
@@ -442,8 +437,8 @@ void GameStateNew::render() {
 	src.w = dest.w = portrait_pos.w;
 	src.h = dest.h = portrait_pos.h;
 	src.x = src.y = 0;
-	dest.x = portrait_pos.x + (VIEW_W - FRAME_W)/2;
-	dest.y = portrait_pos.y + (VIEW_H - FRAME_H)/2;
+	dest.x = portrait_pos.x + (settings->view_w - eset->resolutions.frame_w)/2;
+	dest.y = portrait_pos.y + (settings->view_h - eset->resolutions.frame_h)/2;
 
 	if (portrait_image) {
 		portrait_image->setClip(src);
@@ -455,35 +450,21 @@ void GameStateNew::render() {
 	}
 
 	// display labels
-	if (!portrait_label.hidden) label_portrait->render();
-	if (!name_label.hidden) label_name->render();
-	if (!permadeath_label.hidden) label_permadeath->render();
+	label_portrait->render();
+	label_name->render();
+	label_permadeath->render();
 
 	// display class list
 	if (show_classlist) {
-		if (!classlist_label.hidden) label_classlist->render();
+		label_classlist->render();
 		class_list->render();
-
-		TooltipData tip_new = class_list->checkTooltip(inpt->mouse);
-		if (!tip_new.isEmpty()) {
-
-			// when we render a tooltip it buffers the rasterized text for performance.
-			// If this new tooltip is the same as the existing one, reuse.
-
-			if (!tip_new.compare(&tip_buf)) {
-				tip_buf.clear();
-				tip_buf = tip_new;
-			}
-			tip->render(tip_buf, inpt->mouse, STYLE_FLOAT);
-		}
-
 	}
 
 }
 
 std::string GameStateNew::getClassTooltip(int index) {
 	std::string tooltip;
-	if (HERO_CLASSES[index].description != "") tooltip += msg->get(HERO_CLASSES[index].description);
+	if (eset->hero_classes.list[index].description != "") tooltip += msg->get(eset->hero_classes.list[index].description);
 	return tooltip;
 }
 
@@ -510,5 +491,4 @@ GameStateNew::~GameStateNew() {
 	delete label_permadeath;
 	delete label_classlist;
 	delete class_list;
-	delete tip;
 }

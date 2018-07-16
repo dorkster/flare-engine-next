@@ -22,11 +22,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * class WidgetScrollBox
  */
 
+#include "EngineSettings.h"
 #include "InputState.h"
 #include "RenderDevice.h"
-#include "Settings.h"
 #include "WidgetScrollBox.h"
-#include "WidgetSettings.h"
 
 WidgetScrollBox::WidgetScrollBox(int width, int height)
 	: contents(NULL) {
@@ -37,13 +36,14 @@ WidgetScrollBox::WidgetScrollBox(int width, int height)
 	bg.r = bg.g = bg.b = 0;
 	bg.a = 0;
 	currentChild = -1;
-	scrollbar = new WidgetScrollBar();
+	scrollbar = new WidgetScrollBar(WidgetScrollBar::DEFAULT_FILE);
 	update = true;
 	render_to_alpha = false;
 	resize(width, height);
-	tablist = TabList(VERTICAL);
+	tablist = TabList();
+	tablist.setScrollType(SCROLL_VERTICAL);
 
-	scroll_type = VERTICAL;
+	scroll_type = SCROLL_VERTICAL;
 }
 
 WidgetScrollBox::~WidgetScrollBox() {
@@ -109,7 +109,7 @@ void WidgetScrollBox::scrollUp() {
 
 Point WidgetScrollBox::input_assist(const Point& mouse) {
 	Point new_mouse;
-	if (isWithinRect(pos,mouse)) {
+	if (Utils::isWithinRect(pos,mouse)) {
 		new_mouse.x = mouse.x-pos.x;
 		new_mouse.y = mouse.y-pos.y+cursor;
 	}
@@ -130,7 +130,7 @@ void WidgetScrollBox::logic() {
 void WidgetScrollBox::logic(int x, int y) {
 	Point mouse(x, y);
 
-	if (isWithinRect(pos,mouse)) {
+	if (Utils::isWithinRect(pos,mouse)) {
 		inpt->lock_scroll = true;
 		if (inpt->scroll_up) scrollUp();
 		if (inpt->scroll_down) scrollDown();
@@ -141,7 +141,7 @@ void WidgetScrollBox::logic(int x, int y) {
 
 	// check ScrollBar clicks
 	if (contents && contents->getGraphicsHeight() > pos.h && scrollbar) {
-		switch (scrollbar->checkClick(mouse.x,mouse.y)) {
+		switch (scrollbar->checkClickAt(mouse.x,mouse.y)) {
 			case 1:
 				scrollUp();
 				break;
@@ -262,7 +262,7 @@ void WidgetScrollBox::render() {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+			render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 		}
 	}
 }

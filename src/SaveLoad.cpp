@@ -31,6 +31,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Avatar.h"
 #include "CampaignManager.h"
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "GameStatePlay.h"
 #include "MapRenderer.h"
@@ -74,18 +75,18 @@ void SaveLoad::saveGame() {
 	if (game_slot <= 0) return;
 
 	// if needed, create the save file structure
-	createSaveDir(game_slot);
+	Utils::createSaveDir(game_slot);
 
 	// remove items with zero quantity from inventory
-	menu->inv->inventory[EQUIPMENT].clean();
-	menu->inv->inventory[CARRIED].clean();
+	menu->inv->inventory[MenuInventory::EQUIPMENT].clean();
+	menu->inv->inventory[MenuInventory::CARRIED].clean();
 
 	std::ofstream outfile;
 
 	std::stringstream ss;
-	ss << PATH_USER << "saves/" << SAVE_PREFIX << "/" << game_slot << "/avatar.txt";
+	ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/" << game_slot << "/avatar.txt";
 
-	outfile.open(path(&ss).c_str(), std::ios::out);
+	outfile.open(Filesystem::path(&ss).c_str(), std::ios::out);
 
 	if (outfile.is_open()) {
 
@@ -108,31 +109,31 @@ void SaveLoad::saveGame() {
 		outfile << "xp=" << pc->stats.xp << "\n";
 
 		// hp and mp
-		if (SAVE_HPMP) outfile << "hpmp=" << pc->stats.hp << "," << pc->stats.mp << "\n";
+		if (eset->misc.save_hpmp) outfile << "hpmp=" << pc->stats.hp << "," << pc->stats.mp << "\n";
 
 		// stat spec
 		outfile << "build=";
-		for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 			outfile << pc->stats.primary[i];
-			if (i < PRIMARY_STATS.size() - 1)
+			if (i < eset->primary_stats.list.size() - 1)
 				outfile << ",";
 		}
 		outfile << "\n";
 
 		// equipped gear
-		outfile << "equipped_quantity=" << menu->inv->inventory[EQUIPMENT].getQuantities() << "\n";
-		outfile << "equipped=" << menu->inv->inventory[EQUIPMENT].getItems() << "\n";
+		outfile << "equipped_quantity=" << menu->inv->inventory[MenuInventory::EQUIPMENT].getQuantities() << "\n";
+		outfile << "equipped=" << menu->inv->inventory[MenuInventory::EQUIPMENT].getItems() << "\n";
 
 		// carried items
-		outfile << "carried_quantity=" << menu->inv->inventory[CARRIED].getQuantities() << "\n";
-		outfile << "carried=" << menu->inv->inventory[CARRIED].getItems() << "\n";
+		outfile << "carried_quantity=" << menu->inv->inventory[MenuInventory::CARRIED].getQuantities() << "\n";
+		outfile << "carried=" << menu->inv->inventory[MenuInventory::CARRIED].getItems() << "\n";
 
 		// spawn point
 		outfile << "spawn=" << mapr->respawn_map << "," << static_cast<int>(mapr->respawn_point.x) << "," << static_cast<int>(mapr->respawn_point.y) << "\n";
 
 		// action bar
 		outfile << "actionbar=";
-		for (unsigned i = 0; i < static_cast<unsigned>(ACTIONBAR_MAX); i++) {
+		for (unsigned i = 0; i < static_cast<unsigned>(MenuActionBar::SLOT_MAX); i++) {
 			if (i < menu->act->slots_count)
 			{
 				if (pc->stats.transformed) outfile << menu->act->hotkeys_temp[i];
@@ -142,7 +143,7 @@ void SaveLoad::saveGame() {
 			{
 				outfile << 0;
 			}
-			if (i < ACTIONBAR_MAX - 1) outfile << ",";
+			if (i < MenuActionBar::SLOT_MAX - 1) outfile << ",";
 		}
 		outfile << "\n";
 
@@ -180,10 +181,10 @@ void SaveLoad::saveGame() {
 		outfile << "time_played=" << pc->time_played << "\n";
 
 		// save the engine version for troubleshooting purposes
-		outfile << "engine_version=" << versionToString(ENGINE_VERSION) << "\n";
+		outfile << "engine_version=" << VersionInfo::ENGINE.getString() << "\n";
 
 		// save the vendor buyback
-		if (SAVE_BUYBACK) {
+		if (eset->misc.save_buyback) {
 			std::map<std::string, ItemStorage>::iterator it;
 
 			for (it = menu->vendor->buyback_stock.begin(); it != menu->vendor->buyback_stock.end(); ++it) {
@@ -195,23 +196,25 @@ void SaveLoad::saveGame() {
 			}
 		}
 
+		outfile << "questlog_dismissed=" << !menu->act->requires_attention[MenuActionBar::MENU_LOG];
+
 		outfile << std::endl;
 
-		if (outfile.bad()) logError("SaveLoad: Unable to save the game. No write access or disk is full!");
+		if (outfile.bad()) Utils::logError("SaveLoad: Unable to save the game. No write access or disk is full!");
 		outfile.close();
 		outfile.clear();
 
-		PlatformFSCommit();
+		platform.FSCommit();
 	}
 
 	// Save stash
 	ss.str("");
 	if (pc->stats.permadeath)
-		ss << PATH_USER << "saves/" << SAVE_PREFIX << "/" << game_slot << "/stash_HC.txt";
+		ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/" << game_slot << "/stash_HC.txt";
 	else
-		ss << PATH_USER << "saves/" << SAVE_PREFIX << "/stash.txt";
+		ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/stash.txt";
 
-	outfile.open(path(&ss).c_str(), std::ios::out);
+	outfile.open(Filesystem::path(&ss).c_str(), std::ios::out);
 
 	if (outfile.is_open()) {
 
@@ -223,18 +226,18 @@ void SaveLoad::saveGame() {
 
 		outfile << std::endl;
 
-		if (outfile.bad()) logError("SaveLoad: Unable to save stash. No write access or disk is full!");
+		if (outfile.bad()) Utils::logError("SaveLoad: Unable to save stash. No write access or disk is full!");
 		outfile.close();
 		outfile.clear();
 
-		PlatformFSCommit();
+		platform.FSCommit();
 	}
 
-	PREV_SAVE_SLOT = game_slot-1;
+	settings->prev_save_slot = game_slot-1;
 
 	// display a log message saying that we saved the game
-	menu->questlog->add(msg->get("Game saved."), LOG_TYPE_MESSAGES);
-	menu->hudlog->add(msg->get("Game saved."));
+	menu->questlog->add(msg->get("Game saved."), MenuLog::TYPE_MESSAGES, WidgetLog::MSG_NORMAL);
+	menu->hudlog->add(msg->get("Game saved."), MenuHUDLog::MSG_NORMAL);
 }
 
 /**
@@ -246,71 +249,71 @@ void SaveLoad::loadGame() {
 	int saved_hp = 0;
 	int saved_mp = 0;
 	int currency = 0;
-	Version save_version(VERSION_MIN);
+	Version save_version(VersionInfo::MIN);
 
 	FileParser infile;
-	std::vector<int> hotkeys(ACTIONBAR_MAX, -1);
+	std::vector<int> hotkeys(MenuActionBar::SLOT_MAX, -1);
 
 	std::stringstream ss;
-	ss << PATH_USER << "saves/" << SAVE_PREFIX << "/" << game_slot << "/avatar.txt";
+	ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/" << game_slot << "/avatar.txt";
 
-	if (infile.open(path(&ss), false)) {
+	if (infile.open(Filesystem::path(&ss), !FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (infile.key == "name") pc->stats.name = infile.val;
 			else if (infile.key == "permadeath") {
-				pc->stats.permadeath = toBool(infile.val);
+				pc->stats.permadeath = Parse::toBool(infile.val);
 			}
 			else if (infile.key == "option") {
-				pc->stats.gfx_base = popFirstString(infile.val);
-				pc->stats.gfx_head = popFirstString(infile.val);
-				pc->stats.gfx_portrait = popFirstString(infile.val);
+				pc->stats.gfx_base = Parse::popFirstString(infile.val);
+				pc->stats.gfx_head = Parse::popFirstString(infile.val);
+				pc->stats.gfx_portrait = Parse::popFirstString(infile.val);
 			}
 			else if (infile.key == "class") {
-				pc->stats.character_class = popFirstString(infile.val);
-				pc->stats.character_subclass = popFirstString(infile.val);
+				pc->stats.character_class = Parse::popFirstString(infile.val);
+				pc->stats.character_subclass = Parse::popFirstString(infile.val);
 			}
 			else if (infile.key == "xp") {
-				pc->stats.xp = toUnsignedLong(infile.val);
+				pc->stats.xp = Parse::toUnsignedLong(infile.val);
 			}
 			else if (infile.key == "hpmp") {
-				saved_hp = popFirstInt(infile.val);
-				saved_mp = popFirstInt(infile.val);
+				saved_hp = Parse::popFirstInt(infile.val);
+				saved_mp = Parse::popFirstInt(infile.val);
 			}
 			else if (infile.key == "build") {
-				for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
-					pc->stats.primary[i] = popFirstInt(infile.val);
+				for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
+					pc->stats.primary[i] = Parse::popFirstInt(infile.val);
 					if (pc->stats.primary[i] < 0 || pc->stats.primary[i] > pc->stats.max_points_per_stat) {
-						logInfo("SaveLoad: Primary stat value for '%s' is out of bounds, setting to zero.", PRIMARY_STATS[i].id.c_str());
+						Utils::logInfo("SaveLoad: Primary stat value for '%s' is out of bounds, setting to zero.", eset->primary_stats.list[i].id.c_str());
 						pc->stats.primary[i] = 0;
 					}
 				}
 			}
 			else if (infile.key == "currency") {
-				currency = toInt(infile.val);
+				currency = Parse::toInt(infile.val);
 			}
 			else if (infile.key == "equipped") {
-				menu->inv->inventory[EQUIPMENT].setItems(infile.val);
+				menu->inv->inventory[MenuInventory::EQUIPMENT].setItems(infile.val);
 			}
 			else if (infile.key == "equipped_quantity") {
-				menu->inv->inventory[EQUIPMENT].setQuantities(infile.val);
+				menu->inv->inventory[MenuInventory::EQUIPMENT].setQuantities(infile.val);
 			}
 			else if (infile.key == "carried") {
-				menu->inv->inventory[CARRIED].setItems(infile.val);
+				menu->inv->inventory[MenuInventory::CARRIED].setItems(infile.val);
 			}
 			else if (infile.key == "carried_quantity") {
-				menu->inv->inventory[CARRIED].setQuantities(infile.val);
+				menu->inv->inventory[MenuInventory::CARRIED].setQuantities(infile.val);
 			}
 			else if (infile.key == "spawn") {
-				mapr->teleport_mapname = popFirstString(infile.val);
-				if (mapr->teleport_mapname != "" && fileExists(mods->locate(mapr->teleport_mapname))) {
-					mapr->teleport_destination.x = static_cast<float>(popFirstInt(infile.val)) + 0.5f;
-					mapr->teleport_destination.y = static_cast<float>(popFirstInt(infile.val)) + 0.5f;
+				mapr->teleport_mapname = Parse::popFirstString(infile.val);
+				if (mapr->teleport_mapname != "" && Filesystem::fileExists(mods->locate(mapr->teleport_mapname))) {
+					mapr->teleport_destination.x = static_cast<float>(Parse::popFirstInt(infile.val)) + 0.5f;
+					mapr->teleport_destination.y = static_cast<float>(Parse::popFirstInt(infile.val)) + 0.5f;
 					mapr->teleportation = true;
 					// prevent spawn.txt from putting us on the starting map
 					mapr->clearEvents();
 				}
 				else {
-					logError("SaveLoad: Unable to find %s, loading maps/spawn.txt", mapr->teleport_mapname.c_str());
+					Utils::logError("SaveLoad: Unable to find %s, loading maps/spawn.txt", mapr->teleport_mapname.c_str());
 					mapr->teleport_mapname = "maps/spawn.txt";
 					mapr->teleport_destination.x = 0.5f;
 					mapr->teleport_destination.y = 0.5f;
@@ -318,64 +321,66 @@ void SaveLoad::loadGame() {
 				}
 			}
 			else if (infile.key == "actionbar") {
-				for (int i = 0; i < ACTIONBAR_MAX; i++) {
-					hotkeys[i] = popFirstInt(infile.val);
+				for (int i = 0; i < MenuActionBar::SLOT_MAX; i++) {
+					hotkeys[i] = Parse::popFirstInt(infile.val);
 					if (hotkeys[i] < 0) {
-						logError("SaveLoad: Hotkey power on position %d has negative id, skipping", i);
+						Utils::logError("SaveLoad: Hotkey power on position %d has negative id, skipping", i);
 						hotkeys[i] = 0;
 					}
 					else if (static_cast<unsigned>(hotkeys[i]) > powers->powers.size()-1) {
-						logError("SaveLoad: Hotkey power id (%d) out of bounds 1-%d, skipping", hotkeys[i], static_cast<int>(powers->powers.size()));
+						Utils::logError("SaveLoad: Hotkey power id (%d) out of bounds 1-%d, skipping", hotkeys[i], static_cast<int>(powers->powers.size()));
 						hotkeys[i] = 0;
 					}
 					else if (hotkeys[i] != 0 && static_cast<unsigned>(hotkeys[i]) < powers->powers.size() && powers->powers[hotkeys[i]].name == "") {
-						logError("SaveLoad: Hotkey power with id=%d, found on position %d does not exist, skipping", hotkeys[i], i);
+						Utils::logError("SaveLoad: Hotkey power with id=%d, found on position %d does not exist, skipping", hotkeys[i], i);
 						hotkeys[i] = 0;
 					}
 				}
 				menu->act->set(hotkeys);
 			}
 			else if (infile.key == "transformed") {
-				pc->stats.transform_type = popFirstString(infile.val);
+				pc->stats.transform_type = Parse::popFirstString(infile.val);
 				if (pc->stats.transform_type != "") {
 					pc->stats.transform_duration = -1;
-					pc->stats.manual_untransform = toBool(popFirstString(infile.val));
+					pc->stats.manual_untransform = Parse::toBool(Parse::popFirstString(infile.val));
 				}
 			}
 			else if (infile.key == "powers") {
 				std::string power;
-				while ( (power = popFirstString(infile.val)) != "") {
-					if (toInt(power) > 0)
-						pc->stats.powers_list.push_back(toInt(power));
+				while ( (power = Parse::popFirstString(infile.val)) != "") {
+					if (Parse::toInt(power) > 0)
+						pc->stats.powers_list.push_back(Parse::toInt(power));
 				}
 			}
 			else if (infile.key == "campaign") camp->setAll(infile.val);
-			else if (infile.key == "time_played") pc->time_played = toUnsignedLong(infile.val);
-			else if (infile.key == "engine_version") save_version = stringToVersion(infile.val);
-			else if (SAVE_BUYBACK && infile.key == "buyback_item") {
-				std::string npc_filename = popFirstString(infile.val, ';');
+			else if (infile.key == "time_played") pc->time_played = Parse::toUnsignedLong(infile.val);
+			else if (infile.key == "engine_version") save_version.setFromString(infile.val);
+			else if (eset->misc.save_buyback && infile.key == "buyback_item") {
+				std::string npc_filename = Parse::popFirstString(infile.val, ';');
 				if (!npc_filename.empty()) {
-					menu->vendor->buyback_stock[npc_filename].init(NPC_VENDOR_MAX_STOCK);
+					menu->vendor->buyback_stock[npc_filename].init(NPC::VENDOR_MAX_STOCK);
 					menu->vendor->buyback_stock[npc_filename].setItems(infile.val);
 				}
 			}
-			else if (SAVE_BUYBACK && infile.key == "buyback_quantity") {
-				std::string npc_filename = popFirstString(infile.val, ';');
+			else if (eset->misc.save_buyback && infile.key == "buyback_quantity") {
+				std::string npc_filename = Parse::popFirstString(infile.val, ';');
 				if (!npc_filename.empty()) {
-					menu->vendor->buyback_stock[npc_filename].init(NPC_VENDOR_MAX_STOCK);
+					menu->vendor->buyback_stock[npc_filename].init(NPC::VENDOR_MAX_STOCK);
 					menu->vendor->buyback_stock[npc_filename].setQuantities(infile.val);
 				}
 			}
+			else if (infile.key == "questlog_dismissed") pc->questlog_dismissed = Parse::toBool(infile.val);
 		}
 
 		infile.close();
 	}
-	else logError("SaveLoad: Unable to open %s!", ss.str().c_str());
+	else Utils::logError("SaveLoad: Unable to open %s!", ss.str().c_str());
 
 	// set starting values for primary stats based on class
-	HeroClass* pc_class = getHeroClassByName(pc->stats.character_class);
+	EngineSettings::HeroClasses::HeroClass* pc_class;
+	pc_class = eset->hero_classes.getByName(pc->stats.character_class);
 	if (pc_class) {
-		for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+		for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 			pc->stats.primary_starting[i] = pc_class->primary[i] + 1;
 		}
 	}
@@ -388,26 +393,26 @@ void SaveLoad::loadGame() {
 
 	// trigger passive effects here? Saved HP/MP values might depend on passively boosted HP/MP
 	// powers->activatePassives(pc->stats);
-	if (SAVE_HPMP && saved_hp != 0) {
-		if (saved_hp < 0 || saved_hp > pc->stats.get(STAT_HP_MAX)) {
-			logError("SaveLoad: HP value is out of bounds, setting to maximum");
-			pc->stats.hp = pc->stats.get(STAT_HP_MAX);
+	if (eset->misc.save_hpmp && saved_hp != 0) {
+		if (saved_hp < 0 || saved_hp > pc->stats.get(Stats::HP_MAX)) {
+			Utils::logError("SaveLoad: HP value is out of bounds, setting to maximum");
+			pc->stats.hp = pc->stats.get(Stats::HP_MAX);
 		}
 		else pc->stats.hp = saved_hp;
 
-		if (saved_mp < 0 || saved_mp > pc->stats.get(STAT_MP_MAX)) {
-			logError("SaveLoad: MP value is out of bounds, setting to maximum");
-			pc->stats.mp = pc->stats.get(STAT_MP_MAX);
+		if (saved_mp < 0 || saved_mp > pc->stats.get(Stats::MP_MAX)) {
+			Utils::logError("SaveLoad: MP value is out of bounds, setting to maximum");
+			pc->stats.mp = pc->stats.get(Stats::MP_MAX);
 		}
 		else pc->stats.mp = saved_mp;
 	}
 	else {
-		pc->stats.hp = pc->stats.get(STAT_HP_MAX);
-		pc->stats.mp = pc->stats.get(STAT_MP_MAX);
+		pc->stats.hp = pc->stats.get(Stats::HP_MAX);
+		pc->stats.mp = pc->stats.get(Stats::MP_MAX);
 	}
 
-	if (save_version != ENGINE_VERSION)
-		logInfo("SaveLoad: Warning! Engine version of save file (%s) does not match current engine version (%s). Be on the lookout for bugs.", versionToString(save_version).c_str(), versionToString(ENGINE_VERSION).c_str());
+	if (save_version != VersionInfo::ENGINE)
+		Utils::logInfo("SaveLoad: Warning! Engine version of save file (%s) does not match current engine version (%s). Be on the lookout for bugs.", save_version.getString().c_str(), VersionInfo::ENGINE.getString().c_str());
 
 	// reset character menu
 	menu->chr->refreshStats();
@@ -421,34 +426,34 @@ void SaveLoad::loadGame() {
 void SaveLoad::loadClass(int index) {
 	if (game_slot <= 0) return;
 
-	if (index < 0 || static_cast<unsigned>(index) >= HERO_CLASSES.size()) {
-		logError("SaveLoad: Class index out of bounds.");
+	if (index < 0 || static_cast<unsigned>(index) >= eset->hero_classes.list.size()) {
+		Utils::logError("SaveLoad: Class index out of bounds.");
 		return;
 	}
 
-	pc->stats.character_class = HERO_CLASSES[index].name;
-	for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+	pc->stats.character_class = eset->hero_classes.list[index].name;
+	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 		// Avatar::init() sets primary stats to 1, so we add to that here
-		pc->stats.primary[i] += HERO_CLASSES[index].primary[i];
+		pc->stats.primary[i] += eset->hero_classes.list[index].primary[i];
 		pc->stats.primary_starting[i] = pc->stats.primary[i];
 	}
-	menu->inv->addCurrency(HERO_CLASSES[index].currency);
-	menu->inv->inventory[EQUIPMENT].setItems(HERO_CLASSES[index].equipment);
-	for (unsigned i=0; i<HERO_CLASSES[index].powers.size(); i++) {
-		pc->stats.powers_list.push_back(HERO_CLASSES[index].powers[i]);
+	menu->inv->addCurrency(eset->hero_classes.list[index].currency);
+	menu->inv->inventory[MenuInventory::EQUIPMENT].setItems(eset->hero_classes.list[index].equipment);
+	for (unsigned i=0; i<eset->hero_classes.list[index].powers.size(); i++) {
+		pc->stats.powers_list.push_back(eset->hero_classes.list[index].powers[i]);
 	}
-	for (unsigned i=0; i<HERO_CLASSES[index].statuses.size(); i++) {
-		camp->setStatus(HERO_CLASSES[index].statuses[i]);
+	for (unsigned i=0; i<eset->hero_classes.list[index].statuses.size(); i++) {
+		camp->setStatus(eset->hero_classes.list[index].statuses[i]);
 	}
-	menu->act->set(HERO_CLASSES[index].hotkeys);
+	menu->act->set(eset->hero_classes.list[index].hotkeys);
 
 	// Add carried items
-	std::string carried = HERO_CLASSES[index].carried;
+	std::string carried = eset->hero_classes.list[index].carried;
 	ItemStack stack;
 	stack.quantity = 1;
 	while (carried != "") {
-		stack.item = popFirstInt(carried);
-		menu->inv->add(stack, CARRIED, -1, false, false);
+		stack.item = Parse::popFirstInt(carried);
+		menu->inv->add(stack, MenuInventory::CARRIED, ItemStorage::NO_SLOT, !MenuInventory::ADD_PLAY_SOUND, !MenuInventory::ADD_AUTO_EQUIP);
 	}
 
 	// apply stats, inventory, and powers
@@ -468,11 +473,11 @@ void SaveLoad::loadStash() {
 	FileParser infile;
 	std::stringstream ss;
 	if (pc->stats.permadeath)
-		ss << PATH_USER << "saves/" << SAVE_PREFIX << "/" << game_slot << "/stash_HC.txt";
+		ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/" << game_slot << "/stash_HC.txt";
 	else
-		ss << PATH_USER << "saves/" << SAVE_PREFIX << "/stash.txt";
+		ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/stash.txt";
 
-	if (infile.open(path(&ss), false, "")) {
+	if (infile.open(Filesystem::path(&ss), !FileParser::MOD_FILE, FileParser::ERROR_NONE)) {
 		while (infile.next()) {
 			if (infile.key == "item") {
 				menu->stash->stock.setItems(infile.val);
@@ -483,7 +488,7 @@ void SaveLoad::loadStash() {
 		}
 		infile.close();
 	}
-	else logInfo("SaveLoad: Could not open stash file '%s'. This may be because it hasn't been created yet.", ss.str().c_str());
+	else Utils::logInfo("SaveLoad: Could not open stash file '%s'. This may be because it hasn't been created yet.", ss.str().c_str());
 
 	menu->stash->stock.clean();
 }
@@ -495,8 +500,8 @@ void SaveLoad::applyPlayerData() {
 	menu->inv->fillEquipmentSlots();
 
 	// remove items with zero quantity from inventory
-	menu->inv->inventory[EQUIPMENT].clean();
-	menu->inv->inventory[CARRIED].clean();
+	menu->inv->inventory[MenuInventory::EQUIPMENT].clean();
+	menu->inv->inventory[MenuInventory::CARRIED].clean();
 
 	// Load stash
 	loadStash();
@@ -521,7 +526,8 @@ void SaveLoad::applyPlayerData() {
 }
 
 void SaveLoad::loadPowerTree() {
-	HeroClass* pc_class = getHeroClassByName(pc->stats.character_class);
+	EngineSettings::HeroClasses::HeroClass* pc_class;
+	pc_class = eset->hero_classes.getByName(pc->stats.character_class);
 	if (pc_class && !pc_class->power_tree.empty()) {
 		menu->pow->loadPowerTree(pc_class->power_tree);
 		return;

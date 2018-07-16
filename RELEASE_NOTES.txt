@@ -1,19 +1,32 @@
 Flare v1.07 (WIP, link soon)
 
+Engine features:
+
+* Added descriptions for some of the player stats to help clarify their purpose.
+* The game now remembers if the player dismissed the quest log notification.
+* Navigating cutscenes has been improved. Players can move back and forth through scenes with left/right arrows.
+* Vertical scrolling cutscenes can be manually scrolled with the Up and Down keys.
+* Scenes in cutscenes can now pause indefinitely by using "pause=-1".
+* Added a "lifeform" flag to enemy stats. Setting it to false will display "Destroyed" instead of "Dead" when their HP reaches 0.
+
 Engine fixes:
 
 * Fixed GetText bug where fuzzy state from header wasn't being unset properly.
-* Fixed rendering bug in WidgetTabControl
-* Fixed crashes when using an empty WidgetListBox
-* Fixed GetText bug where strings weren't being sanitized
+* Fixed rendering bug in WidgetTabControl.
+* Fixed crashes when using an empty WidgetListBox.
+* Fixed GetText bug where strings weren't being sanitized.
+* Fix locked left/right keys when loading a cutscene from the dev console.
+* Using the --mods command line flag doesn't overwrite the user's mod configuration.
+* Lots of code cleanup.
 
 New translations:
 
-* Brazilian Portuguese (pt_BR) by Vicente Monteiro, Gabriel Iasi
+* Brazilian Portuguese (pt_BR) by Gabriel Iasi, Vicente Monteiro
 * Vietnamese (vi) by Nguyễn Gia Phong
 
 Translation updates:
 
+* Belarussian (be) update (Mikalai Valer'evich Sakalouski, Zmicer Turok)
 * Czech (cs) update (hark34)
 * German (de) update (Wuzzy2)
 * Spanish (es) update (Diego J. Romero López)

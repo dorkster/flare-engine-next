@@ -22,15 +22,17 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  * class WidgetListBox
  */
 
+#include "EngineSettings.h"
 #include "FontEngine.h"
 #include "InputState.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
-#include "TooltipData.h"
+#include "TooltipManager.h"
 #include "WidgetLabel.h"
 #include "WidgetListBox.h"
 #include "WidgetScrollBar.h"
-#include "WidgetSettings.h"
+
+const std::string WidgetListBox::DEFAULT_FILE = "images/menus/buttons/listbox_default.png";
 
 WidgetListBox::WidgetListBox(int height, const std::string& _fileName)
 	: Widget()
@@ -41,9 +43,7 @@ WidgetListBox::WidgetListBox(int height, const std::string& _fileName)
 	, any_selected(false)
 	, vlabels(std::vector<WidgetLabel>(height,WidgetLabel()))
 	, rows(std::vector<Rect>(height,Rect()))
-	, scrollbar(new WidgetScrollBar())
-	, color_normal(font->getColor("widget_normal"))
-	, color_disabled(font->getColor("widget_disabled"))
+	, scrollbar(new WidgetScrollBar(WidgetScrollBar::DEFAULT_FILE))
 	, pos_scroll()
 	, pressed(false)
 	, multi_select(false)
@@ -54,7 +54,7 @@ WidgetListBox::WidgetListBox(int height, const std::string& _fileName)
 
 	// load ListBox images
 	Image *graphics;
-	graphics = render_device->loadImage(fileName, "Couldn't load image", true);
+	graphics = render_device->loadImage(fileName, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		listboxs = graphics->createSprite();
 		pos.w = listboxs->getGraphicsWidth();
@@ -62,11 +62,11 @@ WidgetListBox::WidgetListBox(int height, const std::string& _fileName)
 		graphics->unref();
 	}
 
-	scroll_type = VERTICAL;
+	scroll_type = SCROLL_VERTICAL;
 }
 
 bool WidgetListBox::checkClick() {
-	return checkClick(inpt->mouse.x,inpt->mouse.y);
+	return checkClickAt(inpt->mouse.x,inpt->mouse.y);
 }
 
 void WidgetListBox::setPos(int offset_x, int offset_y) {
@@ -78,11 +78,13 @@ void WidgetListBox::setPos(int offset_x, int offset_y) {
  * Sets and releases the "pressed" visual state of the ListBox
  * If press and release, activate (return true)
  */
-bool WidgetListBox::checkClick(int x, int y) {
+bool WidgetListBox::checkClickAt(int x, int y) {
 
 	Point mouse(x, y);
 
 	refresh();
+
+	checkTooltip(mouse);
 
 	// check scroll wheel
 	Rect scroll_area;
@@ -91,7 +93,7 @@ bool WidgetListBox::checkClick(int x, int y) {
 	scroll_area.w = rows[0].w;
 	scroll_area.h = rows[0].h * static_cast<int>(rows.size());
 
-	if (isWithinRect(scroll_area,mouse)) {
+	if (Utils::isWithinRect(scroll_area,mouse)) {
 		inpt->lock_scroll = true;
 		if (inpt->scroll_up) scrollUp();
 		if (inpt->scroll_down) scrollDown();
@@ -102,7 +104,7 @@ bool WidgetListBox::checkClick(int x, int y) {
 
 	// check ScrollBar clicks
 	if (has_scroll_bar) {
-		switch (scrollbar->checkClick(mouse.x,mouse.y)) {
+		switch (scrollbar->checkClickAt(mouse.x,mouse.y)) {
 			case 1:
 				scrollUp();
 				break;
@@ -119,15 +121,15 @@ bool WidgetListBox::checkClick(int x, int y) {
 	}
 
 	// main ListBox already in use, new click not allowed
-	if (inpt->lock[MAIN1]) return false;
+	if (inpt->lock[Input::MAIN1]) return false;
 
 	// main click released, so the ListBox state goes back to unpressed
-	if (pressed && !inpt->lock[MAIN1] && can_select) {
+	if (pressed && !inpt->lock[Input::MAIN1] && can_select) {
 		pressed = false;
 
 		for(unsigned i=0; i<rows.size(); i++) {
 			if (i<items.size()) {
-				if (isWithinRect(rows[i], mouse) && items[i+cursor].value != "") {
+				if (Utils::isWithinRect(rows[i], mouse) && items[i+cursor].value != "") {
 					// deselect other options if multi-select is disabled
 					if (!multi_select) {
 						for (unsigned j=0; j<items.size(); j++) {
@@ -152,11 +154,11 @@ bool WidgetListBox::checkClick(int x, int y) {
 	pressed = false;
 
 	// detect new click
-	if (inpt->pressing[MAIN1]) {
+	if (inpt->pressing[Input::MAIN1]) {
 		for (unsigned i=0; i<rows.size(); i++) {
-			if (isWithinRect(rows[i], mouse)) {
+			if (Utils::isWithinRect(rows[i], mouse)) {
 
-				inpt->lock[MAIN1] = true;
+				inpt->lock[Input::MAIN1] = true;
 				pressed = true;
 
 			}
@@ -166,27 +168,22 @@ bool WidgetListBox::checkClick(int x, int y) {
 
 }
 
-/**
- * If mousing-over an item with a tooltip, return that tooltip data.
- *
- * @param mouse The x,y screen coordinates of the mouse cursor
- */
-TooltipData WidgetListBox::checkTooltip(const Point& mouse) {
-	TooltipData _tip;
-
+void WidgetListBox::checkTooltip(const Point& mouse) {
 	if (!inpt->usingMouse())
-		return _tip;
+		return;
 
+	TooltipData tip_data;
 	for(unsigned i=0; i<rows.size(); i++) {
 		if (i<items.size()) {
-			if (isWithinRect(rows[i], mouse) && items[i+cursor].tooltip != "") {
-				_tip.addText(items[i+cursor].tooltip);
+			if (Utils::isWithinRect(rows[i], mouse) && items[i+cursor].tooltip != "") {
+				tip_data.addText(items[i+cursor].tooltip);
 				break;
 			}
 		}
 	}
 
-	return _tip;
+	if (!tip_data.isEmpty())
+		tooltipm->push(tip_data, mouse, TooltipData::STYLE_FLOAT);
 }
 
 /**
@@ -384,7 +381,7 @@ void WidgetListBox::render() {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+			render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 		}
 	}
 
@@ -395,19 +392,21 @@ void WidgetListBox::render() {
 	}
 }
 
+void WidgetListBox::jumpToSelected() {
+	int index = getSelected();
+	int index_offset = static_cast<int>(rows.size() / 2) - 1;
+	int max_index = static_cast<int>(items.size() - rows.size());
+
+	cursor = std::max(0, max_index - std::max(0, max_index + index_offset - index));
+
+	refresh();
+}
+
 /**
  * Create the text buffer
  * Also, toggle the scrollbar based on the size of the list
  */
-void WidgetListBox::refresh(bool go_to_selected) {
-	if (go_to_selected) {
-		int index = getSelected();
-		int index_offset = static_cast<int>(rows.size() / 2) - 1;
-		int max_index = static_cast<int>(items.size() - rows.size());
-
-		cursor = std::max(0, max_index - std::max(0, max_index + index_offset - index));
-	}
-
+void WidgetListBox::refresh() {
 	std::string temp;
 	int right_margin = 0;
 
@@ -438,23 +437,25 @@ void WidgetListBox::refresh(bool go_to_selected) {
 		}
 		rows[i].h = pos.h;
 
-		int font_x = rows[i].x + 8;
-		int font_y = rows[i].y + (rows[i].h/2);
-
 		int padding = font->getFontHeight();
 
 		if (i+cursor < items.size()) {
 			if (disable_text_trim)
 				temp = items[i+cursor].value;
 			else
-				temp = font->trimTextToWidth(items[i+cursor].value, pos.w-right_margin-padding, true, 0);
+				temp = font->trimTextToWidth(items[i+cursor].value, pos.w-right_margin-padding, FontEngine::USE_ELLIPSIS, 0);
 		}
 
+		// TODO remove hardcoded +8
+		vlabels[i].setPos(rows[i].x + 8, rows[i].y + (rows[i].h/2));
+		vlabels[i].setVAlign(LabelInfo::VALIGN_CENTER);
+		vlabels[i].setText(temp);
+
 		if(i+cursor < items.size() && items[i+cursor].selected) {
-			vlabels[i].set(font_x, font_y, JUSTIFY_LEFT, VALIGN_CENTER, temp, color_normal);
+			vlabels[i].setColor(font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 		}
 		else if (i < items.size()) {
-			vlabels[i].set(font_x, font_y, JUSTIFY_LEFT, VALIGN_CENTER, temp, color_disabled);
+			vlabels[i].setColor(font->getColor(FontEngine::COLOR_WIDGET_DISABLED));
 		}
 	}
 
@@ -554,7 +555,7 @@ void WidgetListBox::sort() {
 }
 
 WidgetListBox::~WidgetListBox() {
-	if (listboxs) delete listboxs;
-	if (scrollbar) delete scrollbar;
+	delete listboxs;
+	delete scrollbar;
 }
 

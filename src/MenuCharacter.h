@@ -32,30 +32,29 @@ class WidgetButton;
 class WidgetLabel;
 class WidgetListBox;
 
-const int CSTAT_NAME = 0;
-const int CSTAT_LEVEL = 1;
-
-class CharStat {
-public:
-	WidgetLabel *label;
-	WidgetLabel *value;
-	Rect hover;
-	TooltipData tip;
-	bool visible;
-	LabelInfo label_info;
-	std::string label_text;
-	Rect value_pos;
-
-	void setHover(int x, int y, int w, int h) {
-		hover.x=x;
-		hover.y=y;
-		hover.w=w;
-		hover.h=h;
-	}
-};
-
 class MenuCharacter : public Menu {
 private:
+	class CharStat {
+	public:
+		WidgetLabel *label;
+		WidgetLabel *value;
+		Rect hover;
+		TooltipData tip;
+		Rect value_pos;
+
+		void setHover(int x, int y) {
+			hover.x = x + value_pos.x;
+			hover.y = y + value_pos.y;
+			hover.w = value_pos.w;
+			hover.h = value_pos.h;
+		}
+	};
+
+	enum {
+		CSTAT_NAME = 0,
+		CSTAT_LEVEL = 1
+	};
+
 	StatBlock *stats;
 
 	WidgetButton *closeButton;
@@ -73,11 +72,9 @@ private:
 	std::vector<bool> primary_up;
 
 	// label and widget positions
-	LabelInfo title;
 	Point statlist_pos;
 	int statlist_rows;
 	int statlist_scrollbar_offset;
-	LabelInfo unspent_pos;
 	std::vector<bool> show_stat;
 	bool show_resists;
 
@@ -97,7 +94,7 @@ public:
 	void logic();
 	void render();
 	void refreshStats();
-	TooltipData checkTooltip();
+	void renderTooltips(const Point& position);
 	bool checkUpgrade();
 	int getUnspent() {
 		return skill_points;

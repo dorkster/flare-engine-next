@@ -19,6 +19,7 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+#include "EngineSettings.h"
 #include "FontEngine.h"
 #include "InputState.h"
 #include "Platform.h"
@@ -26,13 +27,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Settings.h"
 #include "SharedResources.h"
 #include "WidgetInput.h"
-#include "WidgetSettings.h"
+
+const std::string WidgetInput::DEFAULT_FILE = "images/menus/input.png";
 
 WidgetInput::WidgetInput(const std::string& filename)
 	: background(NULL)
 	, enabled(true)
 	, pressed(false)
-	, hover(false)
 	, cursor_pos(0)
 	, edit_mode(false)
 	, max_length(0)
@@ -43,17 +44,21 @@ WidgetInput::WidgetInput(const std::string& filename)
 	loadGraphics(filename);
 
 	render_to_alpha = false;
-	color_normal = font->getColor("widget_normal");
 }
 
 void WidgetInput::setPos(int offset_x, int offset_y) {
-	setPosition(pos_base.x+offset_x, pos_base.y+offset_y);
+	pos.x = pos_base.x + offset_x + local_frame.x - local_offset.x;
+	pos.y = pos_base.y + offset_y + local_frame.y - local_offset.y;
+
+	font->setFont("font_regular");
+	font_pos.x = pos.x + (font->getFontHeight()/2);
+	font_pos.y = pos.y + (pos.h/2) - (font->getFontHeight()/2);
 }
 
 void WidgetInput::loadGraphics(const std::string& filename) {
 	// load input background image
 	Image *graphics;
-	graphics = render_device->loadImage(filename, "Couldn't load image", true);
+	graphics = render_device->loadImage(filename, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		background = graphics->createSprite();
 		pos.w = background->getGraphicsWidth();
@@ -67,10 +72,10 @@ void WidgetInput::trimText() {
 	text_with_cursor.insert(cursor_pos, "|");
 
 	int padding = font->getFontHeight();
-	trimmed_text = font->trimTextToWidth(text, pos.w-padding, false, text.length());
+	trimmed_text = font->trimTextToWidth(text, pos.w-padding, !FontEngine::USE_ELLIPSIS, text.length());
 
 	size_t trim_pos = (cursor_pos > 0 ? cursor_pos - 1 : cursor_pos);
-	trimmed_text_cursor = font->trimTextToWidth(text_with_cursor, pos.w-padding, false, trim_pos);
+	trimmed_text_cursor = font->trimTextToWidth(text_with_cursor, pos.w-padding, !FontEngine::USE_ELLIPSIS, trim_pos);
 }
 
 void WidgetInput::activate() {
@@ -78,32 +83,61 @@ void WidgetInput::activate() {
 		edit_mode = true;
 }
 
+bool WidgetInput::checkClick(const Point& mouse) {
+
+	// disabled buttons can't be clicked;
+	if (!enabled) return false;
+
+	// main button already in use, new click not allowed
+	if (inpt->lock[Input::MAIN1]) return false;
+
+	// main click released, so the button state goes back to unpressed
+	if (pressed && !inpt->lock[Input::MAIN1]) {
+		pressed = false;
+
+		if (Utils::isWithinRect(pos, mouse)) {
+			// activate upon release
+			return true;
+		}
+	}
+
+	pressed = false;
+
+	// detect new click
+	if (inpt->pressing[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos, mouse)) {
+
+			inpt->lock[Input::MAIN1] = true;
+			pressed = true;
+
+		}
+	}
+	return false;
+}
+
 void WidgetInput::logic() {
-	if (logic(inpt->mouse.x,inpt->mouse.y))
+	if (logicAt(inpt->mouse.x,inpt->mouse.y))
 		return;
 }
 
-bool WidgetInput::logic(int x, int y) {
+bool WidgetInput::logicAt(int x, int y) {
 	Point mouse(x, y);
 
-	// Change the hover state
-	hover = isWithinRect(pos, mouse);
-
-	if (checkClick()) {
+	if (checkClick(mouse)) {
 		edit_mode = true;
 	}
 
 	// if clicking elsewhere unfocus the text box
-	if (inpt->pressing[MAIN1]) {
-		if (!isWithinRect(pos, inpt->mouse)) {
+	if (inpt->pressing[Input::MAIN1]) {
+		if (!Utils::isWithinRect(pos, mouse)) {
 			edit_mode = false;
 		}
 	}
 
 	if (edit_mode) {
-		inpt->slow_repeat[DEL] = true;
-		inpt->slow_repeat[LEFT] = true;
-		inpt->slow_repeat[RIGHT] = true;
+		inpt->slow_repeat[Input::DEL] = true;
+		inpt->slow_repeat[Input::LEFT] = true;
+		inpt->slow_repeat[Input::RIGHT] = true;
 		inpt->startTextInput();
 
 		if (inpt->inkeys != "") {
@@ -116,7 +150,7 @@ bool WidgetInput::logic(int x, int y) {
 			}
 
 			// HACK: this prevents normal keys from triggering common menu shortcuts
-			for (size_t i = 0; i < inpt->key_count; ++i) {
+			for (size_t i = 0; i < inpt->KEY_COUNT; ++i) {
 				if (inpt->pressing[i]) {
 					inpt->lock[i] = true;
 					inpt->repeat_ticks[i] = 1;
@@ -125,7 +159,7 @@ bool WidgetInput::logic(int x, int y) {
 		}
 
 		// handle backspaces
-		if (inpt->pressing[DEL] && inpt->repeat_ticks[DEL] == 0) {
+		if (inpt->pressing[Input::DEL] && inpt->repeat_ticks[Input::DEL] == 0) {
 			if (!text.empty() && cursor_pos > 0) {
 				// remove utf-8 character
 				// size_t old_cursor_pos = cursor_pos;
@@ -140,30 +174,30 @@ bool WidgetInput::logic(int x, int y) {
 		}
 
 		// cursor movement
-		if (!text.empty() && cursor_pos > 0 && inpt->pressing[LEFT] && inpt->repeat_ticks[LEFT] == 0) {
+		if (!text.empty() && cursor_pos > 0 && inpt->pressing[Input::LEFT] && inpt->repeat_ticks[Input::LEFT] == 0) {
 			cursor_pos--;
 			trimText();
 		}
-		else if (!text.empty() && cursor_pos < text.length() && inpt->pressing[RIGHT] && inpt->repeat_ticks[RIGHT] == 0) {
-			inpt->lock[RIGHT] = true;
+		else if (!text.empty() && cursor_pos < text.length() && inpt->pressing[Input::RIGHT] && inpt->repeat_ticks[Input::RIGHT] == 0) {
+			inpt->lock[Input::RIGHT] = true;
 			cursor_pos++;
 			trimText();
 		}
 
 		// defocus with Enter or Escape
-		if (accept_to_defocus && inpt->pressing[ACCEPT] && !inpt->lock[ACCEPT]) {
-			inpt->lock[ACCEPT] = true;
+		if (accept_to_defocus && inpt->pressing[Input::ACCEPT] && !inpt->lock[Input::ACCEPT]) {
+			inpt->lock[Input::ACCEPT] = true;
 			edit_mode = false;
 		}
-		else if (inpt->pressing[CANCEL] && !inpt->lock[CANCEL]) {
-			inpt->lock[CANCEL] = true;
+		else if (inpt->pressing[Input::CANCEL] && !inpt->lock[Input::CANCEL]) {
+			inpt->lock[Input::CANCEL] = true;
 			edit_mode = false;
 		}
 	}
 	else {
-		inpt->slow_repeat[DEL] = false;
-		inpt->slow_repeat[LEFT] = false;
-		inpt->slow_repeat[RIGHT] = false;
+		inpt->slow_repeat[Input::DEL] = false;
+		inpt->slow_repeat[Input::LEFT] = false;
+		inpt->slow_repeat[Input::RIGHT] = false;
 		inpt->stopTextInput();
 	}
 
@@ -188,10 +222,10 @@ void WidgetInput::render() {
 	font->setFont("font_regular");
 
 	if (!edit_mode) {
-		font->render(trimmed_text, font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
+		font->render(trimmed_text, font_pos.x, font_pos.y, FontEngine::JUSTIFY_LEFT, NULL, 0, font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 	}
 	else {
-		font->renderShadowed(trimmed_text_cursor, font_pos.x, font_pos.y, JUSTIFY_LEFT, NULL, 0, color_normal);
+		font->renderShadowed(trimmed_text_cursor, font_pos.x, font_pos.y, FontEngine::JUSTIFY_LEFT, NULL, 0, font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 	}
 
 	if (in_focus && !edit_mode) {
@@ -214,58 +248,16 @@ void WidgetInput::render() {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+			render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 		}
 	}
 
 	// handle on-screen keyboard
-	if (platform_options.is_mobile_device && edit_mode) {
+	if (platform.is_mobile_device && edit_mode) {
 		osk_buf.clear();
 		osk_buf.addText(trimmed_text_cursor);
-		osk_tip.render(osk_buf, Point(VIEW_W_HALF + pos.w/2, 0), STYLE_FLOAT);
+		osk_tip.render(osk_buf, Point(settings->view_w_half + pos.w/2, 0), TooltipData::STYLE_FLOAT);
 	}
-}
-
-void WidgetInput::setPosition(int x, int y) {
-	pos.x = x + local_frame.x - local_offset.x;
-	pos.y = y + local_frame.y - local_offset.y;
-
-	font->setFont("font_regular");
-	font_pos.x = pos.x  + (font->getFontHeight()/2);
-	font_pos.y = pos.y + (pos.h/2) - (font->getFontHeight()/2);
-}
-
-bool WidgetInput::checkClick() {
-
-	// disabled buttons can't be clicked;
-	if (!enabled) return false;
-
-	// main button already in use, new click not allowed
-	if (inpt->lock[MAIN1]) return false;
-
-	// main click released, so the button state goes back to unpressed
-	if (pressed && !inpt->lock[MAIN1]) {
-		pressed = false;
-
-		if (isWithinRect(pos, inpt->mouse)) {
-
-			// activate upon release
-			return true;
-		}
-	}
-
-	pressed = false;
-
-	// detect new click
-	if (inpt->pressing[MAIN1]) {
-		if (isWithinRect(pos, inpt->mouse)) {
-
-			inpt->lock[MAIN1] = true;
-			pressed = true;
-
-		}
-	}
-	return false;
 }
 
 WidgetInput::~WidgetInput() {

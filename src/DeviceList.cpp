@@ -41,7 +41,7 @@ RenderDevice* getRenderDevice(const std::string& name) {
 		else if (name == "opengl") return new OpenGLRenderDevice();
 #endif
 		else {
-			logError("DeviceList: Render device '%s' not found. Falling back to the default.", name.c_str());
+			Utils::logError("DeviceList: Render device '%s' not found. Falling back to the default.", name.c_str());
 			return new SDLHardwareRenderDevice();
 		}
 	}

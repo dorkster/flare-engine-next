@@ -33,10 +33,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 Animation::Animation(const std::string &_name, const std::string &_type, Image *_sprite, uint8_t _blend_mode, uint8_t _alpha_mod, Color _color_mod)
 	: name(_name)
-	, type(	_type == "play_once" ? PLAY_ONCE :
-			_type == "back_forth" ? BACK_FORTH :
-			_type == "looped" ? LOOPED :
-			NONE)
+	, type(	_type == "play_once" ? ANIMTYPE_PLAY_ONCE :
+			_type == "back_forth" ? ANIMTYPE_BACK_FORTH :
+			_type == "looped" ? ANIMTYPE_LOOPED :
+			ANIMTYPE_NONE)
 	, sprite(_sprite)
 	, blend_mode(_blend_mode)
 	, alpha_mod(_alpha_mod)
@@ -57,8 +57,8 @@ Animation::Animation(const std::string &_name, const std::string &_type, Image *
 	, elapsed_frames(0)
 	, frame_count(0)
 	, speed(1.0f) {
-	if (type == NONE)
-		logError("Animation: Type %s is unknown", _type.c_str());
+	if (type == ANIMTYPE_NONE)
+		Utils::logError("Animation: Type %s is unknown", _type.c_str());
 }
 
 void Animation::setupUncompressed(const Point& _render_size, const Point& _render_offset, unsigned short _position, unsigned short _frames, unsigned short _duration, unsigned short _maxkinds) {
@@ -125,13 +125,13 @@ void Animation::setup(unsigned short _frames, unsigned short _duration, unsigned
 
 	if (!frames.empty()) number_frames = static_cast<unsigned short>(frames.back()+1);
 
-	if (type == PLAY_ONCE) {
+	if (type == ANIMTYPE_PLAY_ONCE) {
 		additional_data = 0;
 	}
-	else if (type == LOOPED) {
+	else if (type == ANIMTYPE_LOOPED) {
 		additional_data = 0;
 	}
-	else if (type == BACK_FORTH) {
+	else if (type == ANIMTYPE_BACK_FORTH) {
 		number_frames = static_cast<unsigned short>(2 * number_frames);
 		additional_data = 1;
 	}
@@ -151,12 +151,12 @@ void Animation::setup(unsigned short _frames, unsigned short _duration, unsigned
 void Animation::addFrame(unsigned short index, unsigned short kind, const Rect& rect, const Point& _render_offset) {
 
 	if (index >= gfx.size()/max_kinds) {
-		logError("Animation: Animation(%s) adding rect(%d, %d, %d, %d) to frame index(%u) out of bounds. must be in [0, %d]",
+		Utils::logError("Animation: Animation(%s) adding rect(%d, %d, %d, %d) to frame index(%u) out of bounds. must be in [0, %d]",
 				name.c_str(), rect.x, rect.y, rect.w, rect.h, index, static_cast<int>(gfx.size())/max_kinds);
 		return;
 	}
 	if (kind > max_kinds-1) {
-		logError("Animation: Animation(%s) adding rect(%d, %d, %d, %d) to frame(%u) kind(%u) out of bounds. must be in [0, %d]",
+		Utils::logError("Animation: Animation(%s) adding rect(%d, %d, %d, %d) to frame(%u) kind(%u) out of bounds. must be in [0, %d]",
 				name.c_str(), rect.x, rect.y, rect.w, rect.h, index, kind, max_kinds-1);
 		return;
 	}
@@ -176,7 +176,7 @@ void Animation::advanceFrame() {
 
 	unsigned short last_base_index = static_cast<unsigned short>(frames.size()-1);
 	switch(type) {
-		case PLAY_ONCE:
+		case ANIMTYPE_PLAY_ONCE:
 
 			if (cur_frame_index < last_base_index) {
 				cur_frame_index_f += speed;
@@ -186,7 +186,7 @@ void Animation::advanceFrame() {
 				times_played = 1;
 			break;
 
-		case LOOPED:
+		case ANIMTYPE_LOOPED:
 			if (cur_frame_index < last_base_index) {
 				cur_frame_index_f += speed;
 				cur_frame_index = static_cast<unsigned short>(cur_frame_index_f);
@@ -198,7 +198,7 @@ void Animation::advanceFrame() {
 			}
 			break;
 
-		case BACK_FORTH:
+		case ANIMTYPE_BACK_FORTH:
 
 			if (additional_data == 1) {
 				if (cur_frame_index < last_base_index) {
@@ -220,7 +220,7 @@ void Animation::advanceFrame() {
 			}
 			break;
 
-		case NONE:
+		case ANIMTYPE_NONE:
 			break;
 	}
 	cur_frame_index = std::max<short>(0, cur_frame_index);
@@ -268,13 +268,13 @@ bool Animation::syncTo(const Animation *other) {
 
 	if (cur_frame_index >= frames.size()) {
 		if (frames.empty()) {
-			logError("Animation: '%s' animation has no frames, but current frame index is greater than 0.", name.c_str());
+			Utils::logError("Animation: '%s' animation has no frames, but current frame index is greater than 0.", name.c_str());
 			cur_frame_index = 0;
 			cur_frame_index_f = 0;
 			return false;
 		}
 		else {
-			logError("Animation: Current frame index (%d) was larger than the last frame index (%d) when syncing '%s' animation.", cur_frame_index, frames.size()-1, name.c_str());
+			Utils::logError("Animation: Current frame index (%d) was larger than the last frame index (%d) when syncing '%s' animation.", cur_frame_index, frames.size()-1, name.c_str());
 			cur_frame_index = static_cast<unsigned short>(frames.size()-1);
 			cur_frame_index_f = cur_frame_index;
 			return false;
@@ -323,21 +323,21 @@ bool Animation::isSecondLastFrame() {
 }
 
 bool Animation::isActiveFrame() {
-	if (type == BACK_FORTH) {
+	if (type == ANIMTYPE_BACK_FORTH) {
 		if (std::find(active_frames.begin(), active_frames.end(), elapsed_frames) != active_frames.end())
 			return cur_frame_index == getLastFrameIndex(cur_frame);
 	}
 	else {
 		if (std::find(active_frames.begin(), active_frames.end(), cur_frame) != active_frames.end()) {
 			if (cur_frame_index == getLastFrameIndex(cur_frame)) {
-				if (type == PLAY_ONCE)
+				if (type == ANIMTYPE_PLAY_ONCE)
 					active_frame_triggered = true;
 
 				return true;
 			}
 		}
 	}
-	return (isLastFrame() && type == PLAY_ONCE && !active_frame_triggered && !active_frames.empty());
+	return (isLastFrame() && type == ANIMTYPE_PLAY_ONCE && !active_frame_triggered && !active_frames.empty());
 }
 
 int Animation::getTimesPlayed() {
@@ -353,13 +353,13 @@ int Animation::getDuration() {
 }
 
 bool Animation::isCompleted() {
-	return (type == PLAY_ONCE && times_played > 0);
+	return (type == ANIMTYPE_PLAY_ONCE && times_played > 0);
 }
 
 unsigned short Animation::getLastFrameIndex(const short &frame) {
 	if (frames.empty() || frame < 0) return 0;
 
-	if (type == BACK_FORTH && additional_data == -1) {
+	if (type == ANIMTYPE_BACK_FORTH && additional_data == -1) {
 		// since the animation is advancing backwards here, the first frame index is actually the last
 		for (unsigned short i=0; i<frames.size(); i++) {
 			if (frames[i] == frame) return i;

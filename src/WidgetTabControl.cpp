@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+#include "EngineSettings.h"
 #include "FontEngine.h"
 #include "InputState.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
 #include "WidgetLabel.h"
-#include "WidgetSettings.h"
 #include "WidgetTabControl.h"
 
 
@@ -33,10 +33,7 @@ WidgetTabControl::WidgetTabControl()
 
 	loadGraphics();
 
-	color_normal = font->getColor("widget_normal");
-	color_disabled = font->getColor("widget_disabled");
-
-	scroll_type = HORIZONTAL;
+	scroll_type = SCROLL_HORIZONTAL;
 }
 
 WidgetTabControl::~WidgetTabControl() {
@@ -116,24 +113,18 @@ void WidgetTabControl::updateHeader() {
 		if (i==0) tabs[i].x = tabs_area.x;
 		else tabs[i].x = tabs[i-1].x + tabs[i-1].w;
 
-		tabs[i].w = widget_settings.tab_padding.x + font->calc_width(titles[i]) + widget_settings.tab_padding.x;
+		tabs[i].w = eset->widgets.tab_padding.x + font->calc_width(titles[i]) + eset->widgets.tab_padding.x;
 		tabs_area.w += tabs[i].w;
 
-		active_labels[i].set(
-			tabs[i].x + widget_settings.tab_padding.x,
-			tabs[i].y + tabs[i].h/2 + widget_settings.tab_padding.y,
-			JUSTIFY_LEFT,
-			VALIGN_CENTER,
-			titles[i],
-			color_normal);
+		active_labels[i].setPos(tabs[i].x + eset->widgets.tab_padding.x, tabs[i].y + tabs[i].h/2 + eset->widgets.tab_padding.y);
+		active_labels[i].setVAlign(LabelInfo::VALIGN_CENTER);
+		active_labels[i].setText(titles[i]);
+		active_labels[i].setColor(font->getColor(FontEngine::COLOR_WIDGET_NORMAL));
 
-		inactive_labels[i].set(
-			tabs[i].x + widget_settings.tab_padding.x,
-			tabs[i].y + tabs[i].h/2 + widget_settings.tab_padding.y,
-			JUSTIFY_LEFT,
-			VALIGN_CENTER,
-			titles[i],
-			color_disabled);
+		inactive_labels[i].setPos(tabs[i].x + eset->widgets.tab_padding.x, tabs[i].y + tabs[i].h/2 + eset->widgets.tab_padding.y);
+		inactive_labels[i].setVAlign(LabelInfo::VALIGN_CENTER);
+		inactive_labels[i].setText(titles[i]);
+		inactive_labels[i].setColor(font->getColor(FontEngine::COLOR_WIDGET_DISABLED));
 	}
 }
 
@@ -142,15 +133,13 @@ void WidgetTabControl::updateHeader() {
  */
 void WidgetTabControl::loadGraphics() {
 	Image *graphics;
-	graphics = render_device->loadImage("images/menus/tab_active.png",
-			   "loading tab_active.png", true);
+	graphics = render_device->loadImage("images/menus/tab_active.png", RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		active_tab_surface = graphics->createSprite();
 		graphics->unref();
 	}
 
-	graphics = render_device->loadImage("images/menus/tab_inactive.png",
-			   "loading tab_inactive.png", true);
+	graphics = render_device->loadImage("images/menus/tab_inactive.png", RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		inactive_tab_surface = graphics->createSprite();
 		graphics->unref();
@@ -169,10 +158,10 @@ void WidgetTabControl::logic() {
 void WidgetTabControl::logic(int x, int y) {
 	Point mouse(x, y);
 	// If the click was in the tabs area;
-	if(isWithinRect(tabs_area, mouse) && inpt->pressing[MAIN1]) {
+	if(Utils::isWithinRect(tabs_area, mouse) && inpt->pressing[Input::MAIN1]) {
 		// Mark the clicked tab as active_tab.
 		for (unsigned i=0; i<tabs.size(); i++) {
-			if(isWithinRect(tabs[i], mouse)) {
+			if(Utils::isWithinRect(tabs[i], mouse)) {
 				active_tab = i;
 				return;
 			}
@@ -200,7 +189,7 @@ void WidgetTabControl::render() {
 		bottomRight.x = topLeft.x + tabs[active_tab].w;
 		bottomRight.y = topLeft.y + tabs[active_tab].h;
 
-		render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+		render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 	}
 }
 
@@ -214,7 +203,7 @@ void WidgetTabControl::renderTab(unsigned number) {
 
 	// Draw tab’s background.
 	int gfx_width = active_tab_surface->getGraphicsWidth();
-	int width_to_render = tabs[i].w - widget_settings.tab_padding.x; // don't draw the right edge yet
+	int width_to_render = tabs[i].w - eset->widgets.tab_padding.x; // don't draw the right edge yet
 	int render_cursor = 0;
 
 	src.x = src.y = 0;
@@ -228,18 +217,18 @@ void WidgetTabControl::renderTab(unsigned number) {
 		if (render_cursor == 0) {
 			// left edge + middle
 			src.x = 0;
-			src.w = tabs[i].w - widget_settings.tab_padding.x;
+			src.w = tabs[i].w - eset->widgets.tab_padding.x;
 
-			if (src.w > gfx_width - widget_settings.tab_padding.x)
-				src.w = gfx_width - widget_settings.tab_padding.x;
+			if (src.w > gfx_width - eset->widgets.tab_padding.x)
+				src.w = gfx_width - eset->widgets.tab_padding.x;
 		}
 		else {
 			// only middle
-			src.x = widget_settings.tab_padding.x;
-			src.w = tabs[i].w - (widget_settings.tab_padding.x * 2);
+			src.x = eset->widgets.tab_padding.x;
+			src.w = tabs[i].w - (eset->widgets.tab_padding.x * 2);
 
-			if (src.w > gfx_width - (widget_settings.tab_padding.x * 2))
-				src.w = gfx_width - (widget_settings.tab_padding.x * 2);
+			if (src.w > gfx_width - (eset->widgets.tab_padding.x * 2))
+				src.w = gfx_width - (eset->widgets.tab_padding.x * 2);
 		}
 
 		render_cursor += src.w;
@@ -260,9 +249,9 @@ void WidgetTabControl::renderTab(unsigned number) {
 	}
 
 	// Draw tab’s right edge.
-	src.x = active_tab_surface->getGraphicsWidth() - widget_settings.tab_padding.x;
-	src.w = widget_settings.tab_padding.x;
-	dest.x = tabs[i].x + tabs[i].w - widget_settings.tab_padding.x;
+	src.x = active_tab_surface->getGraphicsWidth() - eset->widgets.tab_padding.x;
+	src.w = eset->widgets.tab_padding.x;
+	dest.x = tabs[i].x + tabs[i].w - eset->widgets.tab_padding.x;
 
 	if (i == active_tab) {
 		active_tab_surface->setClip(src);

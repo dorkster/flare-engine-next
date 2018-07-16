@@ -30,11 +30,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CampaignManager.h"
 #include "CombatText.h"
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "Entity.h"
 #include "Hazard.h"
 #include "MapRenderer.h"
 #include "MessageEngine.h"
 #include "PowerManager.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
@@ -62,17 +64,8 @@ Entity::Entity()
 	, animationSet(NULL) {
 }
 
-Entity::Entity(const Entity& e)
-	: sprites(e.sprites)
-	, sound_attack(e.sound_attack)
-	, sound_hit(e.sound_hit)
-	, sound_die(e.sound_die)
-	, sound_critdie(e.sound_critdie)
-	, sound_block(e.sound_block)
-	, sound_levelup(e.sound_levelup)
-	, activeAnimation(new Animation(*e.activeAnimation))
-	, animationSet(e.animationSet)
-	, stats(StatBlock(e.stats)) {
+Entity::Entity(const Entity& e) {
+	*this = e;
 }
 
 Entity& Entity::operator=(const Entity& e) {
@@ -93,7 +86,11 @@ Entity& Entity::operator=(const Entity& e) {
 	return *this;
 }
 
-void Entity::loadSounds(StatBlock *src_stats) {
+void Entity::loadSounds() {
+	loadSoundsFromStatBlock(NULL);
+}
+
+void Entity::loadSoundsFromStatBlock(StatBlock *src_stats) {
 	unloadSounds();
 
 	if (!src_stats) src_stats = &stats;
@@ -152,36 +149,36 @@ void Entity::playAttackSound(const std::string& attack_name) {
 	for (size_t i = 0; i < sound_attack.size(); ++i) {
 		if (!sound_attack[i].second.empty() && sound_attack[i].first == attack_name) {
 			size_t rand_index = rand() % sound_attack[i].second.size();
-			snd->play(sound_attack[i].second[rand_index]);
+			snd->play(sound_attack[i].second[rand_index], snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 			return;
 		}
 	}
 }
 
 void Entity::playSound(int sound_type) {
-	if (sound_type == ENTITY_SOUND_HIT && !sound_hit.empty()) {
+	if (sound_type == Entity::SOUND_HIT && !sound_hit.empty()) {
 		size_t rand_index = rand() % sound_hit.size();
 		std::stringstream channel_name;
 		channel_name << "entity_hit_" << sound_hit[rand_index];
-		snd->play(sound_hit[rand_index], channel_name.str());
+		snd->play(sound_hit[rand_index], channel_name.str(), snd->NO_POS, !snd->LOOP);
 	}
-	else if (sound_type == ENTITY_SOUND_DIE && !sound_die.empty()) {
+	else if (sound_type == Entity::SOUND_DIE && !sound_die.empty()) {
 		size_t rand_index = rand() % sound_die.size();
 		std::stringstream channel_name;
 		channel_name << "entity_die_" << sound_die[rand_index];
-		snd->play(sound_die[rand_index], channel_name.str());
+		snd->play(sound_die[rand_index], channel_name.str(), snd->NO_POS, !snd->LOOP);
 	}
-	else if (sound_type == ENTITY_SOUND_CRITDIE && !sound_critdie.empty()) {
+	else if (sound_type == Entity::SOUND_CRITDIE && !sound_critdie.empty()) {
 		size_t rand_index = rand() % sound_critdie.size();
 		std::stringstream channel_name;
 		channel_name << "entity_critdie_" << sound_critdie[rand_index];
-		snd->play(sound_critdie[rand_index], channel_name.str());
+		snd->play(sound_critdie[rand_index], channel_name.str(), snd->NO_POS, !snd->LOOP);
 	}
-	else if (sound_type == ENTITY_SOUND_BLOCK && !sound_block.empty()) {
+	else if (sound_type == Entity::SOUND_BLOCK && !sound_block.empty()) {
 		size_t rand_index = rand() % sound_block.size();
 		std::stringstream channel_name;
 		channel_name << "entity_block_" << sound_block[rand_index];
-		snd->play(sound_block[rand_index], channel_name.str());
+		snd->play(sound_block[rand_index], channel_name.str(), snd->NO_POS, !snd->LOOP);
 	}
 }
 
@@ -198,23 +195,24 @@ void Entity::move_from_offending_tile() {
 
 	FPoint original_pos = stats.pos;
 	bool original_pos_is_bad = false;
+	int collide_type = mapr->collider.getCollideType(stats.hero);
 
-	while (!mapr->collider.is_valid_position(stats.pos.x, stats.pos.y, stats.movement_type, stats.hero)) {
+	while (!mapr->collider.isValidPosition(stats.pos.x, stats.pos.y, stats.movement_type, collide_type)) {
 		original_pos_is_bad = true;
 
 		float pushx = 0;
 		float pushy = 0;
 
-		if (mapr->collider.is_valid_position(stats.pos.x + 1, stats.pos.y, stats.movement_type, stats.hero))
+		if (mapr->collider.isValidPosition(stats.pos.x + 1, stats.pos.y, stats.movement_type, collide_type))
 			pushx += 0.1f * (2 - (static_cast<float>(static_cast<int>(stats.pos.x + 1)) + 0.5f - stats.pos.x));
 
-		if (mapr->collider.is_valid_position(stats.pos.x - 1, stats.pos.y, stats.movement_type, stats.hero))
+		if (mapr->collider.isValidPosition(stats.pos.x - 1, stats.pos.y, stats.movement_type, collide_type))
 			pushx -= 0.1f * (2 - (stats.pos.x - (static_cast<float>(static_cast<int>(stats.pos.x - 1)) + 0.5f)));
 
-		if (mapr->collider.is_valid_position(stats.pos.x, stats.pos.y + 1, stats.movement_type, stats.hero))
+		if (mapr->collider.isValidPosition(stats.pos.x, stats.pos.y + 1, stats.movement_type, collide_type))
 			pushy += 0.1f * (2 - (static_cast<float>(static_cast<int>(stats.pos.y + 1)) + 0.5f - stats.pos.y));
 
-		if (mapr->collider.is_valid_position(stats.pos.x, stats.pos.y- 1, stats.movement_type, stats.hero))
+		if (mapr->collider.isValidPosition(stats.pos.x, stats.pos.y- 1, stats.movement_type, collide_type))
 			pushy -= 0.1f * (2 - (stats.pos.y - (static_cast<float>(static_cast<int>(stats.pos.y - 1)) + 0.5f)));
 
 		stats.pos.x += pushx;
@@ -225,7 +223,7 @@ void Entity::move_from_offending_tile() {
 		// just blink away. This will seriously irritate the player, but there
 		// is probably no other easy way to repair the game
 		if (pushx == 0 && pushy == 0) {
-			Point src_pos = FPointToPoint(stats.pos);
+			Point src_pos(stats.pos);
 			FPoint shortest_pos;
 			float shortest_dist = 0;
 			int radius = 1;
@@ -233,8 +231,8 @@ void Entity::move_from_offending_tile() {
 			while (radius <= std::max(mapr->w, mapr->h)) {
 				for (int i = src_pos.x - radius; i <= src_pos.x + radius; ++i) {
 					for (int j = src_pos.y - radius; j <= src_pos.y + radius; ++j) {
-						if (mapr->collider.is_valid_position(static_cast<float>(i), static_cast<float>(j), stats.movement_type, stats.hero)) {
-							float test_dist = calcDist(stats.pos, shortest_pos);
+						if (mapr->collider.isValidPosition(static_cast<float>(i), static_cast<float>(j), stats.movement_type, collide_type)) {
+							float test_dist = Utils::calcDist(stats.pos, shortest_pos);
 							if (shortest_dist == 0 || test_dist < shortest_dist) {
 								shortest_dist = test_dist;
 								shortest_pos.x = static_cast<float>(i) + 0.5f;
@@ -253,7 +251,7 @@ void Entity::move_from_offending_tile() {
 	}
 
 	if (original_pos_is_bad) {
-		logInfo("Entity: '%s' was stuck and has been moved: (%g, %g) -> (%g, %g)",
+		Utils::logInfo("Entity: '%s' was stuck and has been moved: (%g, %g) -> (%g, %g)",
 				stats.name.c_str(),
 				original_pos.x,
 				original_pos.y,
@@ -284,7 +282,7 @@ bool Entity::move() {
 	float dx = speed * static_cast<float>(directionDeltaX[stats.direction]);
 	float dy = speed * static_cast<float>(directionDeltaY[stats.direction]);
 
-	bool full_move = mapr->collider.move(stats.pos.x, stats.pos.y, dx, dy, stats.movement_type, stats.hero);
+	bool full_move = mapr->collider.move(stats.pos.x, stats.pos.y, dx, dy, stats.movement_type, mapr->collider.getCollideType(stats.hero));
 
 	return full_move;
 }
@@ -316,26 +314,26 @@ bool Entity::takeHit(Hazard &h) {
 	}
 
 	//if the target is already dead, they cannot be hit
-	if ((stats.cur_state == ENEMY_DEAD || stats.cur_state == ENEMY_CRITDEAD) && !stats.hero)
+	if ((stats.cur_state == StatBlock::ENEMY_DEAD || stats.cur_state == StatBlock::ENEMY_CRITDEAD) && !stats.hero)
 		return false;
 
-	if(stats.cur_state == AVATAR_DEAD && stats.hero)
+	if(stats.cur_state == StatBlock::AVATAR_DEAD && stats.hero)
 		return false;
 
 	// some attacks will always miss enemies of a certain movement type
-	if (stats.movement_type == MOVEMENT_NORMAL && !h.target_movement_normal)
+	if (stats.movement_type == MapCollision::MOVE_NORMAL && !h.power->target_movement_normal)
 		return false;
-	else if (stats.movement_type == MOVEMENT_FLYING && !h.target_movement_flying)
+	else if (stats.movement_type == MapCollision::MOVE_FLYING && !h.power->target_movement_flying)
 		return false;
-	else if (stats.movement_type == MOVEMENT_INTANGIBLE && !h.target_movement_intangible)
+	else if (stats.movement_type == MapCollision::MOVE_INTANGIBLE && !h.power->target_movement_intangible)
 		return false;
 
 	// prevent hazard aoe from hitting targets behind walls
-	if (h.walls_block_aoe && !mapr->collider.line_of_movement(stats.pos.x, stats.pos.y, h.pos.x, h.pos.y, MOVEMENT_NORMAL))
+	if (h.power->walls_block_aoe && !mapr->collider.lineOfMovement(stats.pos.x, stats.pos.y, h.pos.x, h.pos.y, MapCollision::MOVE_NORMAL))
 		return false;
 
 	// some enemies can be invicible based on campaign status
-	if (!stats.hero && !stats.hero_ally && h.source_type != SOURCE_TYPE_ENEMY) {
+	if (!stats.hero && !stats.hero_ally && h.source_type != Power::SOURCE_TYPE_ENEMY) {
 		bool invincible = false;
 		for (size_t i = 0; i < stats.invincible_requires_status.size(); ++i) {
 			if (!camp->checkStatus(stats.invincible_requires_status[i])) {
@@ -369,22 +367,22 @@ bool Entity::takeHit(Hazard &h) {
 	// prepare the combat text
 	CombatText *combat_text = comb;
 
-	if (h.missile && percentChance(stats.get(STAT_REFLECT))) {
+	if (h.power->type == Power::TYPE_MISSILE && Math::percentChance(stats.get(Stats::REFLECT))) {
 		// reflect the missile 180 degrees
 		h.setAngle(h.angle+static_cast<float>(M_PI));
 
 		// change hazard source to match the reflector's type
 		// maybe we should change the source stats pointer to the reflector's StatBlock
-		if (h.source_type == SOURCE_TYPE_HERO || h.source_type == SOURCE_TYPE_ALLY)
-			h.source_type = SOURCE_TYPE_ENEMY;
-		else if (h.source_type == SOURCE_TYPE_ENEMY)
-			h.source_type = stats.hero ? SOURCE_TYPE_HERO : SOURCE_TYPE_ALLY;
+		if (h.source_type == Power::SOURCE_TYPE_HERO || h.source_type == Power::SOURCE_TYPE_ALLY)
+			h.source_type = Power::SOURCE_TYPE_ENEMY;
+		else if (h.source_type == Power::SOURCE_TYPE_ENEMY)
+			h.source_type = stats.hero ? Power::SOURCE_TYPE_HERO : Power::SOURCE_TYPE_ALLY;
 
 		// reset the hazard ticks
-		h.lifespan = h.base_lifespan;
+		h.lifespan = h.power->lifespan;
 
 		if (activeAnimation->getName() == "block") {
-			playSound(ENTITY_SOUND_BLOCK);
+			playSound(Entity::SOUND_BLOCK);
 		}
 
 		return false;
@@ -392,65 +390,65 @@ bool Entity::takeHit(Hazard &h) {
 
 	// if it's a miss, do nothing
 	int accuracy = h.accuracy;
-	if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_MULTIPLY)
+	if(powers->powers[h.power_index].mod_accuracy_mode == Power::STAT_MODIFIER_MODE_MULTIPLY)
 		accuracy = (accuracy * powers->powers[h.power_index].mod_accuracy_value) / 100;
-	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ADD)
+	else if(powers->powers[h.power_index].mod_accuracy_mode == Power::STAT_MODIFIER_MODE_ADD)
 		accuracy += powers->powers[h.power_index].mod_accuracy_value;
-	else if(powers->powers[h.power_index].mod_accuracy_mode == STAT_MODIFIER_MODE_ABSOLUTE)
+	else if(powers->powers[h.power_index].mod_accuracy_mode == Power::STAT_MODIFIER_MODE_ABSOLUTE)
 		accuracy = powers->powers[h.power_index].mod_accuracy_value;
 
 	int avoidance = 0;
 	if(!powers->powers[h.power_index].trait_avoidance_ignore) {
-		avoidance = stats.get(STAT_AVOIDANCE);
+		avoidance = stats.get(Stats::AVOIDANCE);
 	}
 
 	int true_avoidance = 100 - (accuracy - avoidance);
-	bool is_overhit = (true_avoidance < 0 && !h.src_stats->perfect_accuracy) ? percentChance(abs(true_avoidance)) : false;
-	true_avoidance = std::min(std::max(true_avoidance, MIN_AVOIDANCE), MAX_AVOIDANCE);
+	bool is_overhit = (true_avoidance < 0 && !h.src_stats->perfect_accuracy) ? Math::percentChance(abs(true_avoidance)) : false;
+	true_avoidance = std::min(std::max(true_avoidance, eset->combat.min_avoidance), eset->combat.max_avoidance);
 
 	bool missed = false;
-	if (!h.src_stats->perfect_accuracy && percentChance(true_avoidance)) {
+	if (!h.src_stats->perfect_accuracy && Math::percentChance(true_avoidance)) {
 		missed = true;
 	}
 
 	// calculate base damage
-	int dmg = randBetween(h.dmg_min, h.dmg_max);
+	int dmg = Math::randBetween(h.dmg_min, h.dmg_max);
 
-	if(powers->powers[h.power_index].mod_damage_mode == STAT_MODIFIER_MODE_MULTIPLY)
+	if(powers->powers[h.power_index].mod_damage_mode == Power::STAT_MODIFIER_MODE_MULTIPLY)
 		dmg = dmg * powers->powers[h.power_index].mod_damage_value_min / 100;
-	else if(powers->powers[h.power_index].mod_damage_mode == STAT_MODIFIER_MODE_ADD)
+	else if(powers->powers[h.power_index].mod_damage_mode == Power::STAT_MODIFIER_MODE_ADD)
 		dmg += powers->powers[h.power_index].mod_damage_value_min;
-	else if(powers->powers[h.power_index].mod_damage_mode == STAT_MODIFIER_MODE_ABSOLUTE)
-		dmg = randBetween(powers->powers[h.power_index].mod_damage_value_min, powers->powers[h.power_index].mod_damage_value_max);
+	else if(powers->powers[h.power_index].mod_damage_mode == Power::STAT_MODIFIER_MODE_ABSOLUTE)
+		dmg = Math::randBetween(powers->powers[h.power_index].mod_damage_value_min, powers->powers[h.power_index].mod_damage_value_max);
 
 	// apply elemental resistance
-	if (h.trait_elemental >= 0 && unsigned(h.trait_elemental) < stats.vulnerable.size()) {
-		unsigned i = h.trait_elemental;
+	if (h.power->trait_elemental >= 0 && static_cast<size_t>(h.power->trait_elemental) < stats.vulnerable.size()) {
+		size_t i = h.power->trait_elemental;
 
-		int vulnerable = std::max(stats.vulnerable[i], MIN_RESIST);
+		int vulnerable = std::max(stats.vulnerable[i], eset->combat.min_resist);
 		if (stats.vulnerable[i] < 100)
-			vulnerable = std::min(vulnerable, MAX_RESIST);
+			vulnerable = std::min(vulnerable, eset->combat.max_resist);
 
 		dmg = (dmg * vulnerable) / 100;
 	}
 
-	if (!h.trait_armor_penetration) { // armor penetration ignores all absorption
+	if (!h.power->trait_armor_penetration) { // armor penetration ignores all absorption
 		// subtract absorption from armor
-		int absorption = randBetween(stats.get(STAT_ABS_MIN), stats.get(STAT_ABS_MAX));
+		int absorption = Math::randBetween(stats.get(Stats::ABS_MIN), stats.get(Stats::ABS_MAX));
 
 		if (absorption > 0 && dmg > 0) {
 			int abs = absorption;
 			if (stats.effects.triggered_block) {
-				if ((abs*100)/dmg < MIN_BLOCK)
-					absorption = (dmg * MIN_BLOCK) /100;
-				if ((abs*100)/dmg > MAX_BLOCK)
-					absorption = (dmg * MAX_BLOCK) /100;
+				if ((abs*100)/dmg < eset->combat.min_block)
+					absorption = (dmg * eset->combat.min_block) /100;
+				if ((abs*100)/dmg > eset->combat.max_block)
+					absorption = (dmg * eset->combat.max_block) /100;
 				}
 			else {
-				if ((abs*100)/dmg < MIN_ABSORB)
-					absorption = (dmg * MIN_ABSORB) /100;
-				if ((abs*100)/dmg > MAX_ABSORB)
-					absorption = (dmg * MAX_ABSORB) /100;
+				if ((abs*100)/dmg < eset->combat.min_absorb)
+					absorption = (dmg * eset->combat.min_absorb) /100;
+				if ((abs*100)/dmg > eset->combat.max_absorb)
+					absorption = (dmg * eset->combat.max_absorb) /100;
 			}
 
 			// Sometimes, the absorb limits cause absorbtion to drop to 1
@@ -463,15 +461,15 @@ bool Entity::takeHit(Hazard &h) {
 		if (dmg <= 0) {
 			dmg = 0;
 			if (!powers->powers[h.power_index].ignore_zero_damage) {
-				if (h.trait_elemental < 0) {
-					if (stats.effects.triggered_block && MAX_BLOCK < 100) dmg = 1;
-					else if (!stats.effects.triggered_block && MAX_ABSORB < 100) dmg = 1;
+				if (h.power->trait_elemental < 0) {
+					if (stats.effects.triggered_block && eset->combat.max_block < 100) dmg = 1;
+					else if (!stats.effects.triggered_block && eset->combat.max_absorb < 100) dmg = 1;
 				}
 				else {
-					if (MAX_RESIST < 100) dmg = 1;
+					if (eset->combat.max_resist < 100) dmg = 1;
 				}
 				if (activeAnimation->getName() == "block") {
-					playSound(ENTITY_SOUND_BLOCK);
+					playSound(Entity::SOUND_BLOCK);
 					resetActiveAnimation();
 				}
 			}
@@ -481,47 +479,47 @@ bool Entity::takeHit(Hazard &h) {
 	// check for crits
 	int true_crit_chance = h.crit_chance;
 
-	if(powers->powers[h.power_index].mod_crit_mode == STAT_MODIFIER_MODE_MULTIPLY)
+	if(powers->powers[h.power_index].mod_crit_mode == Power::STAT_MODIFIER_MODE_MULTIPLY)
 		true_crit_chance = true_crit_chance * powers->powers[h.power_index].mod_crit_value / 100;
-	else if(powers->powers[h.power_index].mod_crit_mode == STAT_MODIFIER_MODE_ADD)
+	else if(powers->powers[h.power_index].mod_crit_mode == Power::STAT_MODIFIER_MODE_ADD)
 		true_crit_chance += powers->powers[h.power_index].mod_crit_value;
-	else if(powers->powers[h.power_index].mod_crit_mode == STAT_MODIFIER_MODE_ABSOLUTE)
+	else if(powers->powers[h.power_index].mod_crit_mode == Power::STAT_MODIFIER_MODE_ABSOLUTE)
 		true_crit_chance = powers->powers[h.power_index].mod_crit_value;
 
 	if (stats.effects.stun || stats.effects.speed < 100)
-		true_crit_chance += h.trait_crits_impaired;
+		true_crit_chance += h.power->trait_crits_impaired;
 
-	bool crit = percentChance(true_crit_chance);
+	bool crit = Math::percentChance(true_crit_chance);
 	if (crit) {
 		// default is dmg * 2
-		dmg = (dmg * randBetween(MIN_CRIT_DAMAGE, MAX_CRIT_DAMAGE)) / 100;
+		dmg = (dmg * Math::randBetween(eset->combat.min_crit_damage, eset->combat.max_crit_damage)) / 100;
 		if(!stats.hero)
-			mapr->shaky_cam_ticks = MAX_FRAMES_PER_SEC/2;
+			mapr->shaky_cam_ticks = settings->max_frames_per_sec/2;
 	}
 	else if (is_overhit) {
-		dmg = (dmg * randBetween(MIN_OVERHIT_DAMAGE, MAX_OVERHIT_DAMAGE)) / 100;
+		dmg = (dmg * Math::randBetween(eset->combat.min_overhit_damage, eset->combat.max_overhit_damage)) / 100;
 		// Should we use shakycam for overhits?
 	}
 
 	// misses cause reduced damage
 	if (missed) {
-		dmg = (dmg * randBetween(MIN_MISS_DAMAGE, MAX_MISS_DAMAGE)) / 100;
+		dmg = (dmg * Math::randBetween(eset->combat.min_miss_damage, eset->combat.max_miss_damage)) / 100;
 	}
 
 	if (!powers->powers[h.power_index].ignore_zero_damage) {
 		if (dmg == 0) {
-			combat_text->addString(msg->get("miss"), stats.pos, COMBAT_MESSAGE_MISS);
+			combat_text->addString(msg->get("miss"), stats.pos, CombatText::MSG_MISS);
 			return false;
 		}
 		else if(stats.hero)
-			combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_TAKEDMG);
+			combat_text->addInt(dmg, stats.pos, CombatText::MSG_TAKEDMG);
 		else {
 			if(crit || is_overhit)
-				combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_CRIT);
+				combat_text->addInt(dmg, stats.pos, CombatText::MSG_CRIT);
 			else if (missed)
-				combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_MISS);
+				combat_text->addInt(dmg, stats.pos, CombatText::MSG_MISS);
 			else
-				combat_text->addInt(dmg, stats.pos, COMBAT_MESSAGE_GIVEDMG);
+				combat_text->addInt(dmg, stats.pos, CombatText::MSG_GIVEDMG);
 		}
 	}
 
@@ -538,35 +536,35 @@ bool Entity::takeHit(Hazard &h) {
 	if (dmg > 0 || powers->powers[h.power_index].ignore_zero_damage) {
 
 		// damage always breaks stun
-		stats.effects.removeEffectType(EFFECT_STUN);
+		stats.effects.removeEffectType(Effect::STUN);
 
-		powers->effect(&stats, h.src_stats, h.power_index,h.source_type);
+		powers->effect(&stats, h.src_stats, static_cast<int>(h.power_index), h.source_type);
 
 		// HP/MP steal is cumulative between stat bonus and power bonus
-		int hp_steal = h.hp_steal + h.src_stats->get(STAT_HP_STEAL);
+		int hp_steal = h.power->hp_steal + h.src_stats->get(Stats::HP_STEAL);
 		if (!stats.effects.immunity_hp_steal && hp_steal != 0) {
 			int steal_amt = (std::min(dmg, prev_hp) * hp_steal) / 100;
 			if (steal_amt == 0) steal_amt = 1;
-			combat_text->addString(msg->get("+%d HP",steal_amt), h.src_stats->pos, COMBAT_MESSAGE_BUFF);
-			h.src_stats->hp = std::min(h.src_stats->hp + steal_amt, h.src_stats->get(STAT_HP_MAX));
+			combat_text->addString(msg->get("+%d HP",steal_amt), h.src_stats->pos, CombatText::MSG_BUFF);
+			h.src_stats->hp = std::min(h.src_stats->hp + steal_amt, h.src_stats->get(Stats::HP_MAX));
 		}
-		int mp_steal = h.mp_steal + h.src_stats->get(STAT_MP_STEAL);
+		int mp_steal = h.power->mp_steal + h.src_stats->get(Stats::MP_STEAL);
 		if (!stats.effects.immunity_mp_steal && mp_steal != 0) {
 			int steal_amt = (std::min(dmg, prev_hp) * mp_steal) / 100;
 			if (steal_amt == 0) steal_amt = 1;
-			combat_text->addString(msg->get("+%d MP",steal_amt), h.src_stats->pos, COMBAT_MESSAGE_BUFF);
-			h.src_stats->mp = std::min(h.src_stats->mp + steal_amt, h.src_stats->get(STAT_MP_MAX));
+			combat_text->addString(msg->get("+%d MP",steal_amt), h.src_stats->pos, CombatText::MSG_BUFF);
+			h.src_stats->mp = std::min(h.src_stats->mp + steal_amt, h.src_stats->get(Stats::MP_MAX));
 		}
 
 		// deal return damage
-		if (!h.src_stats->effects.immunity_damage_reflect && stats.get(STAT_RETURN_DAMAGE) > 0) {
-			int dmg_return = static_cast<int>(static_cast<float>(dmg * stats.get(STAT_RETURN_DAMAGE)) / 100.f);
+		if (!h.src_stats->effects.immunity_damage_reflect && stats.get(Stats::RETURN_DAMAGE) > 0) {
+			int dmg_return = static_cast<int>(static_cast<float>(dmg * stats.get(Stats::RETURN_DAMAGE)) / 100.f);
 
 			if (dmg_return == 0)
 				dmg_return = 1;
 
 			h.src_stats->takeDamage(dmg_return);
-			comb->addInt(dmg_return, h.src_stats->pos, COMBAT_MESSAGE_GIVEDMG);
+			comb->addInt(dmg_return, h.src_stats->pos, CombatText::MSG_GIVEDMG);
 		}
 	}
 
@@ -575,25 +573,25 @@ bool Entity::takeHit(Hazard &h) {
 		stats.effects.removeEffectID(powers->powers[h.power_index].remove_effects);
 
 		// post power
-		if (h.post_power > 0 && percentChance(h.post_power_chance)) {
-			powers->activate(h.post_power, h.src_stats, stats.pos);
+		if (h.power->post_power > 0 && Math::percentChance(h.power->post_power_chance)) {
+			powers->activate(h.power->post_power, h.src_stats, stats.pos);
 		}
 	}
 
 	// interrupted to new state
 	if (dmg > 0) {
-		bool chance_poise = percentChance(stats.get(STAT_POISE));
+		bool chance_poise = Math::percentChance(stats.get(Stats::POISE));
 
 		if(stats.hp <= 0) {
 			stats.effects.triggered_death = true;
 			if(stats.hero)
-				stats.cur_state = AVATAR_DEAD;
+				stats.cur_state = StatBlock::AVATAR_DEAD;
 			else {
 				doRewards(h.source_type);
 				if (crit)
-					stats.cur_state = ENEMY_CRITDEAD;
+					stats.cur_state = StatBlock::ENEMY_CRITDEAD;
 				else
-					stats.cur_state = ENEMY_DEAD;
+					stats.cur_state = StatBlock::ENEMY_DEAD;
 				mapr->collider.unblock(stats.pos.x,stats.pos.y);
 			}
 
@@ -602,13 +600,13 @@ bool Entity::takeHit(Hazard &h) {
 
 		// play hit sound effect, but only if the hit cooldown is done
 		if (stats.cooldown_hit_ticks == 0)
-			playSound(ENTITY_SOUND_HIT);
+			playSound(Entity::SOUND_HIT);
 
 		// if this hit caused a debuff, activate an on_debuff power
 		if (!was_debuffed && stats.effects.isDebuffed()) {
-			AIPower* ai_power = stats.getAIPower(AI_POWER_DEBUFF);
+			StatBlock::AIPower* ai_power = stats.getAIPower(StatBlock::AI_POWER_DEBUFF);
 			if (ai_power != NULL) {
-				stats.cur_state = ENEMY_POWER;
+				stats.cur_state = StatBlock::ENEMY_POWER;
 				stats.activated_power = ai_power;
 				stats.cooldown_ticks = 0; // ignore global cooldown
 				return true;
@@ -616,9 +614,9 @@ bool Entity::takeHit(Hazard &h) {
 		}
 
 		// roll to see if the enemy's ON_HIT power is casted
-		AIPower* ai_power = stats.getAIPower(AI_POWER_HIT);
+		StatBlock::AIPower* ai_power = stats.getAIPower(StatBlock::AI_POWER_HIT);
 		if (ai_power != NULL) {
-			stats.cur_state = ENEMY_POWER;
+			stats.cur_state = StatBlock::ENEMY_POWER;
 			stats.activated_power = ai_power;
 			stats.cooldown_ticks = 0; // ignore global cooldown
 			return true;
@@ -631,14 +629,14 @@ bool Entity::takeHit(Hazard &h) {
 
 			if (!stats.effects.stun && (!chance_poise || crit) && !stats.prevent_interrupt) {
 				if(stats.hero) {
-					stats.cur_state = AVATAR_HIT;
+					stats.cur_state = StatBlock::AVATAR_HIT;
 				}
 				else {
-					if (stats.cur_state == ENEMY_POWER) {
+					if (stats.cur_state == StatBlock::ENEMY_POWER) {
 						stats.cooldown_ticks = stats.cooldown;
 						stats.activated_power = NULL;
 					}
-					stats.cur_state = ENEMY_HIT;
+					stats.cur_state = StatBlock::ENEMY_HIT;
 				}
 
 				if (stats.untransform_on_hit)
@@ -667,7 +665,7 @@ bool Entity::setAnimation(const std::string& animationName) {
 	activeAnimation = animationSet->getAnimation(animationName);
 
 	if (activeAnimation == NULL)
-		logError("Entity::setAnimation(%s): not found", animationName.c_str());
+		Utils::logError("Entity::setAnimation(%s): not found", animationName.c_str());
 
 	return activeAnimation == NULL;
 }

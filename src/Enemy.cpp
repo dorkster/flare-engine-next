@@ -25,9 +25,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CommonIncludes.h"
 #include "Enemy.h"
 #include "EnemyBehavior.h"
-#include "Hazard.h"
 #include "LootManager.h"
+#include "PowerManager.h"
 #include "RenderDevice.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "UtilsMath.h"
@@ -37,15 +38,15 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 Enemy::Enemy() : Entity() {
 
-	stats.cur_state = ENEMY_STANCE;
-	stats.turn_ticks = MAX_FRAMES_PER_SEC;
+	stats.cur_state = StatBlock::ENEMY_STANCE;
+	stats.turn_ticks = settings->max_frames_per_sec;
 	stats.cooldown = 0;
 	stats.in_combat = false;
 	stats.join_combat = false;
 
 	reward_xp = false;
 	instant_power = false;
-	kill_source_type = SOURCE_TYPE_NEUTRAL;
+	kill_source_type = Power::SOURCE_TYPE_NEUTRAL;
 	eb = NULL;
 }
 

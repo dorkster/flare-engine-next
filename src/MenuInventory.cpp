@@ -26,6 +26,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "Avatar.h"
 #include "CommonIncludes.h"
+#include "EffectManager.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "Hazard.h"
@@ -40,6 +42,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedResources.h"
 #include "SoundManager.h"
 #include "StatBlock.h"
+#include "TooltipManager.h"
 #include "UtilsParsing.h"
 #include "WidgetButton.h"
 #include "WidgetSlot.h"
@@ -54,7 +57,7 @@ MenuInventory::MenuInventory(StatBlock *_stats)
 	, currency(0)
 	, drag_prev_src(-1)
 	, changed_equipment(true)
-	, inv_ctrl(INV_CTRL_NONE)
+	, inv_ctrl(CTRL_NONE)
 	, show_book("")
 {
 	visible = false;
@@ -66,44 +69,48 @@ MenuInventory::MenuInventory(StatBlock *_stats)
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuInventory|Description of menus/inventory.txt
-	if (infile.open("menus/inventory.txt")) {
+	if (infile.open("menus/inventory.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR close|point|Position of the close button.
 			if(infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				closeButton->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				closeButton->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR equipment_slot|repeatable(int, int, string) : X, Y, Slot Type|Position and item type of an equipment slot.
 			else if(infile.key == "equipment_slot") {
 				Rect area;
 				Point pos;
 
-				pos.x = area.x = popFirstInt(infile.val);
-				pos.y = area.y = popFirstInt(infile.val);
-				area.w = area.h = ICON_SIZE;
+				pos.x = area.x = Parse::popFirstInt(infile.val);
+				pos.y = area.y = Parse::popFirstInt(infile.val);
+				area.w = area.h = eset->resolutions.icon_size;
 				equipped_area.push_back(area);
 				equipped_pos.push_back(pos);
-				slot_type.push_back(popFirstString(infile.val));
+				slot_type.push_back(Parse::popFirstString(infile.val));
 			}
 			// @ATTR carried_area|point|Position of the first normal inventory slot.
 			else if(infile.key == "carried_area") {
 				Point pos;
-				carried_pos.x = carried_area.x = popFirstInt(infile.val);
-				carried_pos.y = carried_area.y = popFirstInt(infile.val);
+				carried_pos.x = carried_area.x = Parse::popFirstInt(infile.val);
+				carried_pos.y = carried_area.y = Parse::popFirstInt(infile.val);
 			}
 			// @ATTR carried_cols|int|The number of columns for the normal inventory.
-			else if (infile.key == "carried_cols") carried_cols = std::max(1, toInt(infile.val));
+			else if (infile.key == "carried_cols") carried_cols = std::max(1, Parse::toInt(infile.val));
 			// @ATTR carried_rows|int|The number of rows for the normal inventory.
-			else if (infile.key == "carried_rows") carried_rows = std::max(1, toInt(infile.val));
+			else if (infile.key == "carried_rows") carried_rows = std::max(1, Parse::toInt(infile.val));
 			// @ATTR label_title|label|Position of the "Inventory" label.
-			else if (infile.key == "label_title") title =  eatLabelInfo(infile.val);
+			else if (infile.key == "label_title") {
+				label_inventory.setFromLabelInfo(Parse::popLabelInfo(infile.val));
+			}
 			// @ATTR currency|label|Position of the label that displays the total currency being carried.
-			else if (infile.key == "currency") currency_lbl =  eatLabelInfo(infile.val);
+			else if (infile.key == "currency") {
+				label_currency.setFromLabelInfo(Parse::popLabelInfo(infile.val));
+			}
 			// @ATTR help|rectangle|A mouse-over area that displays some help text for inventory shortcuts.
-			else if (infile.key == "help") help_pos = toRect(infile.val);
+			else if (infile.key == "help") help_pos = Parse::toRect(infile.val);
 
 			else infile.error("MenuInventory: '%s' is not a valid key.", infile.key.c_str());
 		}
@@ -113,11 +120,13 @@ MenuInventory::MenuInventory(StatBlock *_stats)
 	MAX_EQUIPPED = static_cast<int>(equipped_area.size());
 	MAX_CARRIED = carried_cols * carried_rows;
 
-	carried_area.w = carried_cols*ICON_SIZE;
-	carried_area.h = carried_rows*ICON_SIZE;
+	carried_area.w = carried_cols * eset->resolutions.icon_size;
+	carried_area.h = carried_rows * eset->resolutions.icon_size;
 
-	color_normal = font->getColor("menu_normal");
-	color_high = font->getColor("menu_bonus");
+	label_inventory.setText(msg->get("Inventory"));
+	label_inventory.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
+	label_currency.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	inventory[EQUIPMENT].initFromList(MAX_EQUIPPED, equipped_area, slot_type);
 	inventory[CARRIED].initGrid(MAX_CARRIED, carried_area, carried_cols);
@@ -148,40 +157,41 @@ void MenuInventory::align() {
 
 	closeButton->setPos(window_area.x, window_area.y);
 
-	label_inventory.set(window_area.x+title.x, window_area.y+title.y, title.justify, title.valign, msg->get("Inventory"), color_normal, title.font_style);
+	label_inventory.setPos(window_area.x, window_area.y);
+	label_currency.setPos(window_area.x, window_area.y);
 }
 
 void MenuInventory::logic() {
 
 	// if the player has just died, the penalty is half his current currency.
-	if (stats->death_penalty && DEATH_PENALTY) {
+	if (stats->death_penalty && eset->death_penalty.enabled) {
 		std::string death_message = "";
 
 		// remove a % of currency
-		if (DEATH_PENALTY_CURRENCY > 0) {
+		if (eset->death_penalty.currency > 0) {
 			if (currency > 0)
-				removeCurrency((currency * DEATH_PENALTY_CURRENCY) / 100);
-			death_message += msg->get("Lost %d%% of %s.", DEATH_PENALTY_CURRENCY, CURRENCY) + ' ';
+				removeCurrency((currency * eset->death_penalty.currency) / 100);
+			death_message += msg->get("Lost %d%% of %s.", eset->death_penalty.currency, eset->loot.currency.c_str()) + ' ';
 		}
 
 		// remove a % of either total xp or xp since the last level
-		if (DEATH_PENALTY_XP > 0) {
+		if (eset->death_penalty.xp > 0) {
 			if (stats->xp > 0)
-				stats->xp -= (stats->xp * DEATH_PENALTY_XP) / 100;
-			death_message += msg->get("Lost %d%% of total XP.", DEATH_PENALTY_XP) + ' ';
+				stats->xp -= (stats->xp * eset->death_penalty.xp) / 100;
+			death_message += msg->get("Lost %d%% of total XP.", eset->death_penalty.xp) + ' ';
 		}
-		else if (DEATH_PENALTY_XP_CURRENT > 0) {
-			if (stats->xp - stats->xp_table[stats->level-1] > 0)
-				stats->xp -= ((stats->xp - stats->xp_table[stats->level-1]) * DEATH_PENALTY_XP_CURRENT) / 100;
-			death_message += msg->get("Lost %d%% of current level XP.", DEATH_PENALTY_XP_CURRENT) + ' ';
+		else if (eset->death_penalty.xp_current > 0) {
+			if (stats->xp - eset->xp.getLevelXP(stats->level) > 0)
+				stats->xp -= ((stats->xp - eset->xp.getLevelXP(stats->level)) * eset->death_penalty.xp_current) / 100;
+			death_message += msg->get("Lost %d%% of current level XP.", eset->death_penalty.xp_current) + ' ';
 		}
 
 		// prevent down-leveling from removing too much xp
-		if (stats->xp < stats->xp_table[stats->level-1])
-			stats->xp = stats->xp_table[stats->level-1];
+		if (stats->xp < eset->xp.getLevelXP(stats->level))
+			stats->xp = eset->xp.getLevelXP(stats->level);
 
 		// remove a random carried item
-		if (DEATH_PENALTY_ITEM) {
+		if (eset->death_penalty.item) {
 			std::vector<int> removable_items;
 			removable_items.clear();
 			for (int i=0; i < MAX_EQUIPPED; i++) {
@@ -199,17 +209,17 @@ void MenuInventory::logic() {
 			if (!removable_items.empty()) {
 				size_t random_item = static_cast<size_t>(rand()) % removable_items.size();
 				remove(removable_items[random_item]);
-				death_message += msg->get("Lost %s.",items->getItemName(removable_items[random_item]));
+				death_message += msg->get("Lost %s.",items->getItemName(removable_items[random_item]).c_str());
 			}
 		}
 
-		pc->logMsg(death_message, true);
+		pc->logMsg(death_message, Avatar::MSG_NORMAL);
 
 		stats->death_penalty = false;
 	}
 
 	// a copy of currency is kept in stats, to help with various situations
-	stats->currency = currency = inventory[CARRIED].count(CURRENCY_ID);
+	stats->currency = currency = inventory[CARRIED].count(eset->misc.currency_id);
 
 	// check close button
 	if (visible) {
@@ -217,7 +227,7 @@ void MenuInventory::logic() {
 
 		if (closeButton->checkClick()) {
 			visible = false;
-			snd->play(sfx_close);
+			snd->play(sfx_close, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 		}
 		if (drag_prev_src == -1) {
 			clearHighlight();
@@ -239,10 +249,10 @@ void MenuInventory::render() {
 	closeButton->render();
 
 	// text overlay
-	if (!title.hidden) label_inventory.render();
+	label_inventory.render();
 
-	if (!currency_lbl.hidden) {
-		label_currency.set(window_area.x+currency_lbl.x, window_area.y+currency_lbl.y, currency_lbl.justify, currency_lbl.valign, msg->get("%d %s", currency, CURRENCY), color_normal, currency_lbl.font_style);
+	if (!label_currency.isHidden()) {
+		label_currency.setText(msg->get("%d %s", currency, eset->loot.currency.c_str()));
 		label_currency.render();
 	}
 
@@ -251,20 +261,20 @@ void MenuInventory::render() {
 }
 
 int MenuInventory::areaOver(const Point& position) {
-	if (isWithinRect(carried_area, position)) {
+	if (Utils::isWithinRect(carried_area, position)) {
 		return CARRIED;
 	}
 	else {
 		for (unsigned int i=0; i<equipped_area.size(); i++) {
-			if (isWithinRect(equipped_area[i], position)) {
+			if (Utils::isWithinRect(equipped_area[i], position)) {
 				return EQUIPMENT;
 			}
 		}
 	}
 
 	// point is inside the inventory menu, but not over a slot
-	if (isWithinRect(window_area, position)) {
-		return INV_WINDOW;
+	if (Utils::isWithinRect(window_area, position)) {
+		return NO_AREA;
 	}
 
 	return -2;
@@ -275,39 +285,45 @@ int MenuInventory::areaOver(const Point& position) {
  *
  * @param mouse The x,y screen coordinates of the mouse cursor
  */
-TooltipData MenuInventory::checkTooltip(const Point& position) {
-	int area;
-	int slot;
-	TooltipData tip;
+void MenuInventory::renderTooltips(const Point& position) {
+	if (!visible || !Utils::isWithinRect(window_area, position))
+		return;
 
-	area = areaOver(position);
+	int area = areaOver(position);
+	int slot = -1;
+	TooltipData tip_data;
+
 	if (area < 0) {
 		if (position.x >= window_area.x + help_pos.x && position.y >= window_area.y+help_pos.y && position.x < window_area.x+help_pos.x+help_pos.w && position.y < window_area.y+help_pos.y+help_pos.h) {
-			tip.addText(msg->get("Pick up item(s):") + " " + inpt->getBindingString(MAIN1));
-			tip.addText(msg->get("Use or equip item:") + " " + inpt->getBindingString(MAIN2) + "\n");
-			tip.addText(msg->get("%s modifiers", inpt->getBindingString(MAIN1).c_str()));
-			tip.addText(msg->get("Select a quantity of item:") + " " + inpt->getBindingString(SHIFT) + " / " + inpt->getBindingString(SHIFT, INPUT_BINDING_ALT));
+			tip_data.addText(msg->get("Pick up item(s):") + " " + inpt->getBindingString(Input::MAIN1));
+			tip_data.addText(msg->get("Use or equip item:") + " " + inpt->getBindingString(Input::MAIN2) + "\n");
+			tip_data.addText(msg->get("%s modifiers", inpt->getBindingString(Input::MAIN1).c_str()));
+			tip_data.addText(msg->get("Select a quantity of item:") + " " + inpt->getBindingString(Input::SHIFT) + " / " + inpt->getBindingString(Input::SHIFT, InputState::BINDING_ALT));
 
-			if (inv_ctrl == INV_CTRL_STASH)
-				tip.addText(msg->get("Stash item stack:") + " " + inpt->getBindingString(CTRL) + " / " + inpt->getBindingString(CTRL, INPUT_BINDING_ALT));
-			else if (inv_ctrl == INV_CTRL_VENDOR || (SELL_WITHOUT_VENDOR && inv_ctrl != INV_CTRL_STASH))
-				tip.addText(msg->get("Sell item stack:") + " " + inpt->getBindingString(CTRL) + " / " + inpt->getBindingString(CTRL, INPUT_BINDING_ALT));
+			if (inv_ctrl == CTRL_STASH)
+				tip_data.addText(msg->get("Stash item stack:") + " " + inpt->getBindingString(Input::CTRL) + " / " + inpt->getBindingString(Input::CTRL, InputState::BINDING_ALT));
+			else if (inv_ctrl == CTRL_VENDOR || (eset->misc.sell_without_vendor && inv_ctrl != CTRL_STASH))
+				tip_data.addText(msg->get("Sell item stack:") + " " + inpt->getBindingString(Input::CTRL) + " / " + inpt->getBindingString(Input::CTRL, InputState::BINDING_ALT));
 		}
-		return tip;
+		tooltipm->push(tip_data, position, TooltipData::STYLE_FLOAT);
 	}
-	slot = inventory[area].slotOver(position);
+	else {
+		slot = inventory[area].slotOver(position);
+	}
 
 	if (slot == -1)
-		return tip;
+		return;
+
+	tip_data.clear();
 
 	if (inventory[area][slot].item > 0) {
-		tip = inventory[area].checkTooltip(position, stats, PLAYER_INV);
+		tip_data = inventory[area].checkTooltip(position, stats, ItemManager::PLAYER_INV);
 	}
 	else if (area == EQUIPMENT && inventory[area][slot].empty()) {
-		tip.addText(msg->get(items->getItemType(slot_type[slot])));
+		tip_data.addText(msg->get(items->getItemType(slot_type[slot])));
 	}
 
-	return tip;
+	tooltipm->push(tip_data, position, TooltipData::STYLE_FLOAT);
 }
 
 /**
@@ -320,9 +336,9 @@ ItemStack MenuInventory::click(const Point& position) {
 	if (drag_prev_src > -1) {
 		item = inventory[drag_prev_src].click(position);
 
-		if (TOUCHSCREEN) {
+		if (settings->touchscreen) {
 			tablist.setCurrent(inventory[drag_prev_src].current_slot);
-			tap_to_activate_ticks = MAX_FRAMES_PER_SEC / 3;
+			tap_to_activate_ticks = settings->max_frames_per_sec / 3;
 		}
 
 		if (item.empty()) {
@@ -350,7 +366,7 @@ ItemStack MenuInventory::click(const Point& position) {
  */
 void MenuInventory::itemReturn(ItemStack stack) {
 	if (drag_prev_src == -1) {
-		add(stack, CARRIED, -1, false, false);
+		add(stack, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 	}
 	else {
 		int prev_slot = inventory[drag_prev_src].drag_prev_slot;
@@ -375,7 +391,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 	int area = areaOver(position);
 	if (area < 0) {
 		if (drag_prev_src == -1) {
-			success = add(stack, CARRIED, -1, false, true);
+			success = add(stack, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, ADD_AUTO_EQUIP);
 		}
 		else {
 			// not dropped into a slot. Just return it to the previous slot.
@@ -387,7 +403,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 	int slot = inventory[area].slotOver(position);
 	if (slot == -1) {
 		if (drag_prev_src == -1) {
-			success = add(stack, CARRIED, -1, false, true);
+			success = add(stack, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, ADD_AUTO_EQUIP);
 		}
 		else {
 			// not dropped into a slot. Just return it to the previous slot.
@@ -408,7 +424,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 		if (slot_type[slot] == items->items[stack.item].type && items->requirementsMet(stats, stack.item) && stats->humanoid && inventory[EQUIPMENT].slots[slot]->enabled) {
 			if (inventory[area][slot].item == stack.item) {
 				// Merge the stacks
-				success = add(stack, area, slot, false, false);
+				success = add(stack, area, slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 			}
 			else {
 				// Swap the two stacks
@@ -438,7 +454,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 			if (slot != drag_prev_slot) {
 				if (inventory[area][slot].item == stack.item) {
 					// Merge the stacks
-					success = add(stack, area, slot, false, false);
+					success = add(stack, area, slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 				}
 				else if (inventory[area][slot].empty()) {
 					// Drop the stack
@@ -462,7 +478,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 				// NOTE: the quantity must be 1, since the number picker appears when tapping on a stack of more than 1 item
 				// NOTE: we only support activating books since equipment activation doesn't work for some reason
 				// NOTE: Consumables are usually in stacks > 1, so we ignore those as well for consistency
-				if (TOUCHSCREEN && tap_to_activate_ticks > 0 && !items->items[stack.item].book.empty() && stack.quantity == 1) {
+				if (settings->touchscreen && tap_to_activate_ticks > 0 && !items->items[stack.item].book.empty() && stack.quantity == 1) {
 					activate(position);
 				}
 			}
@@ -470,7 +486,7 @@ bool MenuInventory::drop(const Point& position, ItemStack stack) {
 		else {
 			if (inventory[area][slot].item == stack.item || drag_prev_src == -1) {
 				// Merge the stacks
-				success = add(stack, area, slot, false, false);
+				success = add(stack, area, slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 			}
 			else if (inventory[area][slot].empty()) {
 				// Drop the stack
@@ -527,7 +543,7 @@ void MenuInventory::activate(const Point& position) {
 
 	// if the item is a book, open it
 	if (items->items[inventory[CARRIED][slot].item].book != "") {
-		snd->play(sfx_open);
+		snd->play(sfx_open, snd->DEFAULT_CHANNEL, snd->NO_POS, !snd->LOOP);
 		show_book = items->items[inventory[CARRIED][slot].item].book;
 	}
 	// use a consumable item
@@ -554,14 +570,14 @@ void MenuInventory::activate(const Point& position) {
 			if (powers->powers[power_id].required_items[i].id > 0 &&
 			    powers->powers[power_id].required_items[i].quantity > inventory[CARRIED].count(powers->powers[power_id].required_items[i].id))
 			{
-				pc->logMsg(msg->get("You don't have enough of the required item."), true);
+				pc->logMsg(msg->get("You don't have enough of the required item."), Avatar::MSG_NORMAL);
 				return;
 			}
 		}
 
 		// check power & item requirements
-		if (!stats->canUsePower(power_id) || pc->hero_cooldown[power_id] > 0) {
-			pc->logMsg(msg->get("You can't use this item right now."), true);
+		if (!stats->canUsePower(power_id, !StatBlock::CAN_USE_PASSIVE) || pc->hero_cooldown[power_id] > 0) {
+			pc->logMsg(msg->get("You can't use this item right now."), Avatar::MSG_NORMAL);
 			return;
 		}
 
@@ -573,20 +589,20 @@ void MenuInventory::activate(const Point& position) {
 		}
 		else {
 			// let player know this can only be used from the action bar
-			pc->logMsg(msg->get("This item can only be used from the action bar."), true);
+			pc->logMsg(msg->get("This item can only be used from the action bar."), Avatar::MSG_NORMAL);
 		}
 
 	}
 	// equip an item
 	else if (stats->humanoid && items->items[inventory[CARRIED][slot].item].type != "") {
-		int equip_slot = getEquipSlotFromItem(inventory[CARRIED].storage[slot].item, false);
+		int equip_slot = getEquipSlotFromItem(inventory[CARRIED].storage[slot].item, !ONLY_EMPTY_SLOTS);
 
 		if (equip_slot >= 0) {
 			stack = click(position);
 
 			if (inventory[EQUIPMENT][equip_slot].item == stack.item) {
 				// Merge the stacks
-				add(stack, EQUIPMENT, equip_slot, false, false);
+				add(stack, EQUIPMENT, equip_slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 			}
 			else if (inventory[EQUIPMENT][equip_slot].empty()) {
 				// Drop the stack
@@ -599,7 +615,7 @@ void MenuInventory::activate(const Point& position) {
 				}
 				else {
 					// Drop the equipped item anywhere
-					add(inventory[EQUIPMENT][equip_slot], CARRIED, -1, true, false);
+					add(inventory[EQUIPMENT][equip_slot], CARRIED, ItemStorage::NO_SLOT, ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 				}
 				inventory[EQUIPMENT][equip_slot] = stack;
 			}
@@ -615,7 +631,7 @@ void MenuInventory::activate(const Point& position) {
 			applyEquipment();
 		}
 		else if (equip_slot == -1) {
-			logError("MenuInventory: Can't find equip slot, corresponding to type %s", items->items[inventory[CARRIED][slot].item].type.c_str());
+			Utils::logError("MenuInventory: Can't find equip slot, corresponding to type %s", items->items[inventory[CARRIED][slot].item].type.c_str());
 		}
 	}
 
@@ -638,8 +654,8 @@ bool MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound, bo
 	if (play_sound)
 		items->playSound(stack.item);
 
-	if (auto_equip && AUTO_EQUIP) {
-		int equip_slot = getEquipSlotFromItem(stack.item, true);
+	if (auto_equip && settings->auto_equip) {
+		int equip_slot = getEquipSlotFromItem(stack.item, ONLY_EMPTY_SLOTS);
 		bool disabled_slots_empty = true;
 
 		// if this item would disable non-empty slots, don't auto-equip it
@@ -685,13 +701,13 @@ bool MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound, bo
 					drop_stack.push(leftover);
 				}
 				else {
-					add(leftover, CARRIED, slot, false, false);
+					add(leftover, CARRIED, slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 				}
 			}
 			else {
 				drop_stack.push(leftover);
 			}
-			pc->logMsg(msg->get("Inventory is full."), true);
+			pc->logMsg(msg->get("Inventory is full."), Avatar::MSG_NORMAL);
 			success = false;
 		}
 	}
@@ -709,7 +725,7 @@ bool MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound, bo
 			leftover.quantity = dest.quantity + stack.quantity - items->items[stack.item].max_quantity;
 			stack.quantity = items->items[stack.item].max_quantity - dest.quantity;
 			if (stack.quantity > 0) {
-				add(stack, EQUIPMENT, slot, false, false);
+				add(stack, EQUIPMENT, slot, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 			}
 		}
 		else {
@@ -720,7 +736,7 @@ bool MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound, bo
 		}
 
 		if (!leftover.empty()) {
-			add(leftover, CARRIED, -1, false, false);
+			add(leftover, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 		}
 
 		applyEquipment();
@@ -740,8 +756,8 @@ bool MenuInventory::add(ItemStack stack, int area, int slot, bool play_sound, bo
  * Remove one given item from the player's inventory.
  */
 bool MenuInventory::remove(int item) {
-	if(!inventory[CARRIED].remove(item)) {
-		if (!inventory[EQUIPMENT].remove(item)) {
+	if(!inventory[CARRIED].remove(item, 1)) {
+		if (!inventory[EQUIPMENT].remove(item, 1)) {
 			return false;
 		}
 		else {
@@ -769,9 +785,9 @@ void MenuInventory::removeFromPrevSlot(int quantity) {
 void MenuInventory::addCurrency(int count) {
 	if (count > 0) {
 		ItemStack stack;
-		stack.item = CURRENCY_ID;
+		stack.item = eset->misc.currency_id;
 		stack.quantity = count;
-		add(stack, CARRIED, -1, false, false);
+		add(stack, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 	}
 }
 
@@ -779,7 +795,7 @@ void MenuInventory::addCurrency(int count) {
  * Remove currency item
  */
 void MenuInventory::removeCurrency(int count) {
-	inventory[CARRIED].remove(CURRENCY_ID, count);
+	inventory[CARRIED].remove(eset->misc.currency_id, count);
 }
 
 /**
@@ -792,26 +808,26 @@ bool MenuInventory::buy(ItemStack stack, int tab, bool dragging) {
 	}
 
 	int value_each;
-	if (tab == VENDOR_BUY) value_each = items->items[stack.item].getPrice();
+	if (tab == ItemManager::VENDOR_BUY) value_each = items->items[stack.item].getPrice();
 	else value_each = items->items[stack.item].getSellPrice(stack.can_buyback);
 
 	int count = value_each * stack.quantity;
-	if( inventory[CARRIED].count(CURRENCY_ID) >= count) {
+	if( inventory[CARRIED].count(eset->misc.currency_id) >= count) {
 		stack.can_buyback = false;
 
 		if (dragging) {
 			drop(inpt->mouse, stack);
 		}
 		else {
-			add(stack, CARRIED, -1, true, true);
+			add(stack, CARRIED, ItemStorage::NO_SLOT, ADD_PLAY_SOUND, ADD_AUTO_EQUIP);
 		}
 
 		removeCurrency(count);
-		items->playSound(CURRENCY_ID);
+		items->playSound(eset->misc.currency_id);
 		return true;
 	}
 	else {
-		pc->logMsg(msg->get("Not enough %s.", CURRENCY), true);
+		pc->logMsg(msg->get("Not enough %s.", eset->loot.currency.c_str()), Avatar::MSG_NORMAL);
 		drop_stack.push(stack);
 		return false;
 	}
@@ -826,26 +842,26 @@ bool MenuInventory::sell(ItemStack stack) {
 	}
 
 	// can't sell currency
-	if (stack.item == CURRENCY_ID) return false;
+	if (stack.item == eset->misc.currency_id) return false;
 
 	// items that have no price cannot be sold
 	if (items->items[stack.item].getPrice() == 0) {
 		items->playSound(stack.item);
-		pc->logMsg(msg->get("This item can not be sold."), true);
+		pc->logMsg(msg->get("This item can not be sold."), Avatar::MSG_NORMAL);
 		return false;
 	}
 
 	// quest items can not be sold
 	if (items->items[stack.item].quest_item) {
 		items->playSound(stack.item);
-		pc->logMsg(msg->get("This item can not be sold."), true);
+		pc->logMsg(msg->get("This item can not be sold."), Avatar::MSG_NORMAL);
 		return false;
 	}
 
-	int value_each = items->items[stack.item].getSellPrice();
+	int value_each = items->items[stack.item].getSellPrice(ItemManager::DEFAULT_SELL_PRICE);
 	int value = value_each * stack.quantity;
 	addCurrency(value);
-	items->playSound(CURRENCY_ID);
+	items->playSound(eset->misc.currency_id);
 	drag_prev_src = -1;
 	return true;
 }
@@ -875,7 +891,7 @@ void MenuInventory::applyEquipment() {
 	while(checkRequired) {
 		checkRequired = false;
 
-		for (size_t j = 0; j < PRIMARY_STATS.size(); ++j) {
+		for (size_t j = 0; j < eset->primary_stats.list.size(); ++j) {
 			stats->primary_additional[j] = 0;
 		}
 
@@ -884,7 +900,7 @@ void MenuInventory::applyEquipment() {
 			const Item &item = items->items[item_id];
 			unsigned bonus_counter = 0;
 			while (bonus_counter < item.bonus.size()) {
-				for (size_t j = 0; j < PRIMARY_STATS.size(); ++j) {
+				for (size_t j = 0; j < eset->primary_stats.list.size(); ++j) {
 					if (item.bonus[bonus_counter].base_index == static_cast<int>(j))
 						stats->primary_additional[j] += item.bonus[bonus_counter].value;
 				}
@@ -916,7 +932,7 @@ void MenuInventory::applyEquipment() {
 			for (unsigned bonus_counter=0; bonus_counter<temp_set.bonus.size(); bonus_counter++) {
 				if (temp_set.bonus[bonus_counter].requirement != quantity[k]) continue;
 
-				for (size_t j = 0; j < PRIMARY_STATS.size(); ++j) {
+				for (size_t j = 0; j < eset->primary_stats.list.size(); ++j) {
 					if (temp_set.bonus[bonus_counter].base_index == static_cast<int>(j))
 						stats->primary_additional[j] += temp_set.bonus[bonus_counter].value;
 				}
@@ -925,7 +941,7 @@ void MenuInventory::applyEquipment() {
 		// check that each equipped item fit requirements
 		for (int i = 0; i < MAX_EQUIPPED; i++) {
 			if (!items->requirementsMet(stats, inventory[EQUIPMENT].storage[i].item)) {
-				add(inventory[EQUIPMENT].storage[i], CARRIED, -1, true, false);
+				add(inventory[EQUIPMENT].storage[i], CARRIED, ItemStorage::NO_SLOT, ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 				inventory[EQUIPMENT].storage[i].clear();
 				checkRequired = true;
 			}
@@ -962,7 +978,7 @@ void MenuInventory::applyEquipment() {
 			for (int k=0; k<MAX_EQUIPPED; ++k) {
 				if (slot_type[k] == items->items[id].disable_slots[j]) {
 					if (!inventory[EQUIPMENT].storage[k].empty()) {
-						add(inventory[EQUIPMENT].storage[k], CARRIED, -1, true, false);
+						add(inventory[EQUIPMENT].storage[k], CARRIED, ItemStorage::NO_SLOT, ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 						inventory[EQUIPMENT].storage[k].clear();
 						updateEquipment(k);
 						applyEquipment();
@@ -981,7 +997,7 @@ void MenuInventory::applyItemStats() {
 		return;
 
 	// reset additional values
-	for (size_t i = 0; i < DAMAGE_TYPES.size(); ++i) {
+	for (size_t i = 0; i < eset->damage_types.list.size(); ++i) {
 		stats->dmg_min_add[i] = stats->dmg_max_add[i] = 0;
 	}
 	stats->absorb_min_add = stats->absorb_max_add = 0;
@@ -992,7 +1008,7 @@ void MenuInventory::applyItemStats() {
 		const Item &item = items->items[item_id];
 
 		// apply base stats
-		for (size_t j = 0; j < DAMAGE_TYPES.size(); ++j) {
+		for (size_t j = 0; j < eset->damage_types.list.size(); ++j) {
 			stats->dmg_min_add[j] += item.dmg_min[j];
 			stats->dmg_max_add[j] += item.dmg_max[j];
 		}
@@ -1062,22 +1078,22 @@ void MenuInventory::applyBonus(const BonusData* bdata) {
 		ed.id = ed.type = "attack_speed";
 	}
 	else if (bdata->stat_index != -1) {
-		ed.id = ed.type = STAT_KEY[bdata->stat_index];
+		ed.id = ed.type = Stats::KEY[bdata->stat_index];
 	}
 	else if (bdata->damage_index_min != -1) {
-		ed.id = ed.type = DAMAGE_TYPES[bdata->damage_index_min].min;
+		ed.id = ed.type = eset->damage_types.list[bdata->damage_index_min].min;
 	}
 	else if (bdata->damage_index_max != -1) {
-		ed.id = ed.type = DAMAGE_TYPES[bdata->damage_index_max].max;
+		ed.id = ed.type = eset->damage_types.list[bdata->damage_index_max].max;
 	}
 	else if (bdata->resist_index != -1) {
-		ed.id = ed.type = ELEMENTS[bdata->resist_index].id + "_resist";
+		ed.id = ed.type = eset->elements.list[bdata->resist_index].id + "_resist";
 	}
-	else if (bdata->base_index > -1 && static_cast<size_t>(bdata->base_index) < PRIMARY_STATS.size()) {
-		ed.id = ed.type = PRIMARY_STATS[bdata->base_index].id;
+	else if (bdata->base_index > -1 && static_cast<size_t>(bdata->base_index) < eset->primary_stats.list.size()) {
+		ed.id = ed.type = eset->primary_stats.list[bdata->base_index].id;
 	}
 
-	stats->effects.addEffect(ed, 0, bdata->value, true, -1, 0, SOURCE_TYPE_HERO);
+	stats->effects.addItemEffect(ed, 0, bdata->value);
 }
 
 int MenuInventory::getEquippedCount() {
@@ -1127,7 +1143,7 @@ void MenuInventory::fillEquipmentSlots() {
 			ItemStack stack;
 			stack.item = equip_item[i];
 			stack.quantity = (equip_quantity[i] > 0) ? equip_quantity[i] : 1;
-			add(stack, CARRIED, -1, false, false);
+			add(stack, CARRIED, ItemStorage::NO_SLOT, !ADD_PLAY_SOUND, !ADD_AUTO_EQUIP);
 		}
 	}
 	delete [] equip_item;
@@ -1135,9 +1151,9 @@ void MenuInventory::fillEquipmentSlots() {
 }
 
 int MenuInventory::getMaxPurchasable(ItemStack item, int vendor_tab) {
-	if (vendor_tab == VENDOR_BUY)
+	if (vendor_tab == ItemManager::VENDOR_BUY)
 		return currency / items->items[item.item].getPrice();
-	else if (vendor_tab == VENDOR_SELL)
+	else if (vendor_tab == ItemManager::VENDOR_SELL)
 		return currency / items->items[item.item].getSellPrice(item.can_buyback);
 	else
 		return 0;

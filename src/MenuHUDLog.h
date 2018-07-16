@@ -38,17 +38,20 @@ private:
 
 	int paragraph_spacing;
 
-	Color color_normal;
 	Sprite *overlay_bg;
 	bool click_to_dismiss;
 
 public:
+	enum {
+		MSG_NORMAL = 0,
+		MSG_UNIQUE = 1
+	};
 
 	MenuHUDLog();
 	~MenuHUDLog();
 	void logic();
 	void render();
-	void add(const std::string& s, bool prevent_spam = true);
+	void add(const std::string& s, int type);
 	void remove(int msg_index);
 	void clear();
 	void renderOverlay();

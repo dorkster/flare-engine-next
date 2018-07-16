@@ -46,7 +46,7 @@ MenuEnemy::MenuEnemy()
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuEnemy|Description of menus/enemy.txt
-	if(infile.open("menus/enemy.txt")) {
+	if(infile.open("menus/enemy.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
@@ -55,12 +55,12 @@ MenuEnemy::MenuEnemy()
 
 			// @ATTR bar_pos|rectangle|Position and dimensions of the health bar.
 			if(infile.key == "bar_pos") {
-				bar_pos = toRect(infile.val);
+				bar_pos = Parse::toRect(infile.val);
 			}
 			// @ATTR text_pos|label|Position of the text displaying the enemy's name and level.
 			else if(infile.key == "text_pos") {
 				custom_text_pos = true;
-				text_pos = eatLabelInfo(infile.val);
+				text_pos = Parse::popLabelInfo(infile.val);
 			}
 			else {
 				infile.error("MenuEnemy: '%s' is not a valid key.", infile.key.c_str());
@@ -71,8 +71,6 @@ MenuEnemy::MenuEnemy()
 
 	loadGraphics();
 
-	color_normal = font->getColor("menu_normal");
-
 	align();
 }
 
@@ -81,7 +79,7 @@ void MenuEnemy::loadGraphics() {
 
 	setBackground("images/menus/enemy_bar.png");
 
-	graphics = render_device->loadImage("images/menus/enemy_bar_hp.png");
+	graphics = render_device->loadImage("images/menus/enemy_bar_hp.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		bar_hp = graphics->createSprite();
 		graphics->unref();
@@ -113,10 +111,10 @@ void MenuEnemy::render() {
 	dest.h = bar_pos.h;
 
 	int hp_bar_length = 0;
-	if (enemy->stats.get(STAT_HP_MAX) == 0)
+	if (enemy->stats.get(Stats::HP_MAX) == 0)
 		hp_bar_length = 0;
 	else if (bar_hp)
-		hp_bar_length = (enemy->stats.hp * bar_hp->getGraphics()->getWidth()) / enemy->stats.get(STAT_HP_MAX);
+		hp_bar_length = (enemy->stats.hp * bar_hp->getGraphics()->getWidth()) / enemy->stats.get(Stats::HP_MAX);
 
 	// draw hp bar background
 	setBackgroundClip(src);
@@ -132,24 +130,41 @@ void MenuEnemy::render() {
 		render_device->render(bar_hp);
 	}
 
-	std::stringstream ss;
-	ss.str("");
-	if (enemy->stats.hp > 0)
-		ss << enemy->stats.hp << "/" << enemy->stats.get(STAT_HP_MAX);
-	else
-		ss << msg->get("Dead");
-
 	if (!text_pos.hidden) {
+		// enemy name display
+		label_text.setText(msg->get("%s level %d", enemy->stats.name.c_str(), enemy->stats.level));
+		label_text.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 		if (custom_text_pos) {
-			label_text.set(window_area.x+text_pos.x, window_area.y+text_pos.y, text_pos.justify, text_pos.valign, msg->get("%s level %d", enemy->stats.level, enemy->stats.name), color_normal, text_pos.font_style);
+			label_text.setPos(window_area.x + text_pos.x, window_area.y + text_pos.y);
+			label_text.setJustify(text_pos.justify);
+			label_text.setVAlign(text_pos.valign);
+			label_text.setFont(text_pos.font_style);
 		}
 		else {
-			label_text.set(window_area.x+bar_pos.x+bar_pos.w/2, window_area.y+bar_pos.y, JUSTIFY_CENTER, VALIGN_BOTTOM, msg->get("%s level %d", enemy->stats.level, enemy->stats.name), color_normal);
+			label_text.setPos(window_area.x + bar_pos.x + bar_pos.w/2, window_area.y + bar_pos.y);
+			label_text.setJustify(FontEngine::JUSTIFY_CENTER);
+			label_text.setVAlign(LabelInfo::VALIGN_BOTTOM);
 		}
 		label_text.render();
 
-		label_stats.set(window_area.x+bar_pos.x+bar_pos.w/2, window_area.y+bar_pos.y+bar_pos.h/2, JUSTIFY_CENTER, VALIGN_CENTER, ss.str(), color_normal);
+		// HP display
+		std::stringstream ss;
+		ss.str("");
+		if (enemy->stats.hp > 0) {
+			ss << enemy->stats.hp << "/" << enemy->stats.get(Stats::HP_MAX);
+		}
+		else {
+			if (enemy->stats.lifeform)
+				ss << msg->get("Dead");
+			else
+				ss << msg->get("Destroyed");
+		}
+		label_stats.setText(ss.str());
+
+		label_stats.setPos(window_area.x + bar_pos.x + bar_pos.w/2, window_area.y + bar_pos.y + bar_pos.h/2);
+		label_stats.setJustify(FontEngine::JUSTIFY_CENTER);
+		label_stats.setVAlign(LabelInfo::VALIGN_CENTER);
 		label_stats.render();
 	}
 }

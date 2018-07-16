@@ -29,11 +29,6 @@ class Image;
 class RenderDevice;
 class FontStyle;
 
-enum {
-	RENDERABLE_BLEND_NORMAL = 0,
-	RENDERABLE_BLEND_ADD = 1,
-};
-
 /** A Sprite representation
  *
  * A Sprite is instantiated from a Image instance using
@@ -125,7 +120,7 @@ public:
 	virtual void drawPixel(int x, int y, const Color& color) = 0;
 	virtual Image* resize(int width, int height) = 0;
 
-	class Sprite *createSprite(bool clipToSize = true);
+	class Sprite *createSprite();
 
 private:
 	explicit Image(RenderDevice *device);
@@ -141,6 +136,11 @@ private:
 
 class Renderable {
 public:
+	enum {
+		BLEND_NORMAL = 0,
+		BLEND_ADD = 1
+	};
+
 	Image *image; // image to be used
 	Rect src; // location on the sprite in pixel coordinates.
 
@@ -158,7 +158,7 @@ public:
 		, map_pos()
 		, offset()
 		, prio(0)
-		, blend_mode(RENDERABLE_BLEND_NORMAL)
+		, blend_mode(BLEND_NORMAL)
 		, color_mod(255, 255, 255)
 		, alpha_mod(255) {
 	}
@@ -186,20 +186,24 @@ public:
 class RenderDevice {
 
 public:
+	enum {
+		ERROR_NONE = 0,
+		ERROR_NORMAL = 1,
+		ERROR_EXIT = 2
+	};
+
 	RenderDevice();
 	virtual ~RenderDevice();
 
 	/** Context operations */
-	virtual int createContext(bool allow_fallback = true) = 0;
+	int createContext();
 	virtual void destroyContext() = 0;
 	virtual void setGamma(float g) = 0;
 	virtual void resetGamma() = 0;
 	virtual void updateTitleBar() = 0;
 
 	/** factory functions for Image */
-	virtual Image *loadImage(const std::string& filename,
-							 const std::string& errormessage = "Couldn't load image",
-							 bool IfNotFoundExit = false) = 0;
+	virtual Image *loadImage(const std::string& filename, int error_type) = 0;
 	virtual Image *createImage(int width, int height) = 0;
 	void freeImage(Image *image);
 
@@ -207,19 +211,21 @@ public:
 	virtual int render(Sprite* r) = 0;
 	virtual int render(Renderable& r, Rect& dest) = 0;
 	virtual int renderToImage(Image* src_image, Rect& src, Image* dest_image, Rect& dest) = 0;
-	virtual Image* renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended = true) = 0;
+	virtual Image* renderTextToImage(FontStyle* font_style, const std::string& text, const Color& color, bool blended) = 0;
 	virtual void blankScreen() = 0;
 	virtual void commitFrame() = 0;
 	virtual void drawPixel(int x, int y, const Color& color) = 0;
 	virtual void drawLine(int x0, int y0, int x1, int y1, const Color& color) = 0;
 	virtual void drawRectangle(const Point& p0, const Point& p1, const Color& color) = 0;
-	void drawEllipse(int x0, int y0, int x1, int y1, const Color& color, float step = 1);
+	void drawEllipse(int x0, int y0, int x1, int y1, const Color& color, float step);
 	virtual void windowResize() = 0;
 	virtual void setBackgroundColor(Color color);
 
 	bool reloadGraphics();
 
 protected:
+	static const unsigned char BITS_PER_PIXEL;
+
 	/* Compute clipping and global position from local frame. */
 	bool localToGlobal(Sprite *r);
 
@@ -229,6 +235,10 @@ protected:
 	void cacheRemove(Image *image);
 	void cacheRemoveAll();
 	void windowResizeInternal();
+
+	/** Context operations */
+	virtual int createContextInternal() = 0;
+	virtual void createContextError() = 0;
 
 	bool fullscreen;
 	bool hwsurface;

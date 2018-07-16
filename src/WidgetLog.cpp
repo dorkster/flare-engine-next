@@ -30,12 +30,12 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 WidgetLog::WidgetLog (int width, int height)
 	: scroll_box(new WidgetScrollBox(width, height))
 	, padding(4)
-	, max_messages(WIDGETLOG_MAX_MESSAGES)
+	, max_messages(MAX_MESSAGES)
 	, updated(false)
+	, next_color(font->getColor(FontEngine::COLOR_MENU_NORMAL))
+	, next_style(FONT_REGULAR)
 {
-	setFont(WIDGETLOG_FONT_REGULAR);
-	color_normal = font->getColor("menu_normal");
-	color_disabled = font->getColor("widget_disabled");
+	setFont(FONT_REGULAR);
 }
 
 WidgetLog::~WidgetLog () {
@@ -43,7 +43,7 @@ WidgetLog::~WidgetLog () {
 	clear();
 }
 
-void WidgetLog::setBasePos(int x, int y, ALIGNMENT a) {
+void WidgetLog::setBasePos(int x, int y, int a) {
 	Widget::setBasePos(x, y, a);
 	scroll_box->setBasePos(x, y, a);
 }
@@ -54,7 +54,7 @@ void WidgetLog::setPos(int offset_x, int offset_y) {
 }
 
 void WidgetLog::setFont(int style) {
-	if (style == WIDGETLOG_FONT_BOLD) {
+	if (style == FONT_BOLD) {
 		font->setFont("font_bold");
 	}
 	else {
@@ -74,11 +74,6 @@ void WidgetLog::render() {
 		updated = false;
 	}
 	scroll_box->render();
-}
-
-void WidgetLog::setPosition(int x, int y) {
-	scroll_box->pos.x = x;
-	scroll_box->pos.y = y;
 }
 
 void WidgetLog::refresh() {
@@ -107,37 +102,43 @@ void WidgetLog::refresh() {
 
 		if (!separators.empty() && separators[i-1]) {
 			for (int j=padding; j<padding+content_width; ++j) {
-				render_target->drawPixel(j, y2, color_disabled);
+				render_target->drawPixel(j, y2, font->getColor(FontEngine::COLOR_WIDGET_DISABLED));
 			}
 
 			y2 += paragraph_spacing;
 		}
-		font->renderShadowed(messages[i-1], padding, y2, JUSTIFY_LEFT, render_target, content_width, colors[i-1]);
+		font->renderShadowed(messages[i-1], padding, y2, FontEngine::JUSTIFY_LEFT, render_target, content_width, colors[i-1]);
 		y2 += size.y+paragraph_spacing;
 
 	}
 }
 
-void WidgetLog::add(const std::string &s, bool prevent_spam, Color* color, int style) {
+void WidgetLog::add(const std::string &s, int type) {
 	// First, make sure we're not repeating the last log message, to avoid spam
-	if (messages.empty() || messages.back() != s || !prevent_spam) {
+	if (messages.empty() || messages.back() != s || type == MSG_UNIQUE) {
 		// If we have too many messages, remove the oldest ones
 		while (messages.size() >= max_messages) {
-			remove(0);
+			this->remove(0);
 		}
 
 		// Add the new message.
 		messages.push_back(s);
-		if (color == NULL) {
-			colors.push_back(color_normal);
-		}
-		else {
-			colors.push_back(*color);
-		}
-		styles.push_back(style);
+		colors.push_back(next_color);
+		styles.push_back(next_style);
 		separators.resize(messages.size(), false);
 		updated = true;
+
+		next_color = font->getColor(FontEngine::COLOR_MENU_NORMAL);
+		next_style = FONT_REGULAR;
 	}
+}
+
+void WidgetLog::setNextColor(const Color& color) {
+	next_color = color;
+}
+
+void WidgetLog::setNextStyle(int style) {
+	next_style = style;
 }
 
 void WidgetLog::remove(unsigned msg_index) {
@@ -156,13 +157,16 @@ void WidgetLog::clear() {
 	styles.clear();
 	separators.clear();
 	updated = true;
+
+	next_color = font->getColor(FontEngine::COLOR_MENU_NORMAL);
+	next_style = FONT_REGULAR;
 }
 
 void WidgetLog::setMaxMessages(unsigned count) {
-	if (count > WIDGETLOG_MAX_MESSAGES)
+	if (count > MAX_MESSAGES)
 		max_messages = count;
 	else
-		max_messages = WIDGETLOG_MAX_MESSAGES;
+		max_messages = MAX_MESSAGES;
 }
 
 void WidgetLog::addSeparator() {

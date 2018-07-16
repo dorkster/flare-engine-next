@@ -59,52 +59,53 @@ MenuDevConsole::MenuDevConsole()
 	input_box = new WidgetInput("images/menus/input_console.png");
 	tablist.add(input_box);
 
-	button_confirm = new WidgetButton();
+	button_confirm = new WidgetButton(WidgetButton::DEFAULT_FILE);
 	button_confirm->label = msg->get("Execute");
 	tablist.add(button_confirm);
 
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuDevConsole|Description of menus/devconsole.txt
-	if(infile.open("menus/devconsole.txt")) {
+	if(infile.open("menus/devconsole.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR close|point|Position of the close button.
 			if(infile.key == "close") {
-				Point pos = toPoint(infile.val);
-				button_close->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				button_close->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR label_title|label|Position of the "Developer Console" label.
-			else if(infile.key == "label_title") title = eatLabelInfo(infile.val);
+			else if(infile.key == "label_title") {
+				label.setFromLabelInfo(Parse::popLabelInfo(infile.val));
+			}
 			// @ATTR confirm|point|Position of the "Execute" button.
 			else if(infile.key == "confirm") {
-				Point pos = toPoint(infile.val);
-				button_confirm->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				button_confirm->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR input|point|Position of the command entry widget.
 			else if(infile.key == "input") {
-				Point pos = toPoint(infile.val);
-				input_box->setBasePos(pos.x, pos.y);
+				Point pos = Parse::toPoint(infile.val);
+				input_box->setBasePos(pos.x, pos.y, Utils::ALIGN_TOPLEFT);
 			}
 			// @ATTR history|rectangle|Position and dimensions of the command history.
-			else if(infile.key == "history") history_area = toRect(infile.val);
+			else if(infile.key == "history") history_area = Parse::toRect(infile.val);
 
 			else infile.error("MenuDevConsole: '%s' is not a valid key.", infile.key.c_str());
 		}
 		infile.close();
 	}
 
+	label.setText(msg->get("Developer Console"));
+	label.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
+
 	log_history = new WidgetLog(history_area.w, history_area.h);
-	log_history->setBasePos(history_area.x, history_area.y);
+	log_history->setBasePos(history_area.x, history_area.y, Utils::ALIGN_TOPLEFT);
 	tablist.add(log_history->getWidget());
 
 	setBackground("images/menus/dev_console.png");
-
-	color_echo = font->getColor("widget_disabled");
-	color_error = font->getColor("menu_penalty");
-	color_hint = font->getColor("menu_bonus");
 
 	align();
 	reset();
@@ -126,7 +127,7 @@ void MenuDevConsole::align() {
 	input_box->setPos(window_area.x, window_area.y);
 	log_history->setPos(window_area.x, window_area.y);
 
-	label.set(window_area.x+title.x, window_area.y+title.y, title.justify, title.valign, msg->get("Developer Console"), font->getColor("menu_normal"));
+	label.setPos(window_area.x, window_area.y);
 }
 
 void MenuDevConsole::logic() {
@@ -137,12 +138,18 @@ void MenuDevConsole::logic() {
 	if (visible) {
 		if (!first_open) {
 			first_open = true;
-			log_history->add(msg->get("Use '%s' to inspect with the cursor.", inpt->getBindingString(MAIN2).c_str()));
-			log_history->add("exec \"msg=Hello World\"", true, &color_hint);
-			log_history->add(msg->get("Arguments with spaces should be enclosed with double quotes. Example:"));
-			log_history->add(msg->get("Type 'help' to get a list of commands.") + ' ');
-			if (title.hidden)
-				log_history->add(msg->get("Developer Console"), true, NULL, WIDGETLOG_FONT_BOLD);
+			log_history->add(msg->get("Use '%s' to inspect with the cursor.", inpt->getBindingString(Input::MAIN2).c_str()), WidgetLog::MSG_NORMAL);
+
+			log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+			log_history->add("exec \"msg=Hello World\"", WidgetLog::MSG_NORMAL);
+
+			log_history->add(msg->get("Arguments with spaces should be enclosed with double quotes. Example:"), WidgetLog::MSG_NORMAL);
+			log_history->add(msg->get("Type 'help' to get a list of commands.") + ' ', WidgetLog::MSG_NORMAL);
+
+			if (label.isHidden()) {
+				log_history->setNextStyle(WidgetLog::FONT_BOLD);
+				log_history->add(msg->get("Developer Console"), WidgetLog::MSG_NORMAL);
+			}
 		}
 
 		if (!input_box->edit_mode) {
@@ -159,8 +166,8 @@ void MenuDevConsole::logic() {
 		else if (button_confirm->checkClick()) {
 			execute();
 		}
-		else if (input_box->edit_mode && inpt->pressing[ACCEPT] && !inpt->lock[ACCEPT]) {
-			inpt->lock[ACCEPT] = true;
+		else if (input_box->edit_mode && inpt->pressing[Input::ACCEPT] && !inpt->lock[Input::ACCEPT]) {
+			inpt->lock[Input::ACCEPT] = true;
 			execute();
 		}
 		else if (input_box->edit_mode && inpt->pressing_up) {
@@ -179,43 +186,43 @@ void MenuDevConsole::logic() {
 					input_box->setText(input_scrollback[input_scrollback_pos]);
 				}
 				else {
-					input_scrollback_pos = static_cast<unsigned long>(input_scrollback.size());
+					input_scrollback_pos = input_scrollback.size();
 					input_box->setText("");
 				}
 			}
 		}
 
-		if (inpt->pressing[MAIN2] && !inpt->lock[MAIN2]) {
-			inpt->lock[MAIN2] = true;
-			target = screen_to_map(inpt->mouse.x,  inpt->mouse.y, pc->stats.pos.x, pc->stats.pos.y);
+		if (inpt->pressing[Input::MAIN2] && !inpt->lock[Input::MAIN2]) {
+			inpt->lock[Input::MAIN2] = true;
+			target = Utils::screenToMap(inpt->mouse.x,  inpt->mouse.y, pc->stats.pos.x, pc->stats.pos.y);
 
 			log_history->addSeparator();
 
 			// print cursor position in map units & pixels
 			std::stringstream ss;
-			if (!mapr->collider.is_outside_map(floorf(target.x), floorf(target.y))) {
+			if (!mapr->collider.isOutsideMap(floorf(target.x), floorf(target.y))) {
 				getTileInfo();
 				getEnemyInfo();
 				getPlayerInfo();
 
 				ss << "X=" << target.x << ", Y=" << target.y;
 				ss << "  |  X=" << inpt->mouse.x << msg->get("px") << ", Y=" << inpt->mouse.y << msg->get("px");
-				log_history->add(ss.str());
+				log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 			}
 			else {
 				ss << "X=" << inpt->mouse.x << msg->get("px") << ", Y=" << inpt->mouse.y << msg->get("px");
-				log_history->add(ss.str());
+				log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 			}
 		}
 
-		if (inpt->pressing[MAIN2]) {
+		if (inpt->pressing[Input::MAIN2]) {
 			distance_ticks++;
 
 			// print target distance from the player
-			if (distance_ticks == MAX_FRAMES_PER_SEC) {
+			if (distance_ticks == settings->max_frames_per_sec) {
 				std::stringstream ss;
-				ss << msg->get("Distance") << ": " << calcDist(target, pc->stats.pos);
-				log_history->add(ss.str());
+				ss << msg->get("Distance") << ": " << Utils::calcDist(target, pc->stats.pos);
+				log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 			}
 		}
 		else {
@@ -230,13 +237,14 @@ void MenuDevConsole::getPlayerInfo() {
 
 	std::stringstream ss;
 	ss << msg->get("Entity") << ": " << pc->stats.name << "  |  X=" << pc->stats.pos.x << ", Y=" << pc->stats.pos.y;
-	log_history->add(ss.str(), true, &color_hint);
+	log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+	log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 
 	// TODO print more player data
 }
 
 void MenuDevConsole::getTileInfo() {
-	Point tile = FPointToPoint(target);
+	Point tile(target);
 
 	std::stringstream ss;
 	for (size_t i = 0; i < mapr->layers.size(); ++i) {
@@ -244,27 +252,27 @@ void MenuDevConsole::getTileInfo() {
 			continue;
 		ss.str("");
 		ss << "    " << mapr->layernames[i] << "=" << mapr->layers[i][tile.x][tile.y];
-		log_history->add(ss.str());
+		log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 	}
 
 	ss.str("");
 	ss << "    " << "collision=" << mapr->collider.colmap[tile.x][tile.y] << " (";
 	switch(mapr->collider.colmap[tile.x][tile.y]) {
-		case BLOCKS_NONE: ss << msg->get("none"); break;
-		case BLOCKS_ALL: ss << msg->get("wall"); break;
-		case BLOCKS_MOVEMENT: ss << msg->get("short wall / pit"); break;
-		case BLOCKS_ALL_HIDDEN: ss << msg->get("wall"); break;
-		case BLOCKS_MOVEMENT_HIDDEN: ss << msg->get("short wall / pit"); break;
-		case BLOCKS_ENTITIES: ss << msg->get("entity"); break;
-		case BLOCKS_ENEMIES: ss << msg->get("entity, ally"); break;
+		case MapCollision::BLOCKS_NONE: ss << msg->get("none"); break;
+		case MapCollision::BLOCKS_ALL: ss << msg->get("wall"); break;
+		case MapCollision::BLOCKS_MOVEMENT: ss << msg->get("short wall / pit"); break;
+		case MapCollision::BLOCKS_ALL_HIDDEN: ss << msg->get("wall"); break;
+		case MapCollision::BLOCKS_MOVEMENT_HIDDEN: ss << msg->get("short wall / pit"); break;
+		case MapCollision::BLOCKS_ENTITIES: ss << msg->get("entity"); break;
+		case MapCollision::BLOCKS_ENEMIES: ss << msg->get("entity, ally"); break;
 		default: ss << msg->get("none");
 	}
 	ss << ")";
-	log_history->add(ss.str());
+	log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 
 	ss.str("");
 	ss << msg->get("Tile") << ": X=" << tile.x <<  ", Y=" << tile.y;
-	log_history->add(ss.str());
+	log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 }
 
 void MenuDevConsole::getEnemyInfo() {
@@ -276,7 +284,8 @@ void MenuDevConsole::getEnemyInfo() {
 
 		ss.str("");
 		ss << msg->get("Entity") << ": " << e->stats.name << "  |  X=" << e->stats.pos.x << ", Y=" << e->stats.pos.y;
-		log_history->add(ss.str(), true, &color_hint);
+		log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+		log_history->add(ss.str(), WidgetLog::MSG_NORMAL);
 
 		// TODO print more enemy data
 	}
@@ -289,8 +298,7 @@ void MenuDevConsole::render() {
 	// background
 	Menu::render();
 
-	if (!title.hidden)
-		label.render();
+	label.render();
 	button_close->render();
 	button_confirm->render();
 	input_box->render();
@@ -319,26 +327,27 @@ void MenuDevConsole::execute() {
 	if (command == "") return;
 
 	input_scrollback.push_back(command);
-	input_scrollback_pos = static_cast<unsigned long>(input_scrollback.size());
+	input_scrollback_pos = input_scrollback.size();
 	input_box->setText("");
 
 	log_history->addSeparator();
-	log_history->add(command, false, &color_echo);
+	log_history->setNextColor(font->getColor(FontEngine::COLOR_WIDGET_DISABLED));
+	log_history->add(command, WidgetLog::MSG_UNIQUE);
 
 	std::vector<std::string> args;
 	command += ' ';
 
-	std::string arg = popFirstString(command, ' ');
+	std::string arg = Parse::popFirstString(command, ' ');
 	while (arg != "") {
 		args.push_back(arg);
 
 		if (!command.empty() && command.at(0) == '"') {
 			command = command.substr(1); // remove first quote
-			arg = popFirstString(command, '"');
+			arg = Parse::popFirstString(command, '"');
 			command = command.substr(1); // remove trailing space
 		}
 		else {
-			arg = popFirstString(command, ' ');
+			arg = Parse::popFirstString(command, ' ');
 		}
 	}
 
@@ -348,27 +357,27 @@ void MenuDevConsole::execute() {
 	}
 
 	if (args[0] == "help") {
-		log_history->add("add_power - " + msg->get("adds a power to the action bar"), false);
-		log_history->add("toggle_hud - " + msg->get("turns on/off all of the HUD elements"), false);
-		log_history->add("toggle_devhud - " + msg->get("turns on/off the developer hud"), false);
-		log_history->add("list_powers - " + msg->get("Prints a list of powers that match a search term. No search term will list all items"), false);
-		log_history->add("list_maps - " + msg->get("Prints out all the map filenames located in the \"maps/\" directory."), false);
-		log_history->add("list_status - " + msg->get("Prints out the active campaign statuses that match a search term. No search term will list all active statuses"), false);
-		log_history->add("list_items - " + msg->get("Prints a list of items that match a search term. No search term will list all items"), false);
-		log_history->add("exec - " + msg->get("parses a series of event components and executes them as a single event"), false);
-		log_history->add("clear - " + msg->get("clears the command history"), false);
-		log_history->add("help - " + msg->get("displays this text"), false);
+		log_history->add("add_power - " + msg->get("adds a power to the action bar"), WidgetLog::MSG_UNIQUE);
+		log_history->add("toggle_hud - " + msg->get("turns on/off all of the HUD elements"), WidgetLog::MSG_UNIQUE);
+		log_history->add("toggle_devhud - " + msg->get("turns on/off the developer hud"), WidgetLog::MSG_UNIQUE);
+		log_history->add("list_powers - " + msg->get("Prints a list of powers that match a search term. No search term will list all items"), WidgetLog::MSG_UNIQUE);
+		log_history->add("list_maps - " + msg->get("Prints out all the map filenames located in the \"maps/\" directory."), WidgetLog::MSG_UNIQUE);
+		log_history->add("list_status - " + msg->get("Prints out the active campaign statuses that match a search term. No search term will list all active statuses"), WidgetLog::MSG_UNIQUE);
+		log_history->add("list_items - " + msg->get("Prints a list of items that match a search term. No search term will list all items"), WidgetLog::MSG_UNIQUE);
+		log_history->add("exec - " + msg->get("parses a series of event components and executes them as a single event"), WidgetLog::MSG_UNIQUE);
+		log_history->add("clear - " + msg->get("clears the command history"), WidgetLog::MSG_UNIQUE);
+		log_history->add("help - " + msg->get("displays this text"), WidgetLog::MSG_UNIQUE);
 	}
 	else if (args[0] == "clear") {
 		log_history->clear();
 	}
 	else if (args[0] == "toggle_devhud") {
-		DEV_HUD = !DEV_HUD;
-		log_history->add(msg->get("Toggled the developer hud"), false);
+		settings->dev_hud = !settings->dev_hud;
+		log_history->add(msg->get("Toggled the developer hud"), WidgetLog::MSG_UNIQUE);
 	}
 	else if (args[0] == "toggle_hud") {
-		SHOW_HUD = !SHOW_HUD;
-		log_history->add(msg->get("Toggled the hud"), false);
+		settings->show_hud = !settings->show_hud;
+		log_history->add(msg->get("Toggled the hud"), WidgetLog::MSG_UNIQUE);
 	}
 	else if (args[0] == "list_status") {
 		std::string search_terms;
@@ -382,7 +391,7 @@ void MenuDevConsole::execute() {
 		std::vector<size_t> matching_ids;
 
 		for (size_t i=0; i<camp->status.size(); ++i) {
-			if (!search_terms.empty() && stringFindCaseInsensitive(camp->status[i], search_terms) == std::string::npos)
+			if (!search_terms.empty() && Utils::stringFindCaseInsensitive(camp->status[i], search_terms) == std::string::npos)
 				continue;
 
 			matching_ids.push_back(i);
@@ -392,10 +401,10 @@ void MenuDevConsole::execute() {
 			log_history->setMaxMessages(static_cast<unsigned>(matching_ids.size()));
 
 			for (size_t i=matching_ids.size(); i>0; i--) {
-				log_history->add(camp->status[matching_ids[i-1]]);
+				log_history->add(camp->status[matching_ids[i-1]], WidgetLog::MSG_NORMAL);
 			}
 
-			log_history->setMaxMessages(); // reset
+			log_history->setMaxMessages(WidgetLog::MAX_MESSAGES); // reset
 		}
 	}
 	else if (args[0] == "list_items") {
@@ -416,7 +425,7 @@ void MenuDevConsole::execute() {
 				continue;
 
 			std::string item_name = items->getItemName(static_cast<int>(i));
-			if (!search_terms.empty() && stringFindCaseInsensitive(item_name, search_terms) == std::string::npos)
+			if (!search_terms.empty() && Utils::stringFindCaseInsensitive(item_name, search_terms) == std::string::npos)
 				continue;
 
 			matching_ids.push_back(i);
@@ -428,17 +437,17 @@ void MenuDevConsole::execute() {
 			for (size_t i=matching_ids.size(); i>0; i--) {
 				size_t id = matching_ids[i-1];
 
-				Color item_color = items->getItemColor(static_cast<int>(id));
 				ss.str("");
 				ss << items->getItemName(static_cast<int>(id)) << " (" << id <<")";
-				log_history->add(ss.str(), false, &item_color);
+				log_history->setNextColor(items->getItemColor(static_cast<int>(id)));
+				log_history->add(ss.str(), WidgetLog::MSG_UNIQUE);
 			}
 
-			log_history->setMaxMessages(); // reset
+			log_history->setMaxMessages(WidgetLog::MAX_MESSAGES); // reset
 		}
 	}
 	else if (args[0] == "list_maps") {
-		std::vector<std::string> map_filenames = mods->list("maps", false);
+		std::vector<std::string> map_filenames = mods->list("maps", !ModManager::LIST_FULL_PATHS);
 
 		for (size_t i=0; i<map_filenames.size(); ++i) {
 			// Remove "maps/" from all of the filenames so that it doesn't affect search results
@@ -459,7 +468,7 @@ void MenuDevConsole::execute() {
 		std::vector<size_t> matching_ids;
 
 		for (size_t i=0; i<map_filenames.size(); ++i) {
-			if (!search_terms.empty() && stringFindCaseInsensitive(map_filenames[i], search_terms) == std::string::npos)
+			if (!search_terms.empty() && Utils::stringFindCaseInsensitive(map_filenames[i], search_terms) == std::string::npos)
 				continue;
 
 			matching_ids.push_back(i);
@@ -469,10 +478,10 @@ void MenuDevConsole::execute() {
 			log_history->setMaxMessages(static_cast<unsigned>(matching_ids.size()));
 
 			for (size_t i=matching_ids.size(); i>0; i--) {
-				log_history->add("maps/" + map_filenames[matching_ids[i-1]], false);
+				log_history->add("maps/" + map_filenames[matching_ids[i-1]], WidgetLog::MSG_UNIQUE);
 			}
 
-			log_history->setMaxMessages(); // reset
+			log_history->setMaxMessages(WidgetLog::MAX_MESSAGES); // reset
 		}
 	}
 	else if (args[0] == "list_powers") {
@@ -493,7 +502,7 @@ void MenuDevConsole::execute() {
 				continue;
 
 			std::string item_name = powers->powers[i].name;
-			if (!search_terms.empty() && stringFindCaseInsensitive(item_name, search_terms) == std::string::npos)
+			if (!search_terms.empty() && Utils::stringFindCaseInsensitive(item_name, search_terms) == std::string::npos)
 				continue;
 
 			matching_ids.push_back(i);
@@ -507,19 +516,21 @@ void MenuDevConsole::execute() {
 
 				ss.str("");
 				ss << powers->powers[id].name << " (" << id <<")";
-				log_history->add(ss.str(), false);
+				log_history->add(ss.str(), WidgetLog::MSG_UNIQUE);
 			}
 
-			log_history->setMaxMessages(); // reset
+			log_history->setMaxMessages(WidgetLog::MAX_MESSAGES); // reset
 		}
 	}
 	else if (args[0] == "add_power") {
 		if (args.size() != 2) {
-			log_history->add(msg->get("ERROR: Incorrect number of arguments"), false, &color_error);
-			log_history->add(msg->get("HINT:") + ' ' + args[0] + ' ' + msg->get("<id>"), false, &color_hint);
+			log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_PENALTY));
+			log_history->add(msg->get("ERROR: Incorrect number of arguments"), WidgetLog::MSG_UNIQUE);
+			log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+			log_history->add(msg->get("HINT:") + ' ' + args[0] + ' ' + msg->get("<id>"), WidgetLog::MSG_UNIQUE);
 		}
 		else {
-			menu->act->addPower(toInt(args[1]));
+			menu->act->addPower(Parse::toInt(args[1]), MenuActionBar::USE_EMPTY_SLOT);
 		}
 	}
 	else if (args[0] == "exec") {
@@ -527,11 +538,12 @@ void MenuDevConsole::execute() {
 			Event evnt;
 
 			for (size_t i = 1; i < args.size(); ++i) {
-				std::string key = popFirstString(args[i], '=');
+				std::string key = Parse::popFirstString(args[i], '=');
 				std::string val = args[i];
 
 				if (!EventManager::loadEventComponentString(key, val, &evnt, NULL)) {
-					log_history->add(msg->get("ERROR: '%s' is not a valid event key", key.c_str()), false, &color_error);
+					log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_PENALTY));
+					log_history->add(msg->get("ERROR: '%s' is not a valid event key", key.c_str()), WidgetLog::MSG_UNIQUE);
 				}
 			}
 
@@ -540,12 +552,16 @@ void MenuDevConsole::execute() {
 			}
 		}
 		else {
-			log_history->add(msg->get("ERROR: Too few arguments"), false, &color_error);
-			log_history->add(msg->get("HINT:") + ' ' + args[0] + ' ' + msg->get("<key>=<val> <key>=<val> ..."), false, &color_hint);
+			log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_PENALTY));
+			log_history->add(msg->get("ERROR: Too few arguments"), WidgetLog::MSG_UNIQUE);
+			log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+			log_history->add(msg->get("HINT:") + ' ' + args[0] + ' ' + msg->get("<key>=<val> <key>=<val> ..."), WidgetLog::MSG_UNIQUE);
 		}
 	}
 	else {
-		log_history->add(msg->get("ERROR: Unknown command"), false, &color_error);
-		log_history->add(msg->get("HINT: Type help"), false, &color_hint);
+		log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_PENALTY));
+		log_history->add(msg->get("ERROR: Unknown command"), WidgetLog::MSG_UNIQUE);
+		log_history->setNextColor(font->getColor(FontEngine::COLOR_MENU_BONUS));
+		log_history->add(msg->get("HINT: Type help"), WidgetLog::MSG_UNIQUE);
 	}
 }

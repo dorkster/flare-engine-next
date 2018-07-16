@@ -28,10 +28,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "CommonIncludes.h"
 #include "Menu.h"
-#include "Settings.h"
 #include "Utils.h"
 
-class LabelInfo;
 class MenuActionBar;
 class StatBlock;
 class TooltipData;
@@ -53,6 +51,8 @@ public:
 
 class Power_Menu_Cell {
 public:
+	Power_Menu_Cell();
+
 	int id;
 	int tab;
 	Point pos;
@@ -68,22 +68,12 @@ public:
 	bool passive_on;
 	std::vector<std::string> visible_requires_status;
 	std::vector<std::string> visible_requires_not;
-	Power_Menu_Cell()
-		: id(-1)
-		, tab(0)
-		, pos(Point())
-		, requires_primary(PRIMARY_STATS.size(), 0)
-		, requires_level(0)
-		, upgrade_level(0)
-		, upgrades()
-		, requires_power()
-		, requires_point(false)
-		, passive_on(false) {
-	}
 };
 
 class MenuPowers : public Menu {
 private:
+	static const bool UPGRADE_POWER_ALL_TABS = true;
+
 	void loadGraphics();
 	void loadTab(FileParser &infile);
 	void loadPower(FileParser &infile);
@@ -99,12 +89,12 @@ private:
 	int getNextLevelCell(int pci);
 
 	void replaceCellWithUpgrade(int pci, int uci);
-	void upgradePower(int pci, bool ignore_tab = false);
+	void upgradePower(int pci, bool ignore_tab);
 
 	void setUnlockedPowers();
 	int getPointsUsed();
 
-	void createTooltip(TooltipData* tip, int slot_num, const std::vector<Power_Menu_Cell>& power_cells, bool show_unlock_prompt);
+	void createTooltip(TooltipData* tip_data, int slot_num, const std::vector<Power_Menu_Cell>& power_cells, bool show_unlock_prompt);
 	void renderPowers(int tab_num);
 
 	StatBlock *stats;
@@ -122,8 +112,6 @@ private:
 	std::vector<Sprite *> tree_surf;
 	WidgetButton *closeButton;
 
-	LabelInfo* title;
-	LabelInfo* unspent_points;
 	Point close_pos;
 	Rect tab_area;
 
@@ -132,12 +120,8 @@ private:
 	std::string default_background;
 
 	WidgetLabel *label_powers;
-	WidgetLabel *stat_up;
+	WidgetLabel *label_unspent;
 	WidgetTabControl *tab_control;
-
-	Color color_bonus;
-	Color color_penalty;
-	Color color_flavor;
 
 	bool tree_loaded;
 
@@ -155,7 +139,7 @@ public:
 	void logic();
 	void render();
 
-	TooltipData checkTooltip(const Point& mouse);
+	void renderTooltips(const Point& position);
 	int click(const Point& mouse);
 	void upgradeByCell(int pci);
 

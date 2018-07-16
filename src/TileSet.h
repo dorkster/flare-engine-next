@@ -44,24 +44,24 @@ public:
 	}
 };
 
-class Tile_Anim {
-public:
-	// Number of frames in this animation. if 0 no animation.
-	// 1 makes no sense as it would produce astatic animation.
-	unsigned short frames;
-	unsigned short current_frame; // is in range 0..(frames-1)
-	unsigned short duration; // how long the current frame is already displayed in ticks.
-	std::vector<Point> pos; // position of each image.
-	std::vector<unsigned short> frame_duration; // duration of each image in ticks. 0 will be treated the same as 1.
-	Tile_Anim() {
-		frames = 0;
-		current_frame = 0;
-		duration = 0;
-	}
-};
-
 class TileSet {
 private:
+	class Tile_Anim {
+	public:
+		// Number of frames in this animation. if 0 no animation.
+		// 1 makes no sense as it would produce astatic animation.
+		unsigned short frames;
+		unsigned short current_frame; // is in range 0..(frames-1)
+		unsigned short duration; // how long the current frame is already displayed in ticks.
+		std::vector<Point> pos; // position of each image.
+		std::vector<unsigned short> frame_duration; // duration of each image in ticks. 0 will be treated the same as 1.
+		Tile_Anim() {
+			frames = 0;
+			current_frame = 0;
+			duration = 0;
+		}
+	};
+
 	void loadGraphics(const std::string& filename, Sprite** sprite);
 	void reset();
 

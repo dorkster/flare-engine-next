@@ -24,13 +24,15 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "InputState.h"
 #include "RenderDevice.h"
 #include "SharedResources.h"
-#include "TooltipData.h"
+#include "TooltipManager.h"
 #include "Widget.h"
 #include "WidgetCheckBox.h"
-#include "WidgetSettings.h"
+
+const std::string WidgetCheckBox::DEFAULT_FILE = "images/menus/buttons/checkbox_default.png";
 
 WidgetCheckBox::WidgetCheckBox (const std::string &fname)
 	: enabled(true)
@@ -43,7 +45,7 @@ WidgetCheckBox::WidgetCheckBox (const std::string &fname)
 	focusable = true;
 
 	Image *graphics;
-	graphics = render_device->loadImage(fname, "Couldn't load image", true);
+	graphics = render_device->loadImage(fname, RenderDevice::ERROR_EXIT);
 	if (graphics) {
 		cb = graphics->createSprite();
 		pos.w = cb->getGraphicsWidth();
@@ -60,7 +62,7 @@ void WidgetCheckBox::activate() {
 }
 
 WidgetCheckBox::~WidgetCheckBox () {
-	if (cb) delete cb;
+	delete cb;
 }
 
 void WidgetCheckBox::setChecked(const bool status) {
@@ -71,19 +73,21 @@ void WidgetCheckBox::setChecked(const bool status) {
 }
 
 bool WidgetCheckBox::checkClick() {
-	return checkClick(inpt->mouse.x,inpt->mouse.y);
+	return checkClickAt(inpt->mouse.x,inpt->mouse.y);
 }
 
-bool WidgetCheckBox::checkClick (int x, int y) {
+bool WidgetCheckBox::checkClickAt(int x, int y) {
 	if (!enabled) return false;
 
 	Point mouse(x,y);
 
-	// main button already in use, new click not allowed
-	if (inpt->lock[MAIN1]) return false;
-	if (inpt->lock[ACCEPT]) return false;
+	checkTooltip(mouse);
 
-	if (pressed && !inpt->lock[MAIN1] && !inpt->lock[ACCEPT] && (isWithinRect(pos, mouse) || activated)) { // this is a button release
+	// main button already in use, new click not allowed
+	if (inpt->lock[Input::MAIN1]) return false;
+	if (inpt->lock[Input::ACCEPT]) return false;
+
+	if (pressed && !inpt->lock[Input::MAIN1] && !inpt->lock[Input::ACCEPT] && (Utils::isWithinRect(pos, mouse) || activated)) { // this is a button release
 		activated = false;
 		pressed = false;
 		setChecked(!checked);
@@ -92,10 +96,10 @@ bool WidgetCheckBox::checkClick (int x, int y) {
 
 	pressed = false;
 
-	if (inpt->pressing[MAIN1]) {
-		if (isWithinRect(pos, mouse)) {
+	if (inpt->pressing[Input::MAIN1]) {
+		if (Utils::isWithinRect(pos, mouse)) {
 			pressed = true;
-			inpt->lock[MAIN1] = true;
+			inpt->lock[Input::MAIN1] = true;
 		}
 	}
 	return false;
@@ -134,23 +138,18 @@ void WidgetCheckBox::render() {
 			draw = false;
 		}
 		if (draw) {
-			render_device->drawRectangle(topLeft, bottomRight, widget_settings.selection_rect_color);
+			render_device->drawRectangle(topLeft, bottomRight, eset->widgets.selection_rect_color);
 		}
 	}
 }
 
-/**
- * If mousing-over an item with a tooltip, return that tooltip data.
- *
- * @param mouse The x,y screen coordinates of the mouse cursor
- */
-TooltipData WidgetCheckBox::checkTooltip(const Point& mouse) {
-	TooltipData _tip;
-
-	if (inpt->usingMouse() && isWithinRect(pos, mouse) && tooltip != "") {
-		_tip.addText(tooltip);
+void WidgetCheckBox::checkTooltip(const Point& mouse) {
+	TooltipData tip_data;
+	if (inpt->usingMouse() && Utils::isWithinRect(pos, mouse) && tooltip != "") {
+		tip_data.addText(tooltip);
 	}
 
-	return _tip;
+	if (!tip_data.isEmpty())
+		tooltipm->push(tip_data, mouse, TooltipData::STYLE_FLOAT);
 }
 

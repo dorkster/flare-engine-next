@@ -39,14 +39,18 @@ class WidgetListBox;
 class WidgetScrollBox;
 class WidgetSlider;
 class WidgetTabControl;
-class WidgetTooltip;
 
 class GameStateConfigDesktop : public GameStateConfigBase {
 public:
+	static const bool ENABLE_VIDEO_TAB = true;
+
 	explicit GameStateConfigDesktop(bool _enable_video_tab);
 	~GameStateConfigDesktop();
 
 private:
+	static const int GAMMA_MIN = 5;
+	static const int GAMMA_MAX = 15;
+
 	short VIDEO_TAB;
 	short INPUT_TAB;
 	short KEYBINDS_TAB;
@@ -70,7 +74,6 @@ private:
 
 	void renderTabContents();
 	void renderDialogs();
-	void renderTooltips(TooltipData& tip_new);
 
 	void refreshWidgets();
 

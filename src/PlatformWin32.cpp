@@ -28,60 +28,65 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include <direct.h>
 
-PlatformOptions platform_options;
+Platform platform;
 
-void PlatformInit() {
-	// defaults
+Platform::Platform()
+	: has_exit_button(true)
+	, is_mobile_device(false)
+	, force_hardware_cursor(false)
+	, has_lock_file(true)
+	, config_menu_type(CONFIG_MENU_TYPE_DESKTOP)
+	, default_renderer("") {
 }
 
-void PlatformSetPaths() {
+Platform::~Platform() {
+}
+
+void Platform::setPaths() {
 	// handle Windows-specific path options
 	if (getenv("APPDATA") != NULL) {
-		PATH_CONF = PATH_USER = (std::string)getenv("APPDATA") + "\\flare";
-		createDir(PATH_CONF);
-		createDir(PATH_USER);
+		settings->path_conf = settings->path_user = std::string(getenv("APPDATA")) + "\\flare";
+		Filesystem::createDir(settings->path_conf);
+		Filesystem::createDir(settings->path_user);
 
-		PATH_CONF += "\\config";
-		PATH_USER += "\\userdata";
-		createDir(PATH_CONF);
-		createDir(PATH_USER);
+		settings->path_conf += "\\config";
+		settings->path_user += "\\userdata";
+		Filesystem::createDir(settings->path_conf);
+		Filesystem::createDir(settings->path_user);
 	}
 	else {
-		PATH_CONF = "config";
-		PATH_USER = "userdata";
-		createDir(PATH_CONF);
-		createDir(PATH_USER);
+		settings->path_conf = "config";
+		settings->path_user = "userdata";
+		Filesystem::createDir(settings->path_conf);
+		Filesystem::createDir(settings->path_user);
 	}
 
-	createDir(PATH_USER + "\\mods");
-	createDir(PATH_USER + "\\saves");
+	Filesystem::createDir(settings->path_user + "\\mods");
+	Filesystem::createDir(settings->path_user + "\\saves");
 
-	PATH_DATA = "";
-	if (pathExists(CUSTOM_PATH_DATA)) PATH_DATA = CUSTOM_PATH_DATA;
-	else if (!CUSTOM_PATH_DATA.empty()) {
-		logError("Settings: Could not find specified game data directory.");
-		CUSTOM_PATH_DATA = "";
+	settings->path_data = "";
+	if (Filesystem::pathExists(settings->custom_path_data)) settings->path_data = settings->custom_path_data;
+	else if (!settings->custom_path_data.empty()) {
+		Utils::logError("Settings: Could not find specified game data directory.");
+		settings->custom_path_data = "";
 	}
 
-	PATH_CONF = PATH_CONF + "/";
-	PATH_USER = PATH_USER + "/";
+	settings->path_conf = settings->path_conf + "/";
+	settings->path_user = settings->path_user + "/";
 }
 
-void PlatformSetExitEventFilter() {
-}
-
-bool PlatformDirCreate(const std::string& path) {
+bool Platform::dirCreate(const std::string& path) {
 	if (_mkdir(path.c_str()) != 0) {
-		std::string error_msg = "createDir (" + path + ")";
+		std::string error_msg = "Platform::dirCreate (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
 	return true;
 }
 
-bool PlatformDirRemove(const std::string& path) {
+bool Platform::dirRemove(const std::string& path) {
 	if (_rmdir(path.c_str()) != 0) {
-		std::string error_msg = "removeDir (" + path + ")";
+		std::string error_msg = "Platform::dirRemove (" + path + ")";
 		perror(error_msg.c_str());
 		return false;
 	}
@@ -89,10 +94,12 @@ bool PlatformDirRemove(const std::string& path) {
 }
 
 // unused
-void PlatformFSInit() {}
-bool PlatformFSCheckReady() { return true; }
-void PlatformFSCommit() {}
-void PlatformSetScreenSize() {}
+void Platform::FSInit() {}
+bool Platform::FSCheckReady() { return true; }
+void Platform::FSCommit() {}
+void Platform::setScreenSize() {}
+void Platform::setExitEventFilter() {}
+
 
 #endif // PLATFORM_CPP
 #endif // PLATFORM_CPP_INCLUDE

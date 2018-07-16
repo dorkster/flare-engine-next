@@ -29,12 +29,14 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "EnemyBehavior.h"
 #include "EnemyGroupManager.h"
 #include "EnemyManager.h"
+#include "EngineSettings.h"
 #include "EventManager.h"
 #include "Hazard.h"
 #include "MapRenderer.h"
 #include "MenuActionBar.h"
 #include "PowerManager.h"
 #include "RenderDevice.h"
+#include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 
@@ -79,7 +81,7 @@ size_t EnemyManager::loadEnemyPrototype(const std::string& type_id) {
 	e.type = type_id;
 
 	if (e.stats.animations == "")
-		logError("EnemyManager: No animation file specified for entity: %s", type_id.c_str());
+		Utils::logError("EnemyManager: No animation file specified for entity: %s", type_id.c_str());
 
 	loadAnimations(&e);
 	e.loadSounds();
@@ -125,7 +127,7 @@ void EnemyManager::handleNewMap () {
 	// delete existing enemies
 	for (unsigned int i=0; i < enemies.size(); i++) {
 		anim->decreaseCount(enemies[i]->animationSet->getName());
-		if(enemies[i]->stats.hero_ally && !enemies[i]->stats.corpse && enemies[i]->stats.cur_state != ENEMY_DEAD && enemies[i]->stats.cur_state != ENEMY_CRITDEAD && enemies[i]->stats.speed > 0.0f)
+		if(enemies[i]->stats.hero_ally && !enemies[i]->stats.corpse && enemies[i]->stats.cur_state != StatBlock::ENEMY_DEAD && enemies[i]->stats.cur_state != StatBlock::ENEMY_CRITDEAD && enemies[i]->stats.speed > 0.0f)
 			allies.push(enemies[i]);
 		else {
 			enemies[i]->unloadSounds();
@@ -147,7 +149,7 @@ void EnemyManager::handleNewMap () {
 		mapr->enemies.pop();
 
 		if (me.type.empty()) {
-			logError("EnemyManager: Enemy(%f, %f) doesn't have type attribute set, skipping", me.pos.x, me.pos.y);
+			Utils::logError("EnemyManager: Enemy(%f, %f) doesn't have type attribute set, skipping", me.pos.x, me.pos.y);
 			continue;
 		}
 
@@ -179,10 +181,10 @@ void EnemyManager::handleNewMap () {
 
 		enemies.push_back(e);
 
-		mapr->collider.block(me.pos.x, me.pos.y, false);
+		mapr->collider.block(me.pos.x, me.pos.y, !MapCollision::IS_ALLY);
 	}
 
-	FPoint spawn_pos = mapr->collider.get_random_neighbor(FPointToPoint(pc->stats.pos), 1, false);
+	FPoint spawn_pos = mapr->collider.getRandomNeighbor(Point(pc->stats.pos), 1, !MapCollision::IGNORE_BLOCKED);
 	while (!allies.empty()) {
 
 		Enemy *e = allies.front();
@@ -197,7 +199,7 @@ void EnemyManager::handleNewMap () {
 
 		enemies.push_back(e);
 
-		mapr->collider.block(e->stats.pos.x, e->stats.pos.y, true);
+		mapr->collider.block(e->stats.pos.x, e->stats.pos.y, MapCollision::IS_ALLY);
 	}
 
 	// load enemies that can be spawn by avatar's powers
@@ -229,7 +231,7 @@ void EnemyManager::handleNewMap () {
 	// load enemies that can be spawn by map events
 	for (size_t i = 0; i < mapr->events.size(); i++) {
 		for (size_t j = 0; j < mapr->events[i].components.size(); j++) {
-			if (mapr->events[i].components[j].type == EC_SPAWN) {
+			if (mapr->events[i].components[j].type == EventComponent::SPAWN) {
 				std::vector<Enemy_Level> spawn_enemies = enemyg->getEnemiesInCategory(mapr->events[i].components[j].s);
 				for (size_t k = 0; k < spawn_enemies.size(); k++) {
 					loadEnemyPrototype(spawn_enemies[k].type);
@@ -281,7 +283,7 @@ void EnemyManager::handleSpawn() {
 			e->stats.load(el.type);
 		}
 		else {
-			logError("EnemyManager: Could not spawn creature type '%s'", espawn.type.c_str());
+			Utils::logError("EnemyManager: Could not spawn creature type '%s'", espawn.type.c_str());
 			delete e;
 			return;
 		}
@@ -293,29 +295,29 @@ void EnemyManager::handleSpawn() {
 			if (e->animationSet)
 				e->activeAnimation = e->animationSet->getAnimation("");
 			else
-				logError("EnemyManager: Animations file could not be loaded for %s", espawn.type.c_str());
+				Utils::logError("EnemyManager: Animations file could not be loaded for %s", espawn.type.c_str());
 		}
 		else {
-			logError("EnemyManager: No animation file specified for entity: %s", espawn.type.c_str());
+			Utils::logError("EnemyManager: No animation file specified for entity: %s", espawn.type.c_str());
 		}
 		e->loadSounds();
 
 		//Set level
 		if(e->stats.summoned_power_index != 0) {
-			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == SPAWN_LEVEL_MODE_FIXED)
+			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == Power::SPAWN_LEVEL_MODE_FIXED)
 				e->stats.level = powers->powers[e->stats.summoned_power_index].spawn_level_qty;
 
-			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == SPAWN_LEVEL_MODE_LEVEL) {
+			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == Power::SPAWN_LEVEL_MODE_LEVEL) {
 				if(e->stats.summoner != NULL && powers->powers[e->stats.summoned_power_index].spawn_level_every != 0) {
 					e->stats.level = powers->powers[e->stats.summoned_power_index].spawn_level_qty
 									 * (e->stats.summoner->level / powers->powers[e->stats.summoned_power_index].spawn_level_every);
 				}
 			}
 
-			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == SPAWN_LEVEL_MODE_STAT) {
+			if(powers->powers[e->stats.summoned_power_index].spawn_level_mode == Power::SPAWN_LEVEL_MODE_STAT) {
 				if(e->stats.summoner != NULL && powers->powers[e->stats.summoned_power_index].spawn_level_every != 0) {
 					int stat_val = 0;
-					for (size_t i = 0; i < PRIMARY_STATS.size(); ++i) {
+					for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 						if (powers->powers[e->stats.summoned_power_index].spawn_level_stat == i) {
 							stat_val = e->stats.summoner->get_primary(i);
 							break;
@@ -331,7 +333,7 @@ void EnemyManager::handleSpawn() {
 			e->stats.recalc();
 		}
 
-		if (mapr->collider.is_valid_position(espawn.pos.x, espawn.pos.y, e->stats.movement_type, false) || !e->stats.hero_ally) {
+		if (mapr->collider.isValidPosition(espawn.pos.x, espawn.pos.y, e->stats.movement_type, MapCollision::COLLIDE_NORMAL) || !e->stats.hero_ally) {
 			e->stats.pos.x = espawn.pos.x;
 			e->stats.pos.y = espawn.pos.y;
 		}
@@ -341,11 +343,11 @@ void EnemyManager::handleSpawn() {
 		}
 
 		// special animation state for spawning enemies
-		e->stats.cur_state = ENEMY_SPAWN;
+		e->stats.cur_state = StatBlock::ENEMY_SPAWN;
 
 		//now apply post effects to the spawned enemy
 		if(e->stats.summoned_power_index > 0)
-			powers->effect(&e->stats, (espawn.summoner != NULL ? espawn.summoner : &e->stats), e->stats.summoned_power_index, e->stats.hero_ally ? SOURCE_TYPE_HERO : SOURCE_TYPE_ENEMY);
+			powers->effect(&e->stats, (espawn.summoner != NULL ? espawn.summoner : &e->stats), e->stats.summoned_power_index, e->stats.hero_ally ? Power::SOURCE_TYPE_HERO : Power::SOURCE_TYPE_ENEMY);
 
 		//apply party passives
 		//synchronise tha party passives in the pc stat block with the passives in the allies stat blocks
@@ -408,10 +410,10 @@ Enemy* EnemyManager::enemyFocus(const Point& mouse, const FPoint& cam, bool aliv
 	Point p;
 	Rect r;
 	for(unsigned int i = 0; i < enemies.size(); i++) {
-		if(alive_only && (enemies[i]->stats.cur_state == ENEMY_DEAD || enemies[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+		if(alive_only && (enemies[i]->stats.cur_state == StatBlock::ENEMY_DEAD || enemies[i]->stats.cur_state == StatBlock::ENEMY_CRITDEAD)) {
 			continue;
 		}
-		p = map_to_screen(enemies[i]->stats.pos.x, enemies[i]->stats.pos.y, cam.x, cam.y);
+		p = Utils::mapToScreen(enemies[i]->stats.pos.x, enemies[i]->stats.pos.y, cam.x, cam.y);
 
 		Renderable ren = enemies[i]->getRender();
 		r.w = ren.src.w;
@@ -419,7 +421,7 @@ Enemy* EnemyManager::enemyFocus(const Point& mouse, const FPoint& cam, bool aliv
 		r.x = p.x - ren.offset.x;
 		r.y = p.y - ren.offset.y;
 
-		if (isWithinRect(r, mouse)) {
+		if (Utils::isWithinRect(r, mouse)) {
 			Enemy *enemy = enemies[i];
 			return enemy;
 		}
@@ -432,14 +434,14 @@ Enemy* EnemyManager::getNearestEnemy(const FPoint& pos, bool get_corpse, float *
 	float best_distance = std::numeric_limits<float>::max();
 
 	for (unsigned i=0; i<enemies.size(); i++) {
-		if(!get_corpse && (enemies[i]->stats.cur_state == ENEMY_DEAD || enemies[i]->stats.cur_state == ENEMY_CRITDEAD)) {
+		if(!get_corpse && (enemies[i]->stats.cur_state == StatBlock::ENEMY_DEAD || enemies[i]->stats.cur_state == StatBlock::ENEMY_CRITDEAD)) {
 			continue;
 		}
 		if (get_corpse && !enemies[i]->stats.corpse) {
 			continue;
 		}
 
-		float distance = calcDist(pos, enemies[i]->stats.pos);
+		float distance = Utils::calcDist(pos, enemies[i]->stats.pos);
 		if (distance < best_distance) {
 			best_distance = distance;
 			nearest = enemies[i];
@@ -449,7 +451,7 @@ Enemy* EnemyManager::getNearestEnemy(const FPoint& pos, bool get_corpse, float *
 	if (nearest && saved_distance)
 		*saved_distance = best_distance;
 
-	if (!saved_distance && best_distance > INTERACT_RANGE)
+	if (!saved_distance && best_distance > eset->misc.interact_range)
 		nearest = NULL;
 
 	return nearest;
@@ -463,10 +465,10 @@ void EnemyManager::checkEnemiesforXP() {
 		if (enemies[i]->reward_xp) {
 			//adjust for party exp if necessary
 			float xp_multiplier = 1;
-			if(enemies[i]->kill_source_type == SOURCE_TYPE_ALLY)
-				xp_multiplier = static_cast<float>(PARTY_EXP_PERCENTAGE) / 100.0f;
+			if(enemies[i]->kill_source_type == Power::SOURCE_TYPE_ALLY)
+				xp_multiplier = static_cast<float>(eset->misc.party_exp_percentage) / 100.0f;
 
-			camp->rewardXP(static_cast<int>((static_cast<float>(enemies[i]->stats.xp) * xp_multiplier)), false);
+			camp->rewardXP(static_cast<int>((static_cast<float>(enemies[i]->stats.xp) * xp_multiplier)), !CampaignManager::XP_SHOW_MSG);
 			enemies[i]->reward_xp = false; // clear flag
 		}
 	}
@@ -494,11 +496,11 @@ void EnemyManager::spawn(const std::string& enemy_type, const Point& target) {
 	// quick spawns start facing a random direction
 	espawn.direction = rand() % 8;
 
-	if (!mapr->collider.is_empty(espawn.pos.x, espawn.pos.y)) {
+	if (!mapr->collider.isEmpty(espawn.pos.x, espawn.pos.y)) {
 		return;
 	}
 	else {
-		mapr->collider.block(espawn.pos.x, espawn.pos.y, false);
+		mapr->collider.block(espawn.pos.x, espawn.pos.y, !MapCollision::IS_ALLY);
 	}
 
 	powers->map_enemies.push(espawn);
@@ -520,7 +522,7 @@ void EnemyManager::addRenders(std::vector<Renderable> &r, std::vector<Renderable
 			(*it)->stats.effects.getCurrentAlpha(re.alpha_mod);
 
 			// fade out corpses
-			int fade_time = (CORPSE_TIMEOUT > MAX_FRAMES_PER_SEC) ? MAX_FRAMES_PER_SEC : CORPSE_TIMEOUT;
+			int fade_time = (eset->misc.corpse_timeout > settings->max_frames_per_sec) ? settings->max_frames_per_sec : eset->misc.corpse_timeout;
 			if (dead && fade_time != 0 && (*it)->stats.corpse_ticks <= fade_time) {
 				re.alpha_mod = static_cast<uint8_t>(static_cast<float>((*it)->stats.corpse_ticks) * (re.alpha_mod / static_cast<float>(fade_time)));
 			}

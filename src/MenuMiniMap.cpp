@@ -24,6 +24,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
  */
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "MapCollision.h"
@@ -33,6 +34,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Settings.h"
 #include "SharedResources.h"
 #include "UtilsParsing.h"
+#include "WidgetLabel.h"
 
 #include <cmath>
 
@@ -41,6 +43,7 @@ MenuMiniMap::MenuMiniMap()
 	, color_obst(64,64,64,255)
 	, color_hero(255,255,255,255)
 	, map_surface(NULL)
+	, label(new WidgetLabel())
 {
 	std::string bg_filename;
 
@@ -49,18 +52,18 @@ MenuMiniMap::MenuMiniMap()
 	// Load config settings
 	FileParser infile;
 	// @CLASS MenuMiniMap|Description of menus/minimap.txt
-	if (infile.open("menus/minimap.txt")) {
+	if (infile.open("menus/minimap.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR map_pos|rectangle|Position and dimensions of the map.
 			if(infile.key == "map_pos") {
-				pos = toRect(infile.val);
+				pos = Parse::toRect(infile.val);
 			}
 			// @ATTR text_pos|label|Position of the text label with the map name.
 			else if(infile.key == "text_pos") {
-				text_pos = eatLabelInfo(infile.val);
+				label->setFromLabelInfo(Parse::popLabelInfo(infile.val));
 			}
 			// @ATTR background|filename|Optional background image.
 			else if (infile.key == "background") {
@@ -73,9 +76,7 @@ MenuMiniMap::MenuMiniMap()
 		infile.close();
 	}
 
-	// label for map name
-	label = new WidgetLabel();
-	label->setBasePos(text_pos.x, text_pos.y);
+	label->setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 
 	if (!bg_filename.empty())
 		setBackground(bg_filename);
@@ -89,7 +90,7 @@ void MenuMiniMap::align() {
 }
 
 void MenuMiniMap::setMapTitle(const std::string& map_title) {
-	label->set(window_area.x+text_pos.x, window_area.y+text_pos.y, text_pos.justify, text_pos.valign, map_title, font->getColor("menu_normal"), text_pos.font_style);
+	label->setText(map_title);
 }
 
 void MenuMiniMap::createMapSurface() {
@@ -110,16 +111,16 @@ void MenuMiniMap::render() {
 }
 
 void MenuMiniMap::render(const FPoint& hero_pos) {
-	if (!SHOW_HUD) return;
+	if (!settings->show_hud) return;
 
 	Menu::render();
 
-	if (!text_pos.hidden) label->render();
+	label->render();
 
 	if (map_surface) {
-		if (TILESET_ORIENTATION == TILESET_ISOMETRIC)
+		if (eset->tileset.orientation == eset->tileset.TILESET_ISOMETRIC)
 			renderIso(hero_pos);
-		else // TILESET_ORTHOGONAL
+		else // eset->tileset.TILESET_ORTHOGONAL
 			renderOrtho(hero_pos);
 	}
 }
@@ -131,9 +132,9 @@ void MenuMiniMap::prerender(MapCollision *collider, int map_w, int map_h) {
 	map_size.y = map_h;
 	map_surface->getGraphics()->fillWithColor(Color(0,0,0,0));
 
-	if (TILESET_ORIENTATION == TILESET_ISOMETRIC)
+	if (eset->tileset.orientation == eset->tileset.TILESET_ISOMETRIC)
 		prerenderIso(collider);
-	else // TILESET_ORTHOGONAL
+	else // eset->tileset.TILESET_ORTHOGONAL
 		prerenderOrtho(collider);
 }
 

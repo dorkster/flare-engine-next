@@ -27,6 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 #include "Avatar.h"
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "FileParser.h"
 #include "FontEngine.h"
 #include "Menu.h"
@@ -42,7 +43,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "StatBlock.h"
-#include "TooltipData.h"
+#include "TooltipManager.h"
 #include "UtilsParsing.h"
 #include "WidgetLabel.h"
 #include "WidgetSlot.h"
@@ -58,84 +59,90 @@ MenuActionBar::MenuActionBar()
 	, updated(false)
 	, twostep_slot(-1) {
 
-	src.w = ICON_SIZE;
-	src.h = ICON_SIZE;
+	src.w = eset->resolutions.icon_size;
+	src.h = eset->resolutions.icon_size;
 
 	menu_labels.resize(4);
 
-	tablist = TabList(HORIZONTAL, ACTIONBAR_BACK, ACTIONBAR_FORWARD, ACTIONBAR);
+	tablist = TabList();
+	tablist.setScrollType(Widget::SCROLL_HORIZONTAL);
+	tablist.setInputs(Input::ACTIONBAR_BACK, Input::ACTIONBAR_FORWARD, Input::ACTIONBAR);
 
 	for (unsigned int i=0; i<4; i++) {
-		menus[i] = new WidgetSlot(-1, ACTIONBAR);
+		menus[i] = new WidgetSlot(-1, Input::ACTIONBAR);
 	}
+	menu_titles[MENU_CHARACTER] = msg->get("Character");
+	menu_titles[MENU_INVENTORY] = msg->get("Inventory");
+	menu_titles[MENU_POWERS] = msg->get("Powers");
+	menu_titles[MENU_LOG] = msg->get("Log");
 
 	// Read data from config file
 	FileParser infile;
 
 	// @CLASS MenuActionBar|Description of menus/actionbar.txt
-	if (infile.open("menus/actionbar.txt")) {
+	if (infile.open("menus/actionbar.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while (infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
 
 			// @ATTR slot|repeatable(int, int, int, bool) : Index, X, Y, Locked|Index (max 10) and position for power slot. If a slot is locked, its Power can't be changed by the player.
 			if (infile.key == "slot") {
-				unsigned index = popFirstInt(infile.val);
+				unsigned index = Parse::popFirstInt(infile.val);
 				if (index == 0 || index > 10) {
 					infile.error("MenuActionBar: Slot index must be in range 1-10.");
 				}
 				else {
-					int x = popFirstInt(infile.val);
-					int y = popFirstInt(infile.val);
-					std::string val = popFirstString(infile.val);
-					bool is_locked = (val.empty() ? false : toBool(val));
+					int x = Parse::popFirstInt(infile.val);
+					int y = Parse::popFirstInt(infile.val);
+					std::string val = Parse::popFirstString(infile.val);
+					bool is_locked = (val.empty() ? false : Parse::toBool(val));
 					addSlot(index-1, x, y, is_locked);
 				}
 			}
 			// @ATTR slot_M1|point, bool : Position, Locked|Position for the primary action slot. If the slot is locked, its Power can't be changed by the player.
 			else if (infile.key == "slot_M1") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				std::string val = popFirstString(infile.val);
-				bool is_locked = (val.empty() ? false : toBool(val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				std::string val = Parse::popFirstString(infile.val);
+				bool is_locked = (val.empty() ? false : Parse::toBool(val));
 				addSlot(10, x, y, is_locked);
 			}
 			// @ATTR slot_M2|point, bool : Position Locked|Position for the secondary action slot. If the slot is locked, its Power can't be changed by the player.
 			else if (infile.key == "slot_M2") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				std::string val = popFirstString(infile.val);
-				bool is_locked = (val.empty() ? false : toBool(val));
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				std::string val = Parse::popFirstString(infile.val);
+				bool is_locked = (val.empty() ? false : Parse::toBool(val));
 				addSlot(11, x, y, is_locked);
 			}
 
 			// @ATTR char_menu|point|Position for the Character menu button.
 			else if (infile.key == "char_menu") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				menus[MENU_CHARACTER]->setBasePos(x, y);
-				menus[MENU_CHARACTER]->pos.w = menus[MENU_CHARACTER]->pos.h = ICON_SIZE;
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				menus[MENU_CHARACTER]->setBasePos(x, y, Utils::ALIGN_TOPLEFT);
+				menus[MENU_CHARACTER]->pos.w = menus[MENU_CHARACTER]->pos.h = eset->resolutions.icon_size;
 			}
 			// @ATTR inv_menu|point|Position for the Inventory menu button.
 			else if (infile.key == "inv_menu") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				menus[MENU_INVENTORY]->setBasePos(x, y);
-				menus[MENU_INVENTORY]->pos.w = menus[MENU_INVENTORY]->pos.h = ICON_SIZE;
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				menus[MENU_INVENTORY]->setBasePos(x, y, Utils::ALIGN_TOPLEFT);
+				menus[MENU_INVENTORY]->pos.w = menus[MENU_INVENTORY]->pos.h = eset->resolutions.icon_size;
 			}
 			// @ATTR powers_menu|point|Position for the Powers menu button.
 			else if (infile.key == "powers_menu") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				menus[MENU_POWERS]->setBasePos(x, y);
-				menus[MENU_POWERS]->pos.w = menus[MENU_POWERS]->pos.h = ICON_SIZE;
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				menus[MENU_POWERS]->setBasePos(x, y, Utils::ALIGN_TOPLEFT);
+				menus[MENU_POWERS]->pos.w = menus[MENU_POWERS]->pos.h = eset->resolutions.icon_size;
 			}
 			// @ATTR log_menu|point|Position for the Log menu button.
 			else if (infile.key == "log_menu") {
-				int x = popFirstInt(infile.val);
-				int y = popFirstInt(infile.val);
-				menus[MENU_LOG]->setBasePos(x, y);
-				menus[MENU_LOG]->pos.w = menus[MENU_LOG]->pos.h = ICON_SIZE;
+				int x = Parse::popFirstInt(infile.val);
+				int y = Parse::popFirstInt(infile.val);
+				menus[MENU_LOG]->setBasePos(x, y, Utils::ALIGN_TOPLEFT);
+				menus[MENU_LOG]->pos.w = menus[MENU_LOG]->pos.h = eset->resolutions.icon_size;
 			}
 
 			else infile.error("MenuActionBar: '%s' is not a valid key.", infile.key.c_str());
@@ -173,9 +180,9 @@ void MenuActionBar::addSlot(unsigned index, int x, int y, bool is_locked) {
 		slots.resize(index+1, NULL);
 	}
 
-	slots[index] = new WidgetSlot(-1, ACTIONBAR);
-	slots[index]->setBasePos(x, y);
-	slots[index]->pos.w = slots[index]->pos.h = ICON_SIZE;
+	slots[index] = new WidgetSlot(-1, Input::ACTIONBAR);
+	slots[index]->setBasePos(x, y, Utils::ALIGN_TOPLEFT);
+	slots[index]->pos.w = slots[index]->pos.h = eset->resolutions.icon_size;
 	slots[index]->continuous = true;
 
 	prevent_changing.resize(slots.size());
@@ -197,20 +204,20 @@ void MenuActionBar::align() {
 	}
 
 	// set keybinding labels
-	for (unsigned int i = 0; i < static_cast<unsigned int>(ACTIONBAR_MAIN); i++) {
+	for (unsigned int i = 0; i < static_cast<unsigned int>(SLOT_MAIN1); i++) {
 		if (i < slots.size() && slots[i]) {
-			labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i+BAR_1));
+			labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i + Input::BAR_1).c_str());
 		}
 	}
 
-	for (unsigned int i=ACTIONBAR_MAIN; i < static_cast<unsigned int>(ACTIONBAR_MAX); i++) {
+	for (unsigned int i = SLOT_MAIN1; i < static_cast<unsigned int>(SLOT_MAX); i++) {
 		if (i < slots.size() && slots[i]) {
-			labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i - ACTIONBAR_MAIN + MAIN1));
+			labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i - SLOT_MAIN1 + Input::MAIN1).c_str());
 		}
 	}
 	for (unsigned int i=0; i<menu_labels.size(); i++) {
 		menus[i]->setPos(window_area.x, window_area.y);
-		menu_labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i + CHARACTER));
+		menu_labels[i] = msg->get("Hotkey: %s", inpt->getBindingString(i + Input::CHARACTER).c_str());
 	}
 }
 
@@ -239,21 +246,21 @@ void MenuActionBar::loadGraphics() {
 
 	setBackground("images/menus/actionbar_trim.png");
 
-	graphics = render_device->loadImage("images/menus/slot_empty.png");
+	graphics = render_device->loadImage("images/menus/slot_empty.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		sprite_emptyslot = graphics->createSprite();
-		sprite_emptyslot->setClip(0,0,ICON_SIZE,ICON_SIZE);
+		sprite_emptyslot->setClip(0,0,eset->resolutions.icon_size,eset->resolutions.icon_size);
 		graphics->unref();
 	}
 
-	graphics = render_device->loadImage("images/menus/disabled.png");
+	graphics = render_device->loadImage("images/menus/disabled.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		sprite_disabled = graphics->createSprite();
-		sprite_disabled->setClip(0,0,ICON_SIZE,ICON_SIZE);
+		sprite_disabled->setClip(0,0,eset->resolutions.icon_size,eset->resolutions.icon_size);
 		graphics->unref();
 	}
 
-	graphics = render_device->loadImage("images/menus/attention_glow.png");
+	graphics = render_device->loadImage("images/menus/attention_glow.png", RenderDevice::ERROR_NORMAL);
 	if (graphics) {
 		sprite_attention = graphics->createSprite();
 		graphics->unref();
@@ -274,25 +281,25 @@ void MenuActionBar::logic() {
 			const Power &power = powers->powers[hotkeys_mod[i]];
 
 			if (power.required_items.empty()) {
-				setItemCount(i, -1);
+				setItemCount(i, -1, !IS_EQUIPPED);
 			}
 			else {
 				for (size_t j = 0; j < power.required_items.size(); ++j) {
 					if (power.required_items[j].equipped) {
-						if (!menu->inv->inventory[EQUIPMENT].contain(power.required_items[j].id))
-							setItemCount(i, 0, true);
+						if (!menu->inv->inventory[MenuInventory::EQUIPMENT].contain(power.required_items[j].id, 1))
+							setItemCount(i, 0, IS_EQUIPPED);
 						else
-							setItemCount(i, 1, true);
+							setItemCount(i, 1, IS_EQUIPPED);
 					}
 					else {
 						if (power.required_items[j].quantity == 0) {
-							if (!menu->inv->inventory[CARRIED].contain(power.required_items[j].id))
-								setItemCount(i, 0, true);
+							if (!menu->inv->inventory[MenuInventory::CARRIED].contain(power.required_items[j].id, 1))
+								setItemCount(i, 0, IS_EQUIPPED);
 							else
-								setItemCount(i, 1, true);
+								setItemCount(i, 1, IS_EQUIPPED);
 						}
 						else {
-							setItemCount(i, menu->inv->inventory[CARRIED].count(power.required_items[j].id));
+							setItemCount(i, menu->inv->inventory[MenuInventory::CARRIED].count(power.required_items[j].id), !IS_EQUIPPED);
 						}
 					}
 
@@ -304,7 +311,7 @@ void MenuActionBar::logic() {
 			//see if the slot should be greyed out
 			slot_enabled[i] = (pc->hero_cooldown[hotkeys_mod[i]] == 0)
 							  && (pc->power_cast_ticks[hotkeys_mod[i]] == 0)
-							  && pc->stats.canUsePower(hotkeys_mod[i])
+							  && pc->stats.canUsePower(hotkeys_mod[i], !StatBlock::CAN_USE_PASSIVE)
 							  && (twostep_slot == -1 || static_cast<unsigned>(twostep_slot) == i);
 
 			slots[i]->setIcon(power.icon);
@@ -314,13 +321,13 @@ void MenuActionBar::logic() {
 		}
 
 		if (pc->power_cast_ticks[hotkeys_mod[i]] > 0 && pc->power_cast_duration[hotkeys_mod[i]] > 0) {
-			slot_cooldown_size[i] = (ICON_SIZE * pc->power_cast_ticks[hotkeys_mod[i]]) / pc->power_cast_duration[hotkeys_mod[i]];
+			slot_cooldown_size[i] = (eset->resolutions.icon_size * pc->power_cast_ticks[hotkeys_mod[i]]) / pc->power_cast_duration[hotkeys_mod[i]];
 		}
 		else if (pc->hero_cooldown[hotkeys_mod[i]] > 0 && powers->powers[hotkeys_mod[i]].cooldown > 0) {
-			slot_cooldown_size[i] = (ICON_SIZE * pc->hero_cooldown[hotkeys_mod[i]]) / powers->powers[hotkeys_mod[i]].cooldown;
+			slot_cooldown_size[i] = (eset->resolutions.icon_size * pc->hero_cooldown[hotkeys_mod[i]]) / powers->powers[hotkeys_mod[i]].cooldown;
 		}
 		else {
-			slot_cooldown_size[i] = (slot_enabled[i] ? 0 : ICON_SIZE);;
+			slot_cooldown_size[i] = (slot_enabled[i] ? 0 : eset->resolutions.icon_size);;
 		}
 	}
 
@@ -348,7 +355,7 @@ void MenuActionBar::render() {
 		if (!slot_enabled[i]) {
 			Rect clip;
 			clip.x = clip.y = 0;
-			clip.w = clip.h = ICON_SIZE;
+			clip.w = clip.h = eset->resolutions.icon_size;
 
 			// Wipe from bottom to top
 			if (twostep_slot == -1 || static_cast<unsigned>(twostep_slot) == i) {
@@ -378,9 +385,12 @@ void MenuActionBar::render() {
 			}
 
 			// put an asterisk on this icon if in colorblind mode
-			if (COLORBLIND) {
+			if (settings->colorblind) {
 				WidgetLabel label;
-				label.set(menus[i]->pos.x + 2, menus[i]->pos.y + 2, JUSTIFY_LEFT, VALIGN_TOP, "*", font->getColor("menu_normal"));
+				// TODO remove hard-coded +2 here
+				label.setPos(menus[i]->pos.x + 2, menus[i]->pos.y + 2);
+				label.setText("*");
+				label.setColor(font->getColor(FontEngine::COLOR_MENU_NORMAL));
 				label.render();
 			}
 		}
@@ -390,55 +400,35 @@ void MenuActionBar::render() {
 /**
  * On mouseover, show tooltip for buttons
  */
-TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
-	TooltipData tip;
+void MenuActionBar::renderTooltips(const Point& position) {
+	TooltipData tip_data;
 
-	if (isWithinRect(menus[MENU_CHARACTER]->pos, mouse)) {
-		if (COLORBLIND && requires_attention[MENU_CHARACTER])
-			tip.addText(msg->get("Character") + " (*)");
-		else
-			tip.addText(msg->get("Character"));
+	// menus
+	for (int i = 0; i < 4; ++i) {
+		if (Utils::isWithinRect(menus[i]->pos, position)) {
+			if (settings->colorblind && requires_attention[i])
+				tip_data.addText(menu_titles[i] + " (*)");
+			else
+				tip_data.addText(menu_titles[i]);
 
-		tip.addText(menu_labels[MENU_CHARACTER]);
-		return tip;
+			tip_data.addText(menu_labels[i]);
+
+			tooltipm->push(tip_data, position, TooltipData::STYLE_FLOAT);
+			break;
+		}
 	}
-	if (isWithinRect(menus[MENU_INVENTORY]->pos, mouse)) {
-		if (COLORBLIND && requires_attention[MENU_INVENTORY])
-			tip.addText(msg->get("Inventory") + " (*)");
-		else
-			tip.addText(msg->get("Inventory"));
+	tip_data.clear();
 
-		tip.addText(menu_labels[MENU_INVENTORY]);
-		return tip;
-	}
-	if (isWithinRect(menus[MENU_POWERS]->pos, mouse)) {
-		if (COLORBLIND && requires_attention[MENU_POWERS])
-			tip.addText(msg->get("Powers") + " (*)");
-		else
-			tip.addText(msg->get("Powers"));
-
-		tip.addText(menu_labels[MENU_POWERS]);
-		return tip;
-	}
-	if (isWithinRect(menus[MENU_LOG]->pos, mouse)) {
-		if (COLORBLIND && requires_attention[MENU_LOG])
-			tip.addText(msg->get("Log") + " (*)");
-		else
-			tip.addText(msg->get("Log"));
-
-		tip.addText(menu_labels[MENU_LOG]);
-		return tip;
-	}
 	for (unsigned i = 0; i < slots_count; i++) {
-		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
+		if (slots[i] && Utils::isWithinRect(slots[i]->pos, position)) {
 			if (hotkeys_mod[i] != 0) {
-				tip.addText(powers->powers[hotkeys_mod[i]].name);
+				tip_data.addText(powers->powers[hotkeys_mod[i]].name);
 			}
-			tip.addText(labels[i]);
+			tip_data.addText(labels[i]);
 		}
 	}
 
-	return tip;
+	tooltipm->push(tip_data, position, TooltipData::STYLE_FLOAT);
 }
 
 /**
@@ -446,7 +436,7 @@ TooltipData MenuActionBar::checkTooltip(const Point& mouse) {
  */
 void MenuActionBar::drop(const Point& mouse, int power_index, bool rearranging) {
 	for (unsigned i = 0; i < slots_count; i++) {
-		if (slots[i] && !powers->powers[power_index].no_actionbar && isWithinRect(slots[i]->pos, mouse)) {
+		if (slots[i] && !powers->powers[power_index].no_actionbar && Utils::isWithinRect(slots[i]->pos, mouse)) {
 			if (rearranging) {
 				if (prevent_changing[i]) {
 					actionReturn(power_index);
@@ -470,7 +460,7 @@ void MenuActionBar::drop(const Point& mouse, int power_index, bool rearranging) 
  * Return the power to the last clicked on slot
  */
 void MenuActionBar::actionReturn(int power_index) {
-	drop(last_mouse, power_index, 0);
+	drop(last_mouse, power_index, !REORDER);
 }
 
 /**
@@ -478,7 +468,7 @@ void MenuActionBar::actionReturn(int power_index) {
  */
 void MenuActionBar::remove(const Point& mouse) {
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
+		if (slots[i] && Utils::isWithinRect(slots[i]->pos, mouse)) {
 			if (locked[i]) return;
 			hotkeys[i] = 0;
 			updated = true;
@@ -492,12 +482,12 @@ void MenuActionBar::remove(const Point& mouse) {
  * add that power to the action queue
  */
 void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
-	if (inpt->pressing[ACTIONBAR_USE] && tablist.getCurrent() == -1 && slots_count > 10) {
+	if (inpt->pressing[Input::ACTIONBAR_USE] && tablist.getCurrent() == -1 && slots_count > 10) {
 		tablist.setCurrent(slots[10]);
 		slots[10]->in_focus = true;
 	}
 
-	bool enable_main1 = !platform_options.is_mobile_device || (!menu->menus_open && menu->touch_controls->checkAllowMain1());
+	bool enable_main1 = !platform.is_mobile_device || (!menu->menus_open && menu->touch_controls->checkAllowMain1());
 
 	// check click and hotkey actions
 	for (unsigned i = 0; i < slots_count; i++) {
@@ -510,15 +500,15 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 
 		if (slot_enabled[i]) {
 			// part two of two step activation
-			if (static_cast<unsigned>(twostep_slot) == i && inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) {
+			if (static_cast<unsigned>(twostep_slot) == i && inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1]) {
 				have_aim = true;
 				action.power = hotkeys_mod[i];
 				twostep_slot = -1;
-				inpt->lock[MAIN1] = true;
+				inpt->lock[Input::MAIN1] = true;
 			}
 
 			// mouse/touch click
-			else if (inpt->usingMouse() && slots[i]->checkClick() == ACTIVATED) {
+			else if (inpt->usingMouse() && slots[i]->checkClick() == WidgetSlot::ACTIVATED) {
 				have_aim = false;
 				slot_activated[i] = true;
 				action.power = hotkeys_mod[i];
@@ -527,7 +517,7 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 				// the first step is to mark the slot that was clicked on
 				if (action.power > 0) {
 					const Power &power = powers->powers[action.power];
-					if (power.starting_pos == STARTING_POS_TARGET || power.buff_teleport) {
+					if (power.starting_pos == Power::STARTING_POS_TARGET || power.buff_teleport) {
 						twostep_slot = i;
 						action.power = 0;
 					}
@@ -538,7 +528,7 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 			}
 
 			// joystick/keyboard action button
-			else if (inpt->pressing[ACTIONBAR_USE] && static_cast<unsigned>(tablist.getCurrent()) == i) {
+			else if (inpt->pressing[Input::ACTIONBAR_USE] && static_cast<unsigned>(tablist.getCurrent()) == i) {
 				have_aim = false;
 				slot_activated[i] = true;
 				action.power = hotkeys_mod[i];
@@ -546,17 +536,17 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 			}
 
 			// pressing hotkey
-			else if (i<10 && inpt->pressing[i+BAR_1]) {
+			else if (i<10 && inpt->pressing[i + Input::BAR_1]) {
 				have_aim = inpt->usingMouse();
 				action.power = hotkeys_mod[i];
 				twostep_slot = -1;
 			}
-			else if (i==10 && inpt->pressing[MAIN1] && !inpt->lock[MAIN1] && !isWithinRect(window_area, inpt->mouse) && enable_main1) {
+			else if (i==10 && inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1] && !Utils::isWithinRect(window_area, inpt->mouse) && enable_main1) {
 				have_aim = inpt->usingMouse();
 				action.power = hotkeys_mod[10];
 				twostep_slot = -1;
 			}
-			else if (i==11 && inpt->pressing[MAIN2] && !inpt->lock[MAIN2] && !isWithinRect(window_area, inpt->mouse)) {
+			else if (i==11 && inpt->pressing[Input::MAIN2] && !inpt->lock[Input::MAIN2] && !Utils::isWithinRect(window_area, inpt->mouse)) {
 				have_aim = inpt->usingMouse();
 				action.power = hotkeys_mod[11];
 				twostep_slot = -1;
@@ -568,7 +558,7 @@ void MenuActionBar::checkAction(std::vector<ActionData> &action_queue) {
 			const Power &power = powers->powers[action.power];
 			bool can_use_power = true;
 			action.instant_item = false;
-			if (power.new_state == POWSTATE_INSTANT) {
+			if (power.new_state == Power::STATE_INSTANT) {
 				for (size_t j = 0; j < power.required_items.size(); ++j) {
 					if (power.required_items[j].id > 0 && !power.required_items[j].equipped) {
 						action.instant_item = true;
@@ -617,7 +607,7 @@ int MenuActionBar::checkDrag(const Point& mouse) {
 	int power_index;
 
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithinRect(slots[i]->pos, mouse)) {
+		if (slots[i] && Utils::isWithinRect(slots[i]->pos, mouse)) {
 			if (prevent_changing[i])
 				return 0;
 
@@ -656,8 +646,8 @@ void MenuActionBar::checkMenu(bool &menu_c, bool &menu_i, bool &menu_p, bool &me
 	}
 
 	// also allow ACTIONBAR_USE to open menus
-	if (inpt->pressing[ACTIONBAR_USE] && !inpt->lock[ACTIONBAR_USE]) {
-		inpt->lock[ACTIONBAR_USE] = true;
+	if (inpt->pressing[Input::ACTIONBAR_USE] && !inpt->lock[Input::ACTIONBAR_USE]) {
+		inpt->lock[Input::ACTIONBAR_USE] = true;
 
 		unsigned cur_slot = static_cast<unsigned>(tablist.getCurrent());
 
@@ -701,12 +691,12 @@ void MenuActionBar::resetSlots() {
  * Set a target depending on how a power was triggered
  */
 FPoint MenuActionBar::setTarget(bool have_aim, const Power& pow) {
-	if (have_aim && MOUSE_AIM) {
+	if (have_aim && settings->mouse_aim) {
 		FPoint map_pos;
 		if (pow.aim_assist)
-			map_pos = screen_to_map(inpt->mouse.x,  inpt->mouse.y + AIM_ASSIST, pc->stats.pos.x, pc->stats.pos.y);
+			map_pos = Utils::screenToMap(inpt->mouse.x,  inpt->mouse.y + eset->misc.aim_assist, pc->stats.pos.x, pc->stats.pos.y);
 		else
-			map_pos = screen_to_map(inpt->mouse.x,  inpt->mouse.y, pc->stats.pos.x, pc->stats.pos.y);
+			map_pos = Utils::screenToMap(inpt->mouse.x,  inpt->mouse.y, pc->stats.pos.x, pc->stats.pos.y);
 
 		if (pow.target_nearest > 0) {
 			if (!pow.requires_corpse && powers->checkNearestTargeting(pow, &pc->stats, false)) {
@@ -720,7 +710,7 @@ FPoint MenuActionBar::setTarget(bool have_aim, const Power& pow) {
 		return map_pos;
 	}
 	else {
-		return calcVector(pc->stats.pos, pc->stats.direction, pc->stats.melee_range);
+		return Utils::calcVector(pc->stats.pos, pc->stats.direction, pc->stats.melee_range);
 	}
 }
 
@@ -748,7 +738,7 @@ void MenuActionBar::setItemCount(unsigned index, int count, bool is_equipped) {
 
 bool MenuActionBar::isWithinSlots(const Point& mouse) {
 	for (unsigned i=0; i<slots_count; i++) {
-		if (slots[i] && isWithinRect(slots[i]->pos, mouse))
+		if (slots[i] && Utils::isWithinRect(slots[i]->pos, mouse))
 			return true;
 	}
 	return false;
@@ -756,7 +746,7 @@ bool MenuActionBar::isWithinSlots(const Point& mouse) {
 
 bool MenuActionBar::isWithinMenus(const Point& mouse) {
 	for (unsigned i=0; i<4; i++) {
-		if (isWithinRect(menus[i]->pos, mouse))
+		if (Utils::isWithinRect(menus[i]->pos, mouse))
 			return true;
 	}
 	return false;
@@ -780,7 +770,7 @@ void MenuActionBar::addPower(const int id, const int target_id) {
 
 	// if we're not replacing an existing power, avoid placing duplicate powers
 	if (target_id == 0) {
-		for (unsigned i=0; i<12; ++i) {
+		for (unsigned i = 0; i < static_cast<unsigned>(SLOT_MAX); ++i) {
 			if (hotkeys[i] == id)
 				return;
 		}

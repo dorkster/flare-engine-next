@@ -24,6 +24,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 **/
 
 #include "CommonIncludes.h"
+#include "EngineSettings.h"
 #include "ModManager.h"
 #include "Settings.h"
 #include "SharedResources.h"
@@ -48,17 +49,17 @@ SDLSoundManager::SDLSoundManager()
 	, music_filename("")
 	, last_played_sid(-1)
 {
-	if (AUDIO && Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024)) {
-		logError("SDLSoundManager: Error during Mix_OpenAudio: %s", SDL_GetError());
-		AUDIO = false;
+	if (settings->audio && Mix_OpenAudio(22050, AUDIO_S16SYS, 2, 1024)) {
+		Utils::logError("SDLSoundManager: Error during Mix_OpenAudio: %s", SDL_GetError());
+		settings->audio = false;
 	}
 
-	if (AUDIO) {
-		logInfo("SoundManager: Using SDLSoundManager (SDL2, %s)", SDL_GetCurrentAudioDriver());
+	if (settings->audio) {
+		Utils::logInfo("SoundManager: Using SDLSoundManager (SDL2, %s)", SDL_GetCurrentAudioDriver());
 	}
 
 	Mix_AllocateChannels(128);
-	setVolumeSFX(SOUND_VOLUME);
+	setVolumeSFX(settings->sound_volume);
 }
 
 SDLSoundManager::~SDLSoundManager() {
@@ -97,7 +98,7 @@ void SDLSoundManager::logic(const FPoint& center) {
 		}
 
 		/* control mixing playback depending on distance */
-		float v = calcDist(center, it->second.location) / static_cast<float>(SOUND_FALLOFF);
+		float v = Utils::calcDist(center, it->second.location) / static_cast<float>(eset->misc.sound_falloff);
 		if (it->second.loop) {
 			if (v < 1.0 && it->second.paused) {
 				Mix_Resume(it->first);
@@ -160,7 +161,7 @@ SoundID SDLSoundManager::load(const std::string& filename, const std::string& er
 	SoundMapIterator it;
 	std::locale loc;
 
-	if (!AUDIO)
+	if (!settings->audio)
 		return 0;
 
 	const std::collate<char>& coll = std::use_facet<std::collate<char> >(loc);
@@ -178,7 +179,7 @@ SoundID SDLSoundManager::load(const std::string& filename, const std::string& er
 	lsnd.chunk = Mix_LoadWAV(realfilename.c_str());
 	lsnd.refCnt = 1;
 	if (!lsnd.chunk) {
-		logError("SoundManager: %s: Loading sound %s (%s) failed: %s", errormessage.c_str(),
+		Utils::logError("SoundManager: %s: Loading sound %s (%s) failed: %s", errormessage.c_str(),
 				realfilename.c_str(), filename.c_str(), Mix_GetError());
 		return 0;
 	}
@@ -216,7 +217,7 @@ void SDLSoundManager::play(SoundID sid, const std::string& channel, const FPoint
 	if (!loop && sid)
 		last_played_sid = sid;
 
-	if (!sid || !AUDIO || !SOUND_VOLUME)
+	if (!sid || !settings->audio || !settings->sound_volume)
 		return;
 
 	it = sounds.find(sid);
@@ -231,7 +232,7 @@ void SDLSoundManager::play(SoundID sid, const std::string& channel, const FPoint
 	p.loop = loop;
 	p.finished = false;
 
-	if (p.virtual_channel != GLOBAL_VIRTUAL_CHANNEL) {
+	if (p.virtual_channel != DEFAULT_CHANNEL) {
 
 		/* if playback exists, stop it befor playin next sound */
 		vcit = channels.find(p.virtual_channel);
@@ -249,12 +250,12 @@ void SDLSoundManager::play(SoundID sid, const std::string& channel, const FPoint
 	int c = Mix_PlayChannel(-1, it->second->chunk, (loop ? -1 : 0));
 
 	if (c == -1)
-		logError("SoundManager: Failed to play sound, no more channels available.");
+		Utils::logError("SoundManager: Failed to play sound, no more channels available.");
 
 	// precalculate mixing volume if sound has a location
 	Uint8 d = 0;
 	if (p.location.x != 0 || p.location.y != 0) {
-		float v = 255.0f * (calcDist(lastPos, p.location) / static_cast<float>(SOUND_FALLOFF));
+		float v = 255.0f * (Utils::calcDist(lastPos, p.location) / static_cast<float>(eset->misc.sound_falloff));
 		v = std::min<float>(std::max<float>(v, 0.0f), 255.0f);
 		d = Uint8(v);
 	}
@@ -296,7 +297,7 @@ void SDLSoundManager::setVolumeSFX(int value) {
 }
 
 void SDLSoundManager::loadMusic(const std::string& filename) {
-	if (!AUDIO)
+	if (!settings->audio)
 		return;
 
 	if (filename == music_filename) {
@@ -316,7 +317,7 @@ void SDLSoundManager::loadMusic(const std::string& filename) {
 		playMusic();
 	}
 	else {
-		logError("SoundManager: Couldn't load music file '%s': %s", filename.c_str(), Mix_GetError());
+		Utils::logError("SoundManager: Couldn't load music file '%s': %s", filename.c_str(), Mix_GetError());
 	}
 }
 
@@ -328,26 +329,26 @@ void SDLSoundManager::unloadMusic() {
 }
 
 void SDLSoundManager::playMusic() {
-	if (!AUDIO || !music) return;
+	if (!settings->audio || !music) return;
 
-	Mix_VolumeMusic(MUSIC_VOLUME);
+	Mix_VolumeMusic(settings->music_volume);
 	Mix_PlayMusic(music, -1);
 }
 
 void SDLSoundManager::stopMusic() {
-	if (!AUDIO || !music) return;
+	if (!settings->audio || !music) return;
 
 	Mix_HaltMusic();
 }
 
 void SDLSoundManager::setVolumeMusic(int value) {
-	if (!AUDIO || !music) return;
+	if (!settings->audio || !music) return;
 
 	Mix_VolumeMusic(value);
 }
 
 bool SDLSoundManager::isPlayingMusic() {
-	return (AUDIO && music && MUSIC_VOLUME > 0 && Mix_PlayingMusic());
+	return (settings->audio && music && settings->music_volume > 0 && Mix_PlayingMusic());
 }
 
 int SDLSoundManager::SetChannelPosition(int channel, Sint16 angle, Uint8 distance) {

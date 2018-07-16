@@ -42,7 +42,7 @@ MenuHUDLog::MenuHUDLog()
 
 	// Load config settings
 	FileParser infile;
-	if(infile.open("menus/hudlog.txt")) {
+	if(infile.open("menus/hudlog.txt", FileParser::MOD_FILE, FileParser::ERROR_NORMAL)) {
 		while(infile.next()) {
 			if (parseMenuKey(infile.key, infile.val))
 				continue;
@@ -56,8 +56,6 @@ MenuHUDLog::MenuHUDLog()
 
 	font->setFont("font_regular");
 	paragraph_spacing = font->getLineHeight()/2;
-
-	color_normal = font->getColor("menu_normal");
 }
 
 /**
@@ -66,7 +64,7 @@ MenuHUDLog::MenuHUDLog()
  */
 int MenuHUDLog::calcDuration(const std::string& s) {
 	// 5 seconds plus an extra second per 10 letters
-	return MAX_FRAMES_PER_SEC * 5 + static_cast<int>(s.length()) * (MAX_FRAMES_PER_SEC/10);
+	return settings->max_frames_per_sec * 5 + static_cast<int>(s.length()) * (settings->max_frames_per_sec/10);
 }
 
 /**
@@ -83,15 +81,15 @@ void MenuHUDLog::logic() {
 
 	// click to dismiss messages when rendered on top of other menus
 	if (overlay_bg && click_to_dismiss) {
-		if (inpt->pressing[MAIN1] && !inpt->lock[MAIN1]) {
+		if (inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1]) {
 			Rect overlay_area;
 			overlay_area.x = static_cast<int>(overlay_bg->getDest().x);
 			overlay_area.y = static_cast<int>(overlay_bg->getDest().y);
 			overlay_area.w = overlay_bg->getGraphicsWidth();
 			overlay_area.h = overlay_bg->getGraphicsHeight();
 
-			if (isWithinRect(overlay_area, inpt->mouse)) {
-				inpt->lock[MAIN1] = true;
+			if (Utils::isWithinRect(overlay_area, inpt->mouse)) {
+				inpt->lock[Input::MAIN1] = true;
 				hide_overlay = true;
 			}
 		}
@@ -176,20 +174,20 @@ void MenuHUDLog::renderOverlay() {
 /**
  * Add a new message to the log
  */
-void MenuHUDLog::add(const std::string& s, bool prevent_spam) {
+void MenuHUDLog::add(const std::string& s, int type) {
 	hide_overlay = false;
 
 	// Make sure we don't spam the same message repeatedly
-	if (log_msg.empty() || log_msg.back() != s || !prevent_spam) {
+	if (log_msg.empty() || log_msg.back() != s || type == MSG_UNIQUE) {
 		// add new message
-		log_msg.push_back(substituteVarsInString(s, pc));
+		log_msg.push_back(Utils::substituteVarsInString(s, pc));
 		msg_age.push_back(calcDuration(log_msg.back()));
 
 		// render the log entry and store it in a buffer
 		font->setFont("font_regular");
 		Point size = font->calc_size(log_msg.back(), window_area.w - (paragraph_spacing*2));
 		Image *graphics = render_device->createImage(size.x, size.y);
-		font->renderShadowed(log_msg.back(), 0, 0, JUSTIFY_LEFT, graphics, window_area.w - (paragraph_spacing*2), color_normal);
+		font->renderShadowed(log_msg.back(), 0, 0, FontEngine::JUSTIFY_LEFT, graphics, window_area.w - (paragraph_spacing*2), font->getColor(FontEngine::COLOR_MENU_NORMAL));
 		msg_buffer.push_back(graphics->createSprite());
 		graphics->unref();
 	}

@@ -24,13 +24,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CommonIncludes.h"
 #include "Utils.h"
 
-const int JUSTIFY_LEFT = 0;
-const int JUSTIFY_RIGHT = 1;
-const int JUSTIFY_CENTER = 2;
-
-const Color FONT_WHITE = Color(255,255,255);
-const Color FONT_BLACK = Color(0,0,0);
-
 class FontStyle {
 public:
 	std::string name;
@@ -51,12 +44,39 @@ public:
  *
  */
 class FontEngine {
-
 public:
+	enum {
+		JUSTIFY_LEFT = 0,
+		JUSTIFY_RIGHT = 1,
+		JUSTIFY_CENTER = 2
+	};
+
+	enum {
+		COLOR_WHITE = 0,
+		COLOR_BLACK = 1,
+		COLOR_MENU_NORMAL = 2,
+		COLOR_MENU_BONUS = 3,
+		COLOR_MENU_PENALTY = 4,
+		COLOR_WIDGET_NORMAL = 5,
+		COLOR_WIDGET_DISABLED = 6,
+		COLOR_COMBAT_GIVEDMG = 7,
+		COLOR_COMBAT_TAKEDMG = 8,
+		COLOR_COMBAT_CRIT = 9,
+		COLOR_COMBAT_BUFF = 10,
+		COLOR_COMBAT_MISS = 11,
+		COLOR_REQUIREMENTS_NOT_MET = 12,
+		COLOR_ITEM_BONUS = 13,
+		COLOR_ITEM_PENALTY = 14,
+		COLOR_ITEM_FLAVOR = 15,
+		COLOR_HARDCORE_NAME = 16
+	};
+	static const size_t COLOR_COUNT = 17;
+
+	static const bool USE_ELLIPSIS = true;
 	FontEngine();
 	virtual ~FontEngine() {};
 
-	Color getColor(const std::string& _color);
+	Color getColor(size_t _color);
 
 	Point calc_size(const std::string& text_with_newlines, int width);
 
@@ -73,12 +93,13 @@ public:
 	int cursor_y;
 
 protected:
+	size_t stringToFontColor(const std::string& val);
 	Rect position(const std::string& text, int x, int y, int justify);
 	virtual void renderInternal(const std::string& text, int x, int y, int justify, Image *target, const Color& color) = 0;
 	std::string popTokenByWidth(std::string& text, int width);
+	std::string getNextToken(const std::string& s, size_t& cursor, char separator);
 
-	std::map<std::string,Color> color_map;
-
+	std::vector<Color> font_colors;
 };
 
 #endif

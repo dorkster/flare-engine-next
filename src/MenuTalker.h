@@ -56,8 +56,6 @@ private:
 	std::string font_who;
 	std::string font_dialog;
 
-	Color color_normal;
-
 	WidgetLabel *label_name;
 	WidgetScrollBox *textbox;
 
@@ -68,7 +66,7 @@ public:
 
 	NPC *npc;
 
-	void chooseDialogNode(int requested_node = -1);
+	void chooseDialogNode(int requested_node);
 	void logic();
 	void render();
 	void setHero(StatBlock &stats);
