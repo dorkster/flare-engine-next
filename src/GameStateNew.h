@@ -50,6 +50,12 @@ public:
 
 class GameStateNew : public GameState {
 private:
+	enum {
+		OPTION_CURRENT = 0,
+		OPTION_PREV = 1,
+		OPTION_NEXT = 2,
+		OPTION_RANDOM = 3
+	};
 
 	void loadGraphics();
 	void loadPortrait(const std::string& portrait_filename);
@@ -68,6 +74,7 @@ private:
 	WidgetButton *button_create;
 	WidgetButton *button_next;
 	WidgetButton *button_prev;
+	WidgetButton *button_randomize;
 	WidgetLabel *label_portrait;
 	WidgetLabel *label_name;
 	WidgetInput *input_name;
@@ -82,6 +89,8 @@ private:
 	bool show_classlist;
 	bool modified_name;
 	bool delete_items;
+	bool random_option;
+	bool random_class;
 
 	std::vector<int> all_options;
 

@@ -34,9 +34,11 @@ class WidgetSlot : public Widget {
 private:
 	Sprite *slot_selected;
 	Sprite *slot_checked;
+	Sprite *label_bg;
 
 	WidgetLabel label_amount;
 	int icon_id;		// current slot id
+	int overlay_id;     // icon id for the overlay image
 	int amount;			// entries amount in slot
 	int max_amount;		// if > 1 always display amount
 	std::string amount_str; // formatted display of amount
@@ -50,9 +52,12 @@ public:
 	};
 
 	static const int NO_ICON = -1;
+	static const int NO_OVERLAY = -1;
 
 	WidgetSlot(int _icon_id, int _activate_key);
 	~WidgetSlot();
+
+	void setPos(int offset_x, int offset_y);
 
 	void activate();
 	void deactivate();
@@ -62,7 +67,8 @@ public:
 
 	CLICK_TYPE checkClick();
 	CLICK_TYPE checkClick(int x, int y);
-	void setIcon(int _icon_id);
+	int getIcon();
+	void setIcon(int _icon_id, int _overlay_id);
 	void setAmount(int _amount, int _max_amount);
 	void render();
 	void renderSelection();

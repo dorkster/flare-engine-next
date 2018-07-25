@@ -8,6 +8,15 @@ Engine features:
 * Vertical scrolling cutscenes can be manually scrolled with the Up and Down keys.
 * Scenes in cutscenes can now pause indefinitely by using "pause=-1".
 * Added a "lifeform" flag to enemy stats. Setting it to false will display "Destroyed" instead of "Dead" when their HP reaches 0.
+* Mod descriptions can now be translated with "description_locale".
+* Added "enable_overlay", "start_at_bottom", and "overlay_at_bottom" to HUD log configuration.
+* Added "requires_status" and "requires_not_status" to book text.
+* Added ability for book text to use special variables like "${AVATAR_NAME}".
+* Added random selection of portrait and class to New Game menu.
+* Allow setting the class list height in the New Game menu.
+* Display a list of completed quests in the Quests log.
+* Item icons can now have an overlay image based on their quality.
+* Added widget settings for modifying the appearance of the quantity text on item icons.
 
 Engine fixes:
 
@@ -17,6 +26,7 @@ Engine fixes:
 * Fixed GetText bug where strings weren't being sanitized.
 * Fix locked left/right keys when loading a cutscene from the dev console.
 * Using the --mods command line flag doesn't overwrite the user's mod configuration.
+* Fix infinte loop bug when trying to render multi-line text in a small area.
 * Lots of code cleanup.
 
 New translations:
@@ -33,6 +43,11 @@ Translation updates:
 * Scottish Gaelic (gd) update (GunChleoc)
 * Russian (ru) update (Sam Vo)
 * Chinese (zh) update (dumaosen)
+
+Game changes:
+
+* The player's name can now been seen if they write it in the Book of the Dead.
+* Fixed not being able to do the Merchant's Journal quest if Abasi was in his final location.
 
 
 

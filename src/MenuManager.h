@@ -50,6 +50,7 @@ class MenuDevConsole;
 class MenuTouchControls;
 class StatBlock;
 class Subtitles;
+class WidgetSlot;
 
 class MenuManager {
 private:
@@ -74,7 +75,7 @@ private:
 	ItemStack drag_stack;
 	int drag_power;
 	int drag_src;
-	Sprite *drag_icon;
+	WidgetSlot *drag_icon;
 
 	bool done;
 
@@ -82,7 +83,7 @@ private:
 	Point keydrag_pos;
 
 	void renderIcon(int x, int y);
-	void setDragIcon(int icon_id);
+	void setDragIcon(int icon_id, int overlay_id);
 	void setDragIconItem(ItemStack stack);
 
 	void handleKeyboardNavigation();
