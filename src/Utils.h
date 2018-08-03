@@ -34,6 +34,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include <queue>
 
 typedef unsigned long SoundID;
+typedef unsigned long StatusID;
 
 class Avatar;
 class FPoint; // needed for Point -> FPoint constructor
@@ -131,6 +132,8 @@ namespace Utils {
 	int rotateDirection(int direction, int val);
 
 	std::string getTimeString(const unsigned long time);
+
+	unsigned long hashString(const std::string& str);
 
 	void lockFileRead();
 	void lockFileWrite(int increment);

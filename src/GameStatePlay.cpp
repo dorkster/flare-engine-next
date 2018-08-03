@@ -84,7 +84,6 @@ GameStatePlay::GameStatePlay()
 	, enemy(NULL)
 	, npc_id(-1)
 	, npc_from_map(true)
-	, nearest_npc(-1)
 	, menu_enemy_timeout(settings->max_frames_per_sec * 10)
 	, second_ticks(0)
 	, is_first_map_load(true)
@@ -96,9 +95,10 @@ GameStatePlay::GameStatePlay()
 	if (items == NULL)
 		items = new ItemManager();
 
+	camp = new CampaignManager();
+
 	loot = new LootManager();
 	powers = new PowerManager();
-	camp = new CampaignManager();
 	mapr = new MapRenderer();
 	pc = new Avatar();
 	enemym = new EnemyManager();
@@ -127,7 +127,7 @@ void GameStatePlay::refreshWidgets() {
 void GameStatePlay::resetGame() {
 	mapr->load("maps/spawn.txt");
 	setLoadingFrame();
-	camp->status.clear();
+	camp->resetAllStatuses();
 	pc->init();
 	pc->stats.currency = 0;
 	menu->act->clear();
@@ -302,7 +302,8 @@ void GameStatePlay::checkLoot() {
 
 	if (!pickup.empty()) {
 		menu->inv->add(pickup, MenuInventory::CARRIED, ItemStorage::NO_SLOT, MenuInventory::ADD_PLAY_SOUND, MenuInventory::ADD_AUTO_EQUIP);
-		camp->setStatus(items->items[pickup.item].pickup_status);
+		StatusID pickup_status = camp->registerStatus(items->items[pickup.item].pickup_status);
+		camp->setStatus(pickup_status);
 		pickup.clear();
 	}
 
@@ -367,16 +368,25 @@ void GameStatePlay::checkTeleport() {
 				Utils::logError("GameStatePlay: Spawn position (%d, %d) is blocked.", static_cast<int>(pc->stats.pos.x), static_cast<int>(pc->stats.pos.y));
 			}
 
-			enemym->handleNewMap();
 			hazards->handleNewMap();
 			loot->handleNewMap();
 			powers->handleNewMap(&mapr->collider);
 			menu->enemy->handleNewMap();
+			menu->stash->visible = false;
+
+			// switch off teleport flag so we can check if an on_load event has teleportation
+			mapr->teleportation = false;
+
+			mapr->executeOnLoadEvents();
+			if (mapr->teleportation)
+				on_load_teleport = true;
+
+			// enemies and npcs should be initialized AFTER on_load events execute
+			enemym->handleNewMap();
 			npcs->handleNewMap();
 			resetNPC();
-			menu->stash->visible = false;
+
 			menu->mini->prerender(&mapr->collider, mapr->w, mapr->h);
-			npc_id = nearest_npc = -1;
 
 			// return to title (permadeath) OR auto-save
 			if (pc->stats.permadeath && pc->stats.cur_state == StatBlock::AVATAR_DEAD) {
@@ -390,13 +400,6 @@ void GameStatePlay::checkTeleport() {
 				else
 					is_first_map_load = false;
 			}
-
-			// switch off teleport flag so we can check if an on_load event has teleportation
-			mapr->teleportation = false;
-
-			mapr->executeOnLoadEvents();
-			if (mapr->teleportation)
-				on_load_teleport = true;
 		}
 
 		if (mapr->collider.isOutsideMap(pc->stats.pos.x, pc->stats.pos.y)) {
@@ -517,7 +520,7 @@ void GameStatePlay::loadTitles() {
 				// @ATTR title.requires_status|list(string)|Requires status.
 				std::string repeat_val = Parse::popFirstString(infile.val);
 				while (repeat_val != "") {
-					titles.back().requires_status.push_back(repeat_val);
+					titles.back().requires_status.push_back(camp->registerStatus(repeat_val));
 					repeat_val = Parse::popFirstString(infile.val);
 				}
 			}
@@ -525,7 +528,7 @@ void GameStatePlay::loadTitles() {
 				// @ATTR title.requires_not_status|list(string)|Requires not status.
 				std::string repeat_val = Parse::popFirstString(infile.val);
 				while (repeat_val != "") {
-					titles.back().requires_not_status.push_back(repeat_val);
+					titles.back().requires_not_status.push_back(camp->registerStatus(repeat_val));
 					repeat_val = Parse::popFirstString(infile.val);
 				}
 			}
