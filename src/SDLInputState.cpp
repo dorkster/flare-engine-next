@@ -273,7 +273,7 @@ void SDLInputState::handle() {
 					un_press[Input::MAIN1] = false;
 
 					FingerData fd;
-					fd.id = event.tfinger.fingerId;
+					fd.id = static_cast<long int>(event.tfinger.fingerId);
 					fd.pos.x = mouse.x;
 					fd.pos.y = mouse.y;
 					touch_fingers.push_back(fd);
@@ -674,10 +674,10 @@ std::string SDLInputState::getMovementString() {
 		ss << getBindingString(Input::DOWN, InputState::BINDING_JOYSTICK);
 	}
 	else if (settings->touchscreen) {
-		ss << msg->get("%s on ground", msg->get("Tap").c_str());
+		ss << msg->get("%s on ground", msg->get("Tap"));
 	}
 	else if (settings->mouse_move) {
-		ss << msg->get("%s on ground", getBindingString(Input::MAIN1).c_str());
+		ss << msg->get("%s on ground", getBindingString(Input::MAIN1));
 	}
 	else {
 		ss << getBindingString(Input::LEFT) <<  "/";
@@ -698,10 +698,10 @@ std::string SDLInputState::getAttackString() {
 		ss << getBindingString(Input::ACTIONBAR_USE, InputState::BINDING_JOYSTICK);
 	}
 	else if (settings->touchscreen) {
-		ss << msg->get("%s on enemy", msg->get("Tap").c_str());
+		ss << msg->get("%s on enemy", msg->get("Tap"));
 	}
 	else if (settings->mouse_move) {
-		ss << msg->get("%s on enemy", getBindingString(Input::MAIN1).c_str());
+		ss << msg->get("%s on enemy", getBindingString(Input::MAIN1));
 	}
 	else {
 		ss << getBindingString(Input::MAIN1);
@@ -760,15 +760,15 @@ void SDLInputState::setKeybind(int key, int binding_button, int bindings_list, s
 				continue;
 
 			if ((bindings_list == InputState::BINDING_DEFAULT && binding[i] == key && i != binding_button) || (bindings_list == InputState::BINDING_ALT && binding[i] == key)) {
-				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_DEFAULT).c_str()) + " '" + binding_name[i] + "'";
+				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_DEFAULT)) + " '" + binding_name[i] + "'";
 				binding[i] = -1;
 			}
 			if ((bindings_list == InputState::BINDING_DEFAULT && binding_alt[i] == key) || (bindings_list == InputState::BINDING_ALT && binding_alt[i] == key && i != binding_button)) {
-				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_ALT).c_str()) + " '" + binding_name[i] + "'";
+				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_ALT)) + " '" + binding_name[i] + "'";
 				binding_alt[i] = -1;
 			}
 			if (bindings_list == InputState::BINDING_JOYSTICK && binding_joy[i] == key && i != binding_button) {
-				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_JOYSTICK).c_str()) + " '" + binding_name[i] + "'";
+				keybind_msg = msg->get("'%s' is no longer bound to:", getBindingString(i, InputState::BINDING_JOYSTICK)) + " '" + binding_name[i] + "'";
 				binding_joy[i] = -1;
 			}
 		}

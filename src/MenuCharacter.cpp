@@ -190,7 +190,7 @@ MenuCharacter::MenuCharacter(StatBlock *_stats)
 			else if (infile.key == "show_stat") {
 				std::string stat_name = Parse::popFirstString(infile.val);
 
-				for (unsigned i=0; i<Stats::COUNT; ++i) {
+				for (int i=0; i<Stats::COUNT; ++i) {
 					if (stat_name == Stats::KEY[i]) {
 						show_stat[i] = Parse::toBool(Parse::popFirstString(infile.val));
 						break;
@@ -315,7 +315,7 @@ void MenuCharacter::refreshStats() {
 
 	// scrolling stat list
 	unsigned stat_index = 0;
-	for (unsigned i=0; i<Stats::COUNT; ++i) {
+	for (int i=0; i<Stats::COUNT; ++i) {
 		if (!show_stat[i]) continue;
 
 		// insert damage stats before absorb min
@@ -350,8 +350,8 @@ void MenuCharacter::refreshStats() {
 	if (show_resists) {
 		for (unsigned int j=0; j<stats->vulnerable.size(); ++j) {
 			ss.str("");
-			ss << msg->get("%s Resistance", eset->elements.list[j].name.c_str()) << ": " << (100 - stats->vulnerable[j]) << "%";
-			statList->set(j+stat_index, ss.str(), msg->get("Reduces the damage taken from \"%s\" elemental attacks.", eset->elements.list[j].name.c_str()));
+			ss << msg->get("%s Resistance", eset->elements.list[j].name) << ": " << (100 - stats->vulnerable[j]) << "%";
+			statList->set(j+stat_index, ss.str(), msg->get("Reduces the damage taken from \"%s\" elemental attacks.", eset->elements.list[j].name));
 		}
 	}
 
@@ -371,7 +371,7 @@ void MenuCharacter::refreshStats() {
 		cstat[j].tip.addText(cstat[j].label->getText());
 		cstat[j].tip.addText(msg->get("base (%d), bonus (%d)", *(base_stats[j-2]), *(base_stats_add[j-2])));
 		bool have_bonus = false;
-		for (size_t i = 0; i < Stats::COUNT; ++i) {
+		for (int i = 0; i < Stats::COUNT; ++i) {
 			// damage types are displayed before absorb
 			if (i == Stats::ABS_MIN) {
 				for (size_t k = 0; k < eset->damage_types.count; ++k) {
@@ -421,7 +421,7 @@ std::string MenuCharacter::statTooltip(int stat) {
 
 	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 		if (stats->per_primary[i][stat] > 0)
-			tooltip_text += msg->get("Each point of %s grants %d.", eset->primary_stats.list[i].name.c_str(), stats->per_primary[i][stat]) + ' ';
+			tooltip_text += msg->get("Each point of %s grants %d.", eset->primary_stats.list[i].name, stats->per_primary[i][stat]) + ' ';
 	}
 
 	std::string full_tooltip = "";
@@ -445,7 +445,7 @@ std::string MenuCharacter::damageTooltip(size_t dmg_type) {
 
 	for (size_t i = 0; i < eset->primary_stats.list.size(); ++i) {
 		if (stats->per_primary[i][Stats::COUNT + dmg_type] > 0)
-			tooltip_text += msg->get("Each point of %s grants %d.", eset->primary_stats.list[i].name.c_str(), stats->per_primary[i][Stats::COUNT + dmg_type]) + ' ';
+			tooltip_text += msg->get("Each point of %s grants %d.", eset->primary_stats.list[i].name, stats->per_primary[i][Stats::COUNT + dmg_type]) + ' ';
 	}
 
 	size_t real_dmg_type = dmg_type / 2;
