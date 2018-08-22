@@ -3,93 +3,92 @@
 # 
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 # Translators:
-# Justin Jacobs <jajdorkster@gmail.com>, 2018
-# GunChleoc, 2018
+# Emil, 2018
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-08-05 20:36+\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: GunChleoc, 2018\n"
-"Language-Team: Gaelic, Scottish (https://www.transifex.com/flareorg/teams/84925/gd/)\n"
+"Last-Translator: Emil, 2018\n"
+"Language-Team: Bulgarian (https://www.transifex.com/flareorg/teams/84925/bg/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: gd\n"
-"Plural-Forms: nplurals=4; plural=(n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3;\n"
+"Language: bg\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../engine/primary_stats.txt:3
 msgid "Physical"
-msgstr "Bodhaig"
+msgstr "Сила"
 
 #: ../engine/primary_stats.txt:7
 msgid "Mental"
-msgstr "Inntinn"
+msgstr "Интелект"
 
 #: ../engine/primary_stats.txt:11
 msgid "Offense"
-msgstr "Ionnsaigh"
+msgstr "Ловкост"
 
 #: ../engine/primary_stats.txt:15
 msgid "Defense"
-msgstr "Dìon"
+msgstr "Защита"
 
 #: ../engine/damage_types.txt:3
 msgid "Melee Damage"
-msgstr "Dochann dlùth"
+msgstr "Близкобойни щети"
 
 #: ../engine/damage_types.txt:4
 msgid "Increases the damage done with swords and other melee weapons."
-msgstr "Meudaichidh seo an dochann a nì claidheamhan is airm dhlùtha eile."
+msgstr "Увеличава щетите, причинени от мечове и други близкобойни оръжия."
 
 #: ../engine/damage_types.txt:5
 msgid "Melee Damage Min"
-msgstr "Dochann dlùth as lugha"
+msgstr "Близкобойни щети (мин.)"
 
 #: ../engine/damage_types.txt:6
 msgid "Melee Damage Max"
-msgstr "Dochann dlùth as motha"
+msgstr "Близкобойни щети (макс.)"
 
 #: ../engine/damage_types.txt:12
 msgid "Ranged Damage"
-msgstr "Dochann astair"
+msgstr "Метателни щети"
 
 #: ../engine/damage_types.txt:13
 msgid "Increases the damage done with bows and other ranged weapons."
-msgstr "Meudaichidh seo an dochann a nì boghachan is airm astair eile."
+msgstr "Увеличава щетите, причинени от лъкове и други метателни оръжия."
 
 #: ../engine/damage_types.txt:14
 msgid "Ranged Damage Min"
-msgstr "Dochann astair as lugha"
+msgstr "Метателни щети (мин.)"
 
 #: ../engine/damage_types.txt:15
 msgid "Ranged Damage Max"
-msgstr "Dochann astair as motha"
+msgstr "Метателни щети (макс.)"
 
 #: ../engine/damage_types.txt:21
 msgid "Mental Damage"
-msgstr "Dochann inntinne"
+msgstr "Ментални щети"
 
 #: ../engine/damage_types.txt:22
 msgid "Increases the damage done with staves and other mental weapons."
-msgstr "Meudaichidh seo an dochann a nì bataichean is airm inntinne eile."
+msgstr "Увеличава щетите, причинени от жезли и други ментални оръжия."
 
 #: ../engine/damage_types.txt:23
 msgid "Mental Damage Min"
-msgstr "Dochann inntinne as lugha"
+msgstr "Ментални щети (мин.)"
 
 #: ../engine/damage_types.txt:24
 msgid "Mental Damage Max"
-msgstr "Dochann inntinne as motha"
+msgstr "Ментални щети (макс.)"
 
 #: ../cutscenes/credits.txt:7
 msgid "Flare Engine Credits"
-msgstr "Urram airson an einnsein Flare"
+msgstr "Признания за Flare Engine"
 
 #: ../cutscenes/credits.txt:10
 msgid "Lead Programmers"
-msgstr "Prìomh luchd-prògramachaidh"
+msgstr "Водещи програмисти"
 
 #: ../cutscenes/credits.txt:12
 msgid "Clint Bellanger"
@@ -117,7 +116,7 @@ msgstr "Thane Brimhall"
 
 #: ../cutscenes/credits.txt:20
 msgid "Programmers"
-msgstr "Luchd-prògramachaidh"
+msgstr "Програмисти"
 
 #: ../cutscenes/credits.txt:22
 msgid "Andrew Engelbrecht"
@@ -201,11 +200,11 @@ msgstr "Ryan Dansie"
 
 #: ../cutscenes/credits.txt:44
 msgid "Default Art"
-msgstr "Obair-ealain thùsail"
+msgstr "Графика"
 
 #: ../cutscenes/credits.txt:49
 msgid "Translators"
-msgstr "Eadar-theangadairean"
+msgstr "Преводачи"
 
 #: ../cutscenes/credits.txt:51
 msgid "Ademaro"
@@ -381,7 +380,7 @@ msgstr "Zmicer Turok"
 
 #: ../cutscenes/credits.txt:100
 msgid "Distributors"
-msgstr "Luchd-sgaoilidh"
+msgstr "Дистрибутори"
 
 #: ../cutscenes/credits.txt:102
 msgid "Ablu"
@@ -401,11 +400,11 @@ msgstr "miffe"
 
 #: ../cutscenes/credits.txt:109
 msgid "Special Thanks"
-msgstr "Taing shònraichte"
+msgstr "Специални благодарности"
 
 #: ../cutscenes/credits.txt:113
 msgid "For giving constant feedback and testing:"
-msgstr "Airson torr bheachdan is deuchainneachaidh:"
+msgstr "За даване на постоянна обратна връзка и тестване:"
 
 #: ../cutscenes/credits.txt:114
 msgid "Bart Kelsey"
@@ -413,11 +412,11 @@ msgstr "Bart Kelsey"
 
 #: ../cutscenes/credits.txt:115
 msgid "The community at OpenGameArt"
-msgstr "Coimhearsnachd OpenGameArt"
+msgstr "Общността в OpenGameArt"
 
 #: ../cutscenes/credits.txt:119
 msgid "For Tiled and the Flare map exporter:"
-msgstr "Airson Tiled agus inneal às-phortaidh mhapaichean Flare:"
+msgstr "За Tiled и експортъра на карти за Flare:"
 
 #: ../cutscenes/credits.txt:120
 msgid "Thorbjørn Lindeijer"

@@ -10,89 +10,87 @@ msgstr ""
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-08-05 20:36-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: GunChleoc, 2018\n"
-"Language-Team: Gaelic, Scottish (https://www.transifex.com/flareorg/teams/84925/gd/)\n"
+"Last-Translator: Emil, 2018\n"
+"Language-Team: Bulgarian (https://www.transifex.com/flareorg/teams/84925/bg/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: gd\n"
-"Plural-Forms: nplurals=4; plural=(n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3;\n"
+"Language: bg\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../../../src/Avatar.cpp:367
 #, c-format
 msgid "Congratulations, you have reached level %d!"
-msgstr "Meal do naidheachd, ràinig thu leibheil %d!"
+msgstr "Поздравления, достигнахте ниво %d!"
 
 #: ../../../src/Avatar.cpp:369
 msgid "You may increase one attribute through the Character Menu."
-msgstr "Faodaidh tu buadh àrdachadh air clàr-taice a’ phearsa."
+msgstr "Можете да увеличите един атрибут през менюто за характер."
 
 #: ../../../src/Avatar.cpp:611
 msgid "You are defeated. Game over! ${INPUT_CONTINUE} to exit to Title."
 msgstr ""
-"Chaidh do ruaig. Crìoch a’ gheama! ${INPUT_CONTINUE} gus fàgail gun tiotal."
+"Вие сте победени. Играта приключи! ${INPUT_CONTINUE}, за да се върнете към "
+"менюто."
 
 #: ../../../src/Avatar.cpp:617
 msgid "You are defeated. ${INPUT_CONTINUE} to continue."
-msgstr "Chaidh do ruaig. ${INPUT_CONTINUE} gus leantainn air adhart."
+msgstr "Вие сте победени. ${INPUT_CONTINUE}, за да продължите."
 
 #: ../../../src/Avatar.cpp:870
 msgid "Transformation expired. You have been moved back to a safe place."
-msgstr ""
-"Dh’fhalbh an ùine air a’ chruth-atharrachadh. Chaidh do ghluasad air ais gu "
-"ionad sàbhailte."
+msgstr "Преобразяването изтече. Върнахте се на сигурно място."
 
 #: ../../../src/CampaignManager.cpp:153
 #, c-format
 msgid "%d %s removed."
-msgstr "Chaidh %d %s a thoirt air falbh."
+msgstr "%d %s е премахнато."
 
 #: ../../../src/CampaignManager.cpp:162
 #, c-format
 msgid "%s removed."
-msgstr "Chaidh %s a thoirt air falbh."
+msgstr "%s е премахнат."
 
 #: ../../../src/CampaignManager.cpp:175
 #, c-format
 msgid "You receive %s."
-msgstr "Fhuair thu %s."
+msgstr "Получихте %s."
 
 #: ../../../src/CampaignManager.cpp:177
 #, c-format
 msgid "You receive %s x%d."
-msgstr "Fhuair thu %s x%d."
+msgstr "Получихте %s x%d."
 
 #: ../../../src/CampaignManager.cpp:186
 #, c-format
 msgid "You receive %d %s."
-msgstr "Fhuair thu %d %s."
+msgstr "Получихте %d %s."
 
 #: ../../../src/CampaignManager.cpp:195
 #, c-format
 msgid "You receive %d XP."
-msgstr "Fhuair thu %d puing-eòlais."
+msgstr "Получихте %d опит."
 
 #: ../../../src/CampaignManager.cpp:201
 msgid "HP restored."
-msgstr "Chaidh puingean-beatha a leigheas."
+msgstr "Здравето е възстановено."
 
 #: ../../../src/CampaignManager.cpp:205
 msgid "MP restored."
-msgstr "Chaidh puingean-gluasaid a leigheas."
+msgstr "Маната е възстановена."
 
 #: ../../../src/CampaignManager.cpp:210
 msgid "HP and MP restored."
-msgstr "Chaidh puingean-beatha is puingean-gluasaid a leigheas."
+msgstr "Здравето и маната са възстановени."
 
 #: ../../../src/CampaignManager.cpp:214
 msgid "Negative effects removed."
-msgstr "Chaidh èifeachdan dona a thoirt air falbh."
+msgstr "Негативните въздействия са премахнати."
 
 #: ../../../src/CampaignManager.cpp:220
 msgid "HP and MP restored, negative effects removed"
 msgstr ""
-"Chaidh puingean-beatha is puingean-gluasaid a leigheas is èifeachdan dona a "
-"thoirt air falbh."
+"Здравето и маната са възстановени, негативните въздействия са премахнати"
 
 #: ../../../src/DeviceList.cpp:56
 msgid ""
@@ -100,9 +98,9 @@ msgid ""
 "\n"
 "Often slower, but less likely to have issues."
 msgstr ""
-"Inneal-reandaraidh bathair-bhog SDL\n"
+"Софтуерен рендер за SDL\n"
 "\n"
-"Nas slaodaiche mar as trice ach chan ann cho buailteach air duilgheadasan."
+"Често по-бавен, но с по-малка вероятност за проблеми."
 
 #: ../../../src/DeviceList.cpp:59
 msgid ""
@@ -110,185 +108,185 @@ msgid ""
 "\n"
 "The default renderer that is often faster than the SDL software renderer."
 msgstr ""
-"Inneal-reandaraidh bathair-chruaidh SDL\n"
+"Хардуерен рендер за SDL\n"
 "\n"
-"An t-inneal-reandaraidh tùsail a bhios nas luaithe mar as trice na an t-inneal-reandaraidh bathair-bhog SDL."
+"Рендерът по подразбиране, който често е по-бърз от софтуерния рендер за SDL."
 
 #: ../../../src/EngineSettings.cpp:557
 msgid "Adventurer"
-msgstr "Baoghlair"
+msgstr "Авантюрист"
 
 #: ../../../src/Entity.cpp:511
 msgid "miss"
-msgstr "mì-amais"
+msgstr "пропуск"
 
 #: ../../../src/Entity.cpp:548 ../../../src/PowerManager.cpp:1152
 #: ../../../src/StatBlock.cpp:810 ../../../src/StatBlock.cpp:816
 #, c-format
 msgid "+%d HP"
-msgstr "+%d puingean-beatha"
+msgstr "+%d здраве"
 
 #: ../../../src/Entity.cpp:555 ../../../src/StatBlock.cpp:821
 #: ../../../src/StatBlock.cpp:827
 #, c-format
 msgid "+%d MP"
-msgstr "+%d puingean-gluasaid"
+msgstr "+%d мана"
 
 #: ../../../src/EventManager.cpp:729
 msgid "Unknown destination"
-msgstr "Ceann-uidhe neo-aithnichte"
+msgstr "Непозната дестинация"
 
 #: ../../../src/GameStateConfigBase.cpp:97
 #: ../../../src/GameStateConfigBase.cpp:118
 msgid "Defaults"
-msgstr "Bun-roghainnean"
+msgstr "Нулиране"
 
 #: ../../../src/GameStateConfigBase.cpp:97
 msgid "Reset ALL settings?"
-msgstr "A bheil thu airson GACH roghainn ath-shuidheachadh?"
+msgstr "Нулирай всички настройки?"
 
 #: ../../../src/GameStateConfigBase.cpp:117 ../../../src/MenuNumPicker.cpp:50
 msgid "OK"
-msgstr "Ceart ma-thà"
+msgstr "Добре"
 
 #: ../../../src/GameStateConfigBase.cpp:119 ../../../src/GameStateNew.cpp:65
 #: ../../../src/InputState.cpp:402 ../../../src/MenuNPCActions.cpp:76
 msgid "Cancel"
-msgstr "Sguir dheth"
+msgstr "Отказ"
 
 #: ../../../src/GameStateConfigBase.cpp:168
 #: ../../../src/GameStateConfigDesktop.cpp:128
 msgid "Audio"
-msgstr "Fuaim"
+msgstr "Звук"
 
 #: ../../../src/GameStateConfigBase.cpp:169
 #: ../../../src/GameStateConfigDesktop.cpp:129
 msgid "Interface"
-msgstr "Eadar-aghaidh"
+msgstr "Интерфейс"
 
 #: ../../../src/GameStateConfigBase.cpp:170
 #: ../../../src/GameStateConfigDesktop.cpp:132
 msgid "Mods"
-msgstr "Tuilleadain"
+msgstr "Модификации"
 
 #: ../../../src/GameStateConfigBase.cpp:258 ../../../src/MenuExit.cpp:72
 msgid "Music Volume"
-msgstr "Àirde a’ chiùil"
+msgstr "Сила на музиката"
 
 #: ../../../src/GameStateConfigBase.cpp:262 ../../../src/MenuExit.cpp:77
 msgid "Sound Volume"
-msgstr "Àirde na fuaime"
+msgstr "Сила на звука"
 
 #: ../../../src/GameStateConfigBase.cpp:266
 msgid "Language"
-msgstr "Cànan"
+msgstr "Език"
 
 #: ../../../src/GameStateConfigBase.cpp:275
 msgid "Show combat text"
-msgstr "Seall teacsa na còmhraige"
+msgstr "Показване на боен текст"
 
 #: ../../../src/GameStateConfigBase.cpp:279
 msgid "Show FPS"
-msgstr "Seall FPS"
+msgstr "Показване на FPS"
 
 #: ../../../src/GameStateConfigBase.cpp:283
 msgid "Colorblind Mode"
-msgstr "Modh dath-dhoille"
+msgstr "Режим за далтонисти"
 
 #: ../../../src/GameStateConfigBase.cpp:287
 msgid "Hardware mouse cursor"
-msgstr "Cùrsair luchaige bathair-chruaidh"
+msgstr "Хардуер за курсора на мишката"
 
 #: ../../../src/GameStateConfigBase.cpp:291
 msgid "Developer Mode"
-msgstr "Modh an luchd-leasachaidh"
+msgstr "Режим за програмисти"
 
 #: ../../../src/GameStateConfigBase.cpp:295
 msgid "Always show loot labels"
-msgstr "Seall leubailean na spùinne an-còmhnaidh"
+msgstr "Винаги да се показват етикети на плячката"
 
 #: ../../../src/GameStateConfigBase.cpp:299
 msgid "Always show stat bar labels"
-msgstr "Seall leubailean bàr na stadastaireachd an-còmhnaidh"
+msgstr "Винаги да се показват статистики"
 
 #: ../../../src/GameStateConfigBase.cpp:303
 msgid "Automatically equip items"
-msgstr "Uidheamaich nithean gu fèin-obrachail"
+msgstr "Автоматично екипиране с предмети"
 
 #: ../../../src/GameStateConfigBase.cpp:307
 msgid "Subtitles"
-msgstr "Fo-thiotalan"
+msgstr "Субтитри"
 
 #: ../../../src/GameStateConfigBase.cpp:311
 msgid "Active Mods"
-msgstr "Tuilleadain ghnìomhach"
+msgstr "Включени модификации"
 
 #: ../../../src/GameStateConfigBase.cpp:320
 msgid "Available Mods"
-msgstr "Tuilleadain ri làimh"
+msgstr "Налични модификации"
 
 #: ../../../src/GameStateConfigBase.cpp:339
 msgid "<< Disable"
-msgstr "<< Cuir à comas"
+msgstr "<< Изключи"
 
 #: ../../../src/GameStateConfigBase.cpp:345
 msgid "Enable >>"
-msgstr "Cuir an comas >>"
+msgstr "Включи >>"
 
 #: ../../../src/GameStateConfigBase.cpp:925
 msgid "Version:"
-msgstr "Tionndadh:"
+msgstr "Версия:"
 
 #: ../../../src/GameStateConfigBase.cpp:930
 msgid "Game:"
-msgstr "Geama:"
+msgstr "Игра:"
 
 #: ../../../src/GameStateConfigBase.cpp:935
 msgid "Engine version:"
-msgstr "Tionndadh an einnsein:"
+msgstr "Engine версия:"
 
 #: ../../../src/GameStateConfigBase.cpp:943
 msgid "Requires mods:"
-msgstr "Feum air tuilleadain:"
+msgstr "Изисква модификации"
 
 #: ../../../src/GameStateConfigDesktop.cpp:81
 #: ../../../src/GameStateConfigDesktop.cpp:740
 msgid "Clear"
-msgstr "Falamhaich"
+msgstr "Изчисти"
 
 #: ../../../src/GameStateConfigDesktop.cpp:81
 #: ../../../src/GameStateConfigDesktop.cpp:738
 msgid "Assign:"
-msgstr "Sònraich:"
+msgstr "Възложи"
 
 #: ../../../src/GameStateConfigDesktop.cpp:126
 msgid "Video"
-msgstr "Video"
+msgstr "Видео"
 
 #: ../../../src/GameStateConfigDesktop.cpp:130
 msgid "Input"
-msgstr "Ion-chur"
+msgstr "Вход"
 
 #: ../../../src/GameStateConfigDesktop.cpp:131
 msgid "Keybindings"
-msgstr "Nasgadh iuchraichean"
+msgstr "Клавиши"
 
 #: ../../../src/GameStateConfigDesktop.cpp:187
 msgid ""
 "Will try to store surfaces in video memory versus system memory. The effect "
 "this has on performance depends on the renderer."
 msgstr ""
-"Feuchaidh sinn ri uachdaran a stòradh ann an cuimhne a’ video seach an "
-"t-siostaim. Tha a’ bhuaidh a th’ aige air an dèanadas a-rèir an inneil-"
-"reandaraidh."
+"Ще се опита да съхрани повърхностите във видео паметта, вместо в системната "
+"памет. Въздействието, което това има върху производителността зависи от "
+"рендера."
 
 #: ../../../src/GameStateConfigDesktop.cpp:188
 msgid ""
 "Prevents screen tearing. Disable if you experience \"stuttering\" in "
 "windowed mode or input lag."
 msgstr ""
-"Tha seo an aghaidh reubadh na sgrìn. cuir à comas e ma tha a modh uinneagach"
-" “stadach” no ma tha maille air an ion-chur."
+"Предотвратява накъсването (screen tearing). Изключете, ако изпитвате "
+"проблеми в прозоречен режим или закъснение при въвеждане."
 
 #: ../../../src/GameStateConfigDesktop.cpp:189
 msgid ""
@@ -296,255 +294,255 @@ msgid ""
 "to scale the rendering resolution. Otherwise, only the window dimensions are"
 " used."
 msgstr ""
-"Nuair a bhios seo an comas, cleachdaidh e DPI na sgrìn a bharrachd air meud "
-"na h-uinneige airson dùmhlachd-bhreacaidh an reandaraidh a sgèileadh. Mur "
-"eil, cha dèid ach meud na h-uinneige a chleachdadh."
+"Когато е включено, това използва DPI на екрана в допълнение към размерите на"
+" прозореца, за да мащабира разделителната способност на рендериране. В "
+"противен случай се използват само размерите на прозореца."
 
 #: ../../../src/GameStateConfigDesktop.cpp:190
 msgid "Experimental"
-msgstr "Deuchainneil"
+msgstr "Експериментално"
 
 #: ../../../src/GameStateConfigDesktop.cpp:191
 msgid "For handheld devices"
-msgstr "Airson innealan-làimhe"
+msgstr "За преносими устройства"
 
 #: ../../../src/GameStateConfigDesktop.cpp:209
 msgid "Renderer"
-msgstr "Inneal-reandaraidh"
+msgstr "Рендер"
 
 #: ../../../src/GameStateConfigDesktop.cpp:225
 msgid "Full Screen Mode"
-msgstr "Modh làn-sgrìn"
+msgstr "Режим на цял екран"
 
 #: ../../../src/GameStateConfigDesktop.cpp:229
 msgid "Move hero using mouse"
-msgstr "Gluais an gaisgeach le luchag"
+msgstr "Преместване на героя чрез мишка"
 
 #: ../../../src/GameStateConfigDesktop.cpp:233
 msgid "Hardware surfaces"
-msgstr "Uachdaran bathair-chruaidh"
+msgstr "Хардуерни повърхности"
 
 #: ../../../src/GameStateConfigDesktop.cpp:237
 msgid "V-Sync"
-msgstr "Sioncronachadh-V"
+msgstr "Вертикална синхронизация (V-Sync)"
 
 #: ../../../src/GameStateConfigDesktop.cpp:241
 msgid "Texture Filtering"
-msgstr "Criathrag innich"
+msgstr "Текстурно филтриране"
 
 #: ../../../src/GameStateConfigDesktop.cpp:245
 msgid "DPI scaling"
-msgstr "Sgèileadh DPI"
+msgstr "DPI мащабиране"
 
 #: ../../../src/GameStateConfigDesktop.cpp:249
 msgid "Allow changing gamma"
-msgstr "Faodar gamma atharrachadh"
+msgstr "Разрешаване промяна на гамата"
 
 #: ../../../src/GameStateConfigDesktop.cpp:253
 msgid "Gamma"
-msgstr "Gamma"
+msgstr "Гама"
 
 #: ../../../src/GameStateConfigDesktop.cpp:257
 msgid "Use joystick"
-msgstr "Cleachd joystick"
+msgstr "Използвай джойстик"
 
 #: ../../../src/GameStateConfigDesktop.cpp:261
 msgid "Joystick"
-msgstr "Joystick"
+msgstr "Джойстик"
 
 #: ../../../src/GameStateConfigDesktop.cpp:277
 msgid "Mouse aim"
-msgstr "Amas luchaige"
+msgstr "Прицелване чрез мишка"
 
 #: ../../../src/GameStateConfigDesktop.cpp:281
 msgid "Do not use mouse"
-msgstr "Na cleachd an luchag"
+msgstr "Да не се използва мишка"
 
 #: ../../../src/GameStateConfigDesktop.cpp:285
 msgid "Joystick Deadzone"
-msgstr "Marbh-sòn an joystick"
+msgstr "Мъртва зона на джойстик"
 
 #: ../../../src/GameState.cpp:37 ../../../src/GameState.cpp:58
 msgid "Loading..."
-msgstr "’Ga luchdadh…"
+msgstr "Зареждане…"
 
 #: ../../../src/GameStateLoad.cpp:87 ../../../src/GameStateLoad.cpp:100
 msgid "Delete Save"
-msgstr "Sguab às"
+msgstr "Изтрий героя"
 
 #: ../../../src/GameStateLoad.cpp:87
 msgid "Delete this save?"
-msgstr "An sguab sinn an geama às?"
+msgstr "Изтриване на героя?"
 
 #: ../../../src/GameStateLoad.cpp:89
 msgid "Exit to Title"
-msgstr "Fàg gun tiotal"
+msgstr "Назад"
 
 #: ../../../src/GameStateLoad.cpp:92
 msgid "New Game"
-msgstr "Geama ùr"
+msgstr "Нов герой"
 
 #: ../../../src/GameStateLoad.cpp:96 ../../../src/GameStateLoad.cpp:600
 msgid "Choose a Slot"
-msgstr "Tagh slot"
+msgstr "Избери герой"
 
 #: ../../../src/GameStateLoad.cpp:573 ../../../src/GameStateLoad.cpp:594
 msgid "Enable a story mod to continue"
-msgstr "Cuir tuilleadan sgeulachd an comas gus leantainn air adhart"
+msgstr "Включете модификация на историята, за да продължите"
 
 #: ../../../src/GameStateLoad.cpp:589
 msgid "Load Game"
-msgstr "Luchdaich"
+msgstr "Зареди героя"
 
 #: ../../../src/GameStateLoad.cpp:695
 msgid "Entering game world..."
-msgstr "A’ dol a-steach do shaoghal a’ gheama…"
+msgstr "Влизане в игралния свят…"
 
 #: ../../../src/GameStateLoad.cpp:698
 msgid "Loading saved game..."
-msgstr "A’ luchdadh geama air a shàbhaladh…"
+msgstr "Зареждане на запазена игра…"
 
 #: ../../../src/GameStateLoad.cpp:731
 msgid "Invalid save"
-msgstr "Geama air a shàbhaladh mì-dhligheach"
+msgstr "Невалиден герой"
 
 #: ../../../src/GameStateLoad.cpp:755 ../../../src/ItemManager.cpp:721
 #: ../../../src/MenuPowers.cpp:724 ../../../src/MenuPowers.cpp:1087
 #, c-format
 msgid "Level %d"
-msgstr "Leibheil %d"
+msgstr "Ниво %d"
 
 #: ../../../src/GameStateNew.cpp:68
 msgid "Create"
-msgstr "Cruthaich"
+msgstr "Създай"
 
 #: ../../../src/GameStateNew.cpp:76
 msgid "Randomize"
-msgstr "Cuir air thuaiream"
+msgstr "Разбъркай"
 
 #: ../../../src/GameStateNew.cpp:92
 msgid "Choose a Portrait"
-msgstr "Tagh dealbh"
+msgstr "Избери портрет"
 
 #: ../../../src/GameStateNew.cpp:96
 msgid "Choose a Name"
-msgstr "Tagh ainm"
+msgstr "Избери име"
 
 #: ../../../src/GameStateNew.cpp:100
 msgid "Permadeath?"
-msgstr "Bàs maireannach?"
+msgstr "Без прераждане?"
 
 #: ../../../src/GameStateNew.cpp:104
 msgid "Choose a Class"
-msgstr "Tagh clas"
+msgstr "Избери клас"
 
 #: ../../../src/GameStateTitle.cpp:108
 msgid "Play Game"
-msgstr "Cluich geama"
+msgstr "Играй"
 
 #: ../../../src/GameStateTitle.cpp:111
 msgid "Enable a core mod to continue"
-msgstr "Cuir bun-thuilleadan an comas gus leantainn air adhart"
+msgstr "Включете основна модификация, за да продължите"
 
 #: ../../../src/GameStateTitle.cpp:115
 msgid "Configuration"
-msgstr "Rèiteachadh"
+msgstr "Настройки"
 
 #: ../../../src/GameStateTitle.cpp:118
 msgid "Credits"
-msgstr "Urram"
+msgstr "Признания"
 
 #: ../../../src/GameStateTitle.cpp:121
 msgid "Exit Game"
-msgstr "Fàg an geama"
+msgstr "Изход"
 
 #: ../../../src/InputState.cpp:403
 msgid "Accept"
-msgstr "Gabh ris"
+msgstr "Приемане"
 
 #: ../../../src/InputState.cpp:404 ../../../src/SDLInputState.cpp:606
 msgid "Up"
-msgstr "Suas"
+msgstr "Up"
 
 #: ../../../src/InputState.cpp:405 ../../../src/SDLInputState.cpp:584
 msgid "Down"
-msgstr "Sìos"
+msgstr "Down"
 
 #: ../../../src/InputState.cpp:406 ../../../src/SDLInputState.cpp:591
 msgid "Left"
-msgstr "Gu clì"
+msgstr "Left"
 
 #: ../../../src/InputState.cpp:407 ../../../src/SDLInputState.cpp:601
 msgid "Right"
-msgstr "Gu deas"
+msgstr "Right"
 
 #: ../../../src/InputState.cpp:408
 msgid "Bar1"
-msgstr "Bàr 1"
+msgstr "Лента1"
 
 #: ../../../src/InputState.cpp:409
 msgid "Bar2"
-msgstr "Bàr 2"
+msgstr "Лента2"
 
 #: ../../../src/InputState.cpp:410
 msgid "Bar3"
-msgstr "Bàr 3"
+msgstr "Лента3"
 
 #: ../../../src/InputState.cpp:411
 msgid "Bar4"
-msgstr "Bàr 4"
+msgstr "Лента4"
 
 #: ../../../src/InputState.cpp:412
 msgid "Bar5"
-msgstr "Bàr 5"
+msgstr "Лента5"
 
 #: ../../../src/InputState.cpp:413
 msgid "Bar6"
-msgstr "Bàr 6"
+msgstr "Лента6"
 
 #: ../../../src/InputState.cpp:414
 msgid "Bar7"
-msgstr "Bàr 7"
+msgstr "Лента7"
 
 #: ../../../src/InputState.cpp:415
 msgid "Bar8"
-msgstr "Bàr 8"
+msgstr "Лента8"
 
 #: ../../../src/InputState.cpp:416
 msgid "Bar9"
-msgstr "Bàr 9"
+msgstr "Лента9"
 
 #: ../../../src/InputState.cpp:417
 msgid "Bar0"
-msgstr "Bàr 0"
+msgstr "Лента0"
 
 #: ../../../src/InputState.cpp:418 ../../../src/MenuActionBar.cpp:76
 #: ../../../src/MenuCharacter.cpp:53
 msgid "Character"
-msgstr "Pearsa"
+msgstr "Характер"
 
 #: ../../../src/InputState.cpp:419 ../../../src/MenuActionBar.cpp:77
 #: ../../../src/MenuInventory.cpp:126 ../../../src/MenuVendor.cpp:57
 msgid "Inventory"
-msgstr "Tasgadh"
+msgstr "Инвентар"
 
 #: ../../../src/InputState.cpp:420 ../../../src/MenuActionBar.cpp:78
 #: ../../../src/MenuPowers.cpp:112
 msgid "Powers"
-msgstr "Cumhachdan"
+msgstr "Умения"
 
 #: ../../../src/InputState.cpp:421 ../../../src/MenuActionBar.cpp:79
 #: ../../../src/MenuLog.cpp:72
 msgid "Log"
-msgstr "Leabhar-latha"
+msgstr "Дневник"
 
 #: ../../../src/InputState.cpp:422
 msgid "Main1"
-msgstr "Prìomh-ghnìomh"
+msgstr "Главен1"
 
 #: ../../../src/InputState.cpp:423
 msgid "Main2"
-msgstr "Gnìomh dàrnach"
+msgstr "Главен2"
 
 #: ../../../src/InputState.cpp:424
 msgid "Ctrl"
@@ -564,156 +562,156 @@ msgstr "Delete"
 
 #: ../../../src/InputState.cpp:428
 msgid "ActionBar Accept"
-msgstr "Bàr – Gabh ris"
+msgstr "ActionBar Accept"
 
 #: ../../../src/InputState.cpp:429
 msgid "ActionBar Left"
-msgstr "Bàr – Gu clì"
+msgstr "ActionBar Left"
 
 #: ../../../src/InputState.cpp:430
 msgid "ActionBar Right"
-msgstr "Bàr – Gu deas"
+msgstr "ActionBar Right"
 
 #: ../../../src/InputState.cpp:431
 msgid "ActionBar Use"
-msgstr "Bàr – Cleachd"
+msgstr "ActionBar Use"
 
 #: ../../../src/InputState.cpp:432
 msgid "Developer Menu"
-msgstr "Clàr-taice an luchd-leasachaidh"
+msgstr "Developer меню"
 
 #: ../../../src/InputState.cpp:434
 msgid "Left Mouse"
-msgstr "Clì na luchaige"
+msgstr "Left Mouse"
 
 #: ../../../src/InputState.cpp:435
 msgid "Middle Mouse"
-msgstr "Meadhanach na luchaige"
+msgstr "Middle Mouse"
 
 #: ../../../src/InputState.cpp:436
 msgid "Right Mouse"
-msgstr "Deas na luchaige"
+msgstr "Right Mouse"
 
 #: ../../../src/InputState.cpp:437
 msgid "Wheel Up"
-msgstr "Cuibhle suas"
+msgstr "Wheel Up"
 
 #: ../../../src/InputState.cpp:438
 msgid "Wheel Down"
-msgstr "Cuibhle sìos"
+msgstr "Wheel Down"
 
 #: ../../../src/InputState.cpp:439
 msgid "Mouse X1"
-msgstr "X1 na luchaige"
+msgstr "Mouse X1"
 
 #: ../../../src/InputState.cpp:440
 msgid "Mouse X2"
-msgstr "X2 na luchaige"
+msgstr "Mouse X2"
 
 #: ../../../src/ItemManager.cpp:440 ../../../src/ItemManager.cpp:443
 msgid "Unknown Item"
-msgstr "Nì nach aithne dhuinn"
+msgstr "Непознат предмет"
 
 #: ../../../src/ItemManager.cpp:630 ../../../src/MenuPowers.cpp:829
 #, c-format
 msgid "%d%% Speed"
-msgstr "Luaths de %d%%"
+msgstr "%d%% Бързина"
 
 #: ../../../src/ItemManager.cpp:634 ../../../src/MenuPowers.cpp:832
 #, c-format
 msgid "%d%% Attack Speed"
-msgstr "Luaths ionnsaighe de %d%%"
+msgstr "%d%% Бързина на атака"
 
 #: ../../../src/ItemManager.cpp:656 ../../../src/MenuCharacter.cpp:353
 #: ../../../src/MenuPowers.cpp:775
 #, c-format
 msgid "%s Resistance"
-msgstr "Comas-seasaimh an aghaidh %s"
+msgstr "Издръжливост на %s"
 
 #: ../../../src/ItemManager.cpp:707
 msgid "Quest Item"
-msgstr "Nì cinn-thurais"
+msgstr "Предмет от куест"
 
 #: ../../../src/ItemManager.cpp:734
 #, c-format
 msgid "Quality: %s"
-msgstr "Càileachd: %s"
+msgstr "Качество: %s"
 
 #: ../../../src/ItemManager.cpp:759
 #, c-format
 msgid "Absorb: %d-%d"
-msgstr "Ceapadh: %d–%d"
+msgstr "Абсорбиране: %d – %d"
 
 #: ../../../src/ItemManager.cpp:761
 #, c-format
 msgid "Absorb: %d"
-msgstr "Ceapadh: %d"
+msgstr "Абсорбиране: %d"
 
 #: ../../../src/ItemManager.cpp:801 ../../../src/MenuPowers.cpp:1073
 #: ../../../src/MenuPowers.cpp:1076
 #, c-format
 msgid "Requires Level %d"
-msgstr "Feum air leibheil %d"
+msgstr "Изисква ниво %d"
 
 #: ../../../src/ItemManager.cpp:812 ../../../src/MenuPowers.cpp:1065
 #: ../../../src/MenuPowers.cpp:1067
 #, c-format
 msgid "Requires %s %d"
-msgstr "Feum air: %s %d"
+msgstr "Изисква %s %d"
 
 #: ../../../src/ItemManager.cpp:823
 #, c-format
 msgid "Requires Class: %s"
-msgstr "Feum air a’ chlas: %s"
+msgstr "Изисква клас: %s"
 
 #: ../../../src/ItemManager.cpp:838 ../../../src/ItemManager.cpp:850
 #, c-format
 msgid "Buy Price: %d %s"
-msgstr "Prìs ceannaich: %d %s"
+msgstr "Цена за закупуване: %d %s"
 
 #: ../../../src/ItemManager.cpp:840 ../../../src/ItemManager.cpp:852
 #, c-format
 msgid "Buy Price: %d %s each"
-msgstr "Prìs ceannaich: %d %s an urra"
+msgstr "Цена за закупуване: %d %s за брой"
 
 #: ../../../src/ItemManager.cpp:860
 #, c-format
 msgid "Sell Price: %d %s"
-msgstr "Prìs reic: %d %s"
+msgstr "Продажна цена: %d %s"
 
 #: ../../../src/ItemManager.cpp:862
 #, c-format
 msgid "Sell Price: %d %s each"
-msgstr "Prìs reic: %d %s an urra"
+msgstr "Продажна цена: %d %s за брой"
 
 #: ../../../src/ItemManager.cpp:871
 msgid "Set:"
-msgstr "Seata:"
+msgstr "Комплект:"
 
 #: ../../../src/ItemManager.cpp:878
 #, c-format
 msgid "%d items:"
-msgstr "%d nithean:"
+msgstr "%d предмета:"
 
 #: ../../../src/ItemManager.cpp:891
 #, c-format
 msgid "Press [%s] to use"
-msgstr "Brùth air [%s] gus a chleachdadh"
+msgstr "Натиснете [%s], за да използвате"
 
 #: ../../../src/ItemManager.cpp:894
 #, c-format
 msgid "Press [%s] to read"
-msgstr "Brùth air [%s] gus a leughadh"
+msgstr "Натиснете [%s], за да прочетете"
 
 #: ../../../src/MenuActionBar.cpp:215 ../../../src/MenuActionBar.cpp:221
 #: ../../../src/MenuActionBar.cpp:226
 #, c-format
 msgid "Hotkey: %s"
-msgstr "Grad-iuchair: %s"
+msgstr "Клавиш: %s"
 
 #: ../../../src/MenuActionBar.cpp:580
 msgid "Not enough MP."
-msgstr "Chan fhoghainn na PG."
+msgstr "Нямате достатъчно мана."
 
 #: ../../../src/MenuActiveEffects.cpp:123
 #, c-format
@@ -722,88 +720,85 @@ msgstr "x%d"
 
 #: ../../../src/MenuActiveEffects.cpp:218
 msgid "Remaining:"
-msgstr "Air fhàgail:"
+msgstr "Остават:"
 
 #: ../../../src/MenuActiveEffects.cpp:224
 #, c-format
 msgid "x%d stacks"
-msgstr "x%d cruach(an)"
+msgstr "x%d стека"
 
 #: ../../../src/MenuCharacter.cpp:72 ../../../src/MenuCharacter.cpp:77
 msgid "Name"
-msgstr "Ainm"
+msgstr "Име"
 
 #: ../../../src/MenuCharacter.cpp:73 ../../../src/MenuCharacter.cpp:78
 msgid "Level"
-msgstr "Leibheil"
+msgstr "Ниво"
 
 #: ../../../src/MenuCharacter.cpp:309
 #, c-format
 msgid "%d unspent stat point"
-msgstr "%d phuing-pearsa nach deach a chleachdadh"
+msgstr "%d неизразходвана точка за атрибути"
 
 #: ../../../src/MenuCharacter.cpp:312
 #, c-format
 msgid "%d unspent stat points"
-msgstr "%d puing(ean)-pearsa nach deach a chleachdadh"
+msgstr "%d неизразходвани точки за атрибути"
 
 #: ../../../src/MenuCharacter.cpp:354
 #, c-format
 msgid "Reduces the damage taken from \"%s\" elemental attacks."
-msgstr ""
-"Ìslichidh seo an dochann a dh’fhulaingeas tu o ionnsaighean dùileach “%s”"
+msgstr "Намалява понесените щети от стихийната атака „%s“."
 
 #: ../../../src/MenuCharacter.cpp:364 ../../../src/MenuManager.cpp:288
 #, c-format
 msgid "XP: %d"
-msgstr "Puingean-eòlais: %d"
+msgstr "Опит: %d"
 
 #: ../../../src/MenuCharacter.cpp:366
 #, c-format
 msgid "Next: %d"
-msgstr "An ath-fhear: %d"
+msgstr "Следващо %d"
 
 #: ../../../src/MenuCharacter.cpp:372
 #, c-format
 msgid "base (%d), bonus (%d)"
-msgstr "bunait (%d), duais (%d)"
+msgstr "основа (%d), бонус (%d)"
 
 #: ../../../src/MenuCharacter.cpp:380 ../../../src/MenuCharacter.cpp:394
 msgid "Related stats:"
-msgstr "Stadastaireachd cho-cheangailte:"
+msgstr "Свързани характеристики:"
 
 #: ../../../src/MenuCharacter.cpp:420 ../../../src/MenuCharacter.cpp:444
 #, c-format
 msgid "Each level grants %d."
-msgstr "Bheir gach leibheil %d dhut."
+msgstr "Всяко ниво дава %d."
 
 #: ../../../src/MenuCharacter.cpp:424 ../../../src/MenuCharacter.cpp:448
 #, c-format
 msgid "Each point of %s grants %d."
-msgstr "Bheir gach puing dhe %s %d dhut."
+msgstr "Всяка точка от %s дава %d."
 
 #: ../../../src/MenuDevConsole.cpp:63
 msgid "Execute"
-msgstr "Gnìomhaich"
+msgstr "Изпълни"
 
 #: ../../../src/MenuDevConsole.cpp:101 ../../../src/MenuDevConsole.cpp:151
 msgid "Developer Console"
-msgstr "Modh an luchd-leasachaidh"
+msgstr "Конзола за програмисти"
 
 #: ../../../src/MenuDevConsole.cpp:141
 #, c-format
 msgid "Use '%s' to inspect with the cursor."
-msgstr "Cleachd “%s” gus a sgrùdadh leis a’ chùrsair."
+msgstr "Използвайте '%s', за да инспектирате с курсора."
 
 #: ../../../src/MenuDevConsole.cpp:146
 msgid "Arguments with spaces should be enclosed with double quotes. Example:"
-msgstr ""
-"Bu chòir dhut comharran-labhairt dùbailte a chur timcheall air argamaidean "
-"sa bheil geal-spàs. Mar eisimpleir:"
+msgstr "Аргументи с интервали трябва да бъдат оградени в кавички. Пример:"
 
 #: ../../../src/MenuDevConsole.cpp:147
 msgid "Type 'help' to get a list of commands."
-msgstr "Sgrìobh “help” gus liosta de na h-àitheantan fhaighinn."
+msgstr "Напишете 'help', за да получите списък с команди."
 
 #: ../../../src/MenuDevConsole.cpp:209 ../../../src/MenuDevConsole.cpp:213
 msgid "px"
@@ -811,107 +806,107 @@ msgstr "px"
 
 #: ../../../src/MenuDevConsole.cpp:224
 msgid "Distance"
-msgstr "Astar"
+msgstr "Distance"
 
 #: ../../../src/MenuDevConsole.cpp:239 ../../../src/MenuDevConsole.cpp:286
 msgid "Entity"
-msgstr "Nì"
+msgstr "Entity"
 
 #: ../../../src/MenuDevConsole.cpp:261 ../../../src/MenuDevConsole.cpp:268
 msgid "none"
-msgstr "chan eil gin"
+msgstr "none"
 
 #: ../../../src/MenuDevConsole.cpp:262 ../../../src/MenuDevConsole.cpp:264
 msgid "wall"
-msgstr "balla"
+msgstr "wall"
 
 #: ../../../src/MenuDevConsole.cpp:263 ../../../src/MenuDevConsole.cpp:265
 msgid "short wall / pit"
-msgstr "balla goirid / sloc"
+msgstr "short wall / pit"
 
 #: ../../../src/MenuDevConsole.cpp:266
 msgid "entity"
-msgstr "nì"
+msgstr "entity"
 
 #: ../../../src/MenuDevConsole.cpp:267
 msgid "entity, ally"
-msgstr "nì, caidreabhach"
+msgstr "entity, ally"
 
 #: ../../../src/MenuDevConsole.cpp:274
 msgid "Tile"
-msgstr "Leacag"
+msgstr "Tile"
 
 #: ../../../src/MenuDevConsole.cpp:360
 msgid "adds a power to the action bar"
-msgstr "cuiridh seo cumhachd ri bàr nan gnìomh"
+msgstr "добавя умение към лентата за действия"
 
 #: ../../../src/MenuDevConsole.cpp:361
 msgid "turns on/off all of the HUD elements"
-msgstr "cuiridh seo a h-uile nì a’ HUD air no dheth"
+msgstr "включва/изключва всички елементи на HUD"
 
 #: ../../../src/MenuDevConsole.cpp:362
 msgid "turns on/off the developer hud"
-msgstr "cuiridh seo HUD an luchd-leasachaidh air no dheth"
+msgstr "включва/изключва HUD за програмисти"
 
 #: ../../../src/MenuDevConsole.cpp:363
 msgid ""
 "Prints a list of powers that match a search term. No search term will list "
 "all items"
 msgstr ""
-"Seallaidh seo liosta nan cumhachdan a fhreagras ris an fhacal-luirg. Mur eil"
-" facal-luirg ann, thèid gach nì a shealltainn"
+"Отпечатва списък с умения, които съответстват на термин за търсене. Без "
+"термин за търсене ще се отпечатат всички умения."
 
 #: ../../../src/MenuDevConsole.cpp:364
 msgid "Prints out all the map filenames located in the \"maps/\" directory."
 msgstr ""
-"Seallaidh seo ainmean faidhle nam mapaichean uile a tha sa phasgan “maps/”."
+"Отпечатва всички имена на файлове, намиращи се в директорията „maps/“."
 
 #: ../../../src/MenuDevConsole.cpp:365
 msgid ""
 "Prints out the active campaign statuses that match a search term. No search "
 "term will list all active statuses"
 msgstr ""
-"Seallaidh seo staidean gnìomhach nan iomairtean a fhreagras ris an fhacal-"
-"luirg. Mur eil facal-luirg ann, thèid gach staid ghnìomhach a shealltainn"
+"Отпечатва активните състояния на кампания, които съответстват на термин за "
+"търсене. Без термин за търсене ще се отпечатат всички активни състояния."
 
 #: ../../../src/MenuDevConsole.cpp:366
 msgid ""
 "Prints a list of items that match a search term. No search term will list "
 "all items"
 msgstr ""
-"Seallaidh seo liosta nan nithean a fhreagras ris an fhacal-luirg. Mur eil "
-"facal-luirg ann, thèid gach nì a shealltainn"
+"Отпечатва списък с предмети, които съответстват на термин за търсене. Без "
+"термин за търсене ще се отпечатат всички предмети."
 
 #: ../../../src/MenuDevConsole.cpp:367
 msgid ""
 "parses a series of event components and executes them as a single event"
 msgstr ""
-"parsaidh seo sreath dhe cho-phàirtean thachartasan agus ruithidh e ann an "
-"aon tachartas iad"
+"анализира поредица от компоненти на събитие и ги изпълнява като единично "
+"събитие"
 
 #: ../../../src/MenuDevConsole.cpp:368
 msgid "clears the command history"
-msgstr "falamhaichidh seo eachdraidh nan àitheantan"
+msgstr "изчиства историята на командите"
 
 #: ../../../src/MenuDevConsole.cpp:369
 msgid "displays this text"
-msgstr "seallaidh seo an teacsa seo"
+msgstr "показва този текст"
 
 #: ../../../src/MenuDevConsole.cpp:376
 msgid "Toggled the developer hud"
-msgstr "Chaidh HUD an luchd-leasachaidh a thoglachadh"
+msgstr "HUD за програмисти е превключен"
 
 #: ../../../src/MenuDevConsole.cpp:380
 msgid "Toggled the hud"
-msgstr "Chaidh an HUD a thoglachadh"
+msgstr "HUD е превключен"
 
 #: ../../../src/MenuDevConsole.cpp:529
 msgid "ERROR: Incorrect number of arguments"
-msgstr "MEARACHD: Chan eil argamaidean gu leòr ann"
+msgstr "ГРЕШКА: Неправилен брой аргументи"
 
 #: ../../../src/MenuDevConsole.cpp:531 ../../../src/MenuDevConsole.cpp:559
 msgid "HINT:"
-msgstr "OIDHEAM:"
+msgstr "СЪВЕТ:"
 
 #: ../../../src/MenuDevConsole.cpp:531
 msgid "<id>"
@@ -920,11 +915,11 @@ msgstr "<id>"
 #: ../../../src/MenuDevConsole.cpp:547
 #, c-format
 msgid "ERROR: '%s' is not a valid event key"
-msgstr "MEARACHD: Chan eil “%s” ’na h-iuchair tachartais dhligheach"
+msgstr "ГРЕШКА: '%s' не е валиден ключ за събитие"
 
 #: ../../../src/MenuDevConsole.cpp:557
 msgid "ERROR: Too few arguments"
-msgstr "MEARACHD: Chan eil argamaidean gu leòr ann"
+msgstr "ГРЕШКА: Твърде малко аргументи"
 
 #: ../../../src/MenuDevConsole.cpp:559
 msgid "<key>=<val> <key>=<val> ..."
@@ -932,60 +927,60 @@ msgstr "<key>=<val> <key>=<val> …"
 
 #: ../../../src/MenuDevConsole.cpp:564
 msgid "ERROR: Unknown command"
-msgstr "MEARACHD: Àithne nach aithne dhuinn"
+msgstr "ГРЕШКА: Непозната команда"
 
 #: ../../../src/MenuDevConsole.cpp:566
 msgid "HINT: Type help"
-msgstr "OIDHEAM: Sgrìobh “help”"
+msgstr "СЪВЕТ: Напишете help"
 
 #: ../../../src/MenuEnemy.cpp:135
 #, c-format
 msgid "%s level %d"
-msgstr "%s leibheil %d"
+msgstr "%s ниво %d"
 
 #: ../../../src/MenuEnemy.cpp:159
 msgid "Dead"
-msgstr "Marbh"
+msgstr "Мъртъв"
 
 #: ../../../src/MenuEnemy.cpp:161
 msgid "Destroyed"
-msgstr "Air a mhilleadh"
+msgstr "Разрушен"
 
 #: ../../../src/MenuExit.cpp:85 ../../../src/MenuExit.cpp:139
 msgid "Paused"
-msgstr "’Na stad"
+msgstr "Пауза"
 
 #: ../../../src/MenuExit.cpp:91
 msgid "Save & Exit"
-msgstr "Sàbhail is fàg"
+msgstr "Запази и излез"
 
 #: ../../../src/MenuExit.cpp:92
 msgid "Exit"
-msgstr "Fàg an geama"
+msgstr "Излез"
 
 #: ../../../src/MenuExit.cpp:96
 msgid "Continue"
-msgstr "Lean air adhart"
+msgstr "Продължи"
 
 #: ../../../src/MenuInventory.cpp:174
 #, c-format
 msgid "Lost %d%% of %s."
-msgstr "Chaill thu %d%% dhe %s."
+msgstr "Загубихте %d%% от %s."
 
 #: ../../../src/MenuInventory.cpp:181
 #, c-format
 msgid "Lost %d%% of total XP."
-msgstr "Chaill thu %d%% dhe na puingean-eòlais iomlan."
+msgstr "Загубихте %d%% от общия опит."
 
 #: ../../../src/MenuInventory.cpp:186
 #, c-format
 msgid "Lost %d%% of current level XP."
-msgstr "Chaill thu %d%% dhe na puingean-eòlais airson an leibheil seo."
+msgstr "Загубихте %d%% опит от текущото ниво."
 
 #: ../../../src/MenuInventory.cpp:212
 #, c-format
 msgid "Lost %s."
-msgstr "Chaill thu %s."
+msgstr "Загубихте %s."
 
 #: ../../../src/MenuInventory.cpp:255 ../../../src/MenuStash.cpp:147
 #, c-format
@@ -994,282 +989,280 @@ msgstr "%d %s"
 
 #: ../../../src/MenuInventory.cpp:298
 msgid "Pick up item(s):"
-msgstr "Tog nì:"
+msgstr "Вдигане на предмет:"
 
 #: ../../../src/MenuInventory.cpp:299
 msgid "Use or equip item:"
-msgstr "Cleachd no uidheamaich nì:"
+msgstr "Използване на предмет:"
 
 #: ../../../src/MenuInventory.cpp:300
 #, c-format
 msgid "%s modifiers"
-msgstr "Atharraichearan air %s"
+msgstr "Модификатори за %s"
 
 #: ../../../src/MenuInventory.cpp:301
 msgid "Select a quantity of item:"
-msgstr "Tagh uiread dhen nì:"
+msgstr "Избиране на количество:"
 
 #: ../../../src/MenuInventory.cpp:304
 msgid "Stash item stack:"
-msgstr "Cuir stac nan nithean dhan stòr:"
+msgstr "Скриване на предмет:"
 
 #: ../../../src/MenuInventory.cpp:306
 msgid "Sell item stack:"
-msgstr "Reic stac nan nithean:"
+msgstr "Продаване на предмет:"
 
 #: ../../../src/MenuInventory.cpp:573
 msgid "You don't have enough of the required item."
-msgstr "Chan eil gu leòr dhen nì riatanach agad."
+msgstr "Нямате достатъчно от необходимия предмет."
 
 #: ../../../src/MenuInventory.cpp:580
 msgid "You can't use this item right now."
-msgstr "Chan urrainn dhut an nì seo a chleachdadh an-dràsta."
+msgstr "Не можете да използвате този предмет точно сега."
 
 #: ../../../src/MenuInventory.cpp:592
 msgid "This item can only be used from the action bar."
-msgstr "Cha ghabh an nì seo cleachdadh ach on bhàr-ghnìomhan."
+msgstr "Този предмет може да се използва само от лентата за действия."
 
 #: ../../../src/MenuInventory.cpp:710
 msgid "Inventory is full."
-msgstr "Tha an tasgadh làn."
+msgstr "Инвентарът е пълен."
 
 #: ../../../src/MenuInventory.cpp:830
 #, c-format
 msgid "Not enough %s."
-msgstr "Chan eil %s gu leòr agad."
+msgstr "Нямате достатъчно %s."
 
 #: ../../../src/MenuInventory.cpp:850 ../../../src/MenuInventory.cpp:857
 msgid "This item can not be sold."
-msgstr "Cha ghabh an nì seo reic."
+msgstr "Този предмет не може да се продаде."
 
 #: ../../../src/MenuLog.cpp:91
 msgid "Notes"
-msgstr "Nòtaichean"
+msgstr "Бележки"
 
 #: ../../../src/MenuLog.cpp:92
 msgid "Quests"
-msgstr "Cinn-thurais"
+msgstr "Куестове"
 
 #: ../../../src/MenuManager.cpp:291
 #, c-format
 msgid "XP: %d/%d"
-msgstr "Puingean-eòlais: %d/%d"
+msgstr "Опит: %d/%d"
 
 #: ../../../src/MenuManager.cpp:807
 msgid "This item can not be dropped."
-msgstr "Chan urrainn dhut an nì seo a leigeil às."
+msgstr "Този предмет не може да бъде пуснат."
 
 #: ../../../src/MenuNPCActions.cpp:75
 msgid "Trade"
-msgstr "Malart"
+msgstr "Търгувай"
 
 #: ../../../src/MenuNumPicker.cpp:60
 msgid "Enter amount:"
-msgstr "Cuir a-steach àireamh:"
+msgstr "Въведи количество:"
 
 #: ../../../src/MenuPowers.cpp:728
 msgid "Passive"
-msgstr "Fulangach"
+msgstr "Пасивно"
 
 #: ../../../src/MenuPowers.cpp:733
 #, c-format
 msgid "Costs %d MP"
-msgstr "Cosgaidh e %d puingean-gluasaid"
+msgstr "Изразходва %d мана"
 
 #: ../../../src/MenuPowers.cpp:737
 #, c-format
 msgid "Costs %d HP"
-msgstr "Cosgaidh e %d puingean-beatha"
+msgstr "Изразходва %d здраве"
 
 #: ../../../src/MenuPowers.cpp:742
 msgid "Cooldown:"
-msgstr "Fuarachadh:"
+msgstr "Време на изчакване:"
 
 #: ../../../src/MenuPowers.cpp:808 ../../../src/MenuPowers.cpp:811
 msgid "Damage per second"
-msgstr "Dochann gach diog"
+msgstr "Щети в секунда"
 
 #: ../../../src/MenuPowers.cpp:814 ../../../src/MenuPowers.cpp:817
 msgid "HP per second"
-msgstr "Puingean-beatha gach diog"
+msgstr "Здраве в секунда"
 
 #: ../../../src/MenuPowers.cpp:820 ../../../src/MenuPowers.cpp:823
 msgid "MP per second"
-msgstr "Puingean-gluasaid gach diog"
+msgstr "Мана в секунда"
 
 #: ../../../src/MenuPowers.cpp:827
 msgid "Immobilize"
-msgstr "Do-ghluasad"
+msgstr "Приковаване"
 
 #: ../../../src/MenuPowers.cpp:835
 msgid "Immunity"
-msgstr "Dìonachd"
+msgstr "Имунитет"
 
 #: ../../../src/MenuPowers.cpp:838
 msgid "Immunity to damage over time"
-msgstr "Dìonachd an aghaidh dochainn rè ùine"
+msgstr "Имунитет към щети за интервал от време"
 
 #: ../../../src/MenuPowers.cpp:841
 msgid "Immunity to slow"
-msgstr "Dìonachd an aghaidh maille"
+msgstr "Имунитет към забавяне"
 
 #: ../../../src/MenuPowers.cpp:844
 msgid "Immunity to stun"
-msgstr "Dìonachd an aghaidh tuainealaich"
+msgstr "Имунитет към зашеметяване"
 
 #: ../../../src/MenuPowers.cpp:847
 msgid "Immunity to HP steal"
-msgstr "Dìonachd an aghaidh goid phuingean-beatha"
+msgstr "Имунитет към крадене на здраве"
 
 #: ../../../src/MenuPowers.cpp:850
 msgid "Immunity to MP steal"
-msgstr "Dìonachd an aghaidh goid phuingean-gluasaid"
+msgstr "Имунитет към крадене на мана"
 
 #: ../../../src/MenuPowers.cpp:853
 msgid "Immunity to knockback"
-msgstr "Dìonachd an aghaidh bualaidh air ais"
+msgstr "Имунитет към бутащ удар"
 
 #: ../../../src/MenuPowers.cpp:856
 msgid "Immunity to damage reflection"
-msgstr "Dìonachd an aghaidh frith-thilgeil dochainn"
+msgstr "Имунитет към отразяване на щети"
 
 #: ../../../src/MenuPowers.cpp:859
 msgid "Stun"
-msgstr "Tuainealaich"
+msgstr "Зашеметяване"
 
 #: ../../../src/MenuPowers.cpp:862
 msgid "Automatic revive on death"
-msgstr "Ath-ghin fèin-obrachail seach bàs"
+msgstr "Автоматично прераждане при смърт"
 
 #: ../../../src/MenuPowers.cpp:865
 msgid "Convert"
-msgstr "Iompaich"
+msgstr "Превръщане"
 
 #: ../../../src/MenuPowers.cpp:868
 msgid "Fear"
-msgstr "Eagal"
+msgstr "Страх"
 
 #: ../../../src/MenuPowers.cpp:871
 msgid "Lifespan"
-msgstr "Faid-bheatha"
+msgstr "Продължителност на живота"
 
 #: ../../../src/MenuPowers.cpp:895
 msgid "Magical Shield"
-msgstr "Sgiath dhraoidheach"
+msgstr "Магически щит"
 
 #: ../../../src/MenuPowers.cpp:924
 msgid "Healing"
-msgstr "Slànachadh"
+msgstr "Излекуване"
 
 #: ../../../src/MenuPowers.cpp:927
 msgid "Knockback"
-msgstr "Bualadh air ais"
+msgstr "Бутащ удар"
 
 #: ../../../src/MenuPowers.cpp:952
 #, c-format
 msgid "%d%% chance"
-msgstr "teans de %d%%"
+msgstr "%d%% шанс"
 
 #: ../../../src/MenuPowers.cpp:1004
 msgid "Base Accuracy"
-msgstr "Pongalachd bhunasach"
+msgstr "Основна точност"
 
 #: ../../../src/MenuPowers.cpp:1024
 msgid "Base Critical Chance"
-msgstr "Teans bunasach air bualadh èiginneach"
+msgstr "Основен критичен шанс"
 
 #: ../../../src/MenuPowers.cpp:1032
 msgid "Ignores Absorbtion"
-msgstr "Leigidh seo seachad an ceapadh"
+msgstr "Игнорира абсорбиране"
 
 #: ../../../src/MenuPowers.cpp:1037
 msgid "Ignores Avoidance"
-msgstr "Leigidh seo seachad an seachnadh"
+msgstr "Игнорира избягване"
 
 #: ../../../src/MenuPowers.cpp:1042
 #, c-format
 msgid "%d%% Chance to crit slowed targets"
-msgstr "Teans dhe %d%% gun dèan thu bualadh èiginneach air amas le maille air"
+msgstr "%d%% Шанс за критичен удар на забавени мишени"
 
 #: ../../../src/MenuPowers.cpp:1047
 #, c-format
 msgid "%s Elemental Damage"
-msgstr "Dochann dùile %s"
+msgstr "Стихийна щета – %s"
 
 #: ../../../src/MenuPowers.cpp:1056
 #, c-format
 msgid "Requires a %s"
-msgstr "Feum air: %s"
+msgstr "Изисква %s"
 
 #: ../../../src/MenuPowers.cpp:1095 ../../../src/MenuPowers.cpp:1098
 #, c-format
 msgid "Requires Power: %s"
-msgstr "Feum air cumhachd: %s"
+msgstr "Изисква умение: %s"
 
 #: ../../../src/MenuPowers.cpp:1107
 msgid "Click to Unlock (uses 1 Skill Point)"
-msgstr "Briog gus a neo-ghlasadh (cleachdaidh seo 1 phuing-sgil)"
+msgstr "Натиснете, за да отключите (използва 1 точка за умения)"
 
 #: ../../../src/MenuPowers.cpp:1111 ../../../src/MenuPowers.cpp:1113
 msgid "Requires 1 Skill Point"
-msgstr "Feum air 1 phuing-sgil"
+msgstr "Изисква 1 точка за умения"
 
 #: ../../../src/MenuPowers.cpp:1347
 #, c-format
 msgid "%d unspent skill point"
-msgstr "%dphuing-sgil nach deach a chleachdadh"
+msgstr "%d неизразходвана точка за умения"
 
 #: ../../../src/MenuPowers.cpp:1350
 #, c-format
 msgid "%d unspent skill points"
-msgstr "%d puing(ean)-sgil nach deach a chleachdadh"
+msgstr "%d неизразходвани точки за умения"
 
 #: ../../../src/MenuPowers.cpp:1380
 msgid "Next Level:"
-msgstr "An t-ath leibheil:"
+msgstr "Следващо ниво:"
 
 #: ../../../src/MenuStash.cpp:97
 msgid "Shared Stash"
-msgstr "Stòr co-roinnte"
+msgstr "Споделен сандък"
 
 #: ../../../src/MenuStash.cpp:210
 msgid "Can not store quest items in the stash."
-msgstr "Cha ghabh nithean cinn-thurais a chur dhan stòr."
+msgstr "Не могат да се скриват предмети от куестове."
 
 #: ../../../src/MenuStash.cpp:220
 msgid "Stash is full."
-msgstr "Tha an stòr làn."
+msgstr "Сандъка е пълен."
 
 #: ../../../src/MenuVendor.cpp:58
 msgid "Buyback"
-msgstr "Na reic thu roimhe"
+msgstr "Откупуване"
 
 #: ../../../src/MenuVendor.cpp:279
 msgid "Vendor"
-msgstr "Reiceadair"
+msgstr "Продавач"
 
 #: ../../../src/PowerManager.cpp:1136
 #, c-format
 msgid "+%d Shield"
-msgstr "Sgiath +%d"
+msgstr "+%d Щит"
 
 #: ../../../src/PowerManager.cpp:1392
 msgid "You are already transformed, untransform first."
-msgstr ""
-"Tha thu air cruth-atharrachadh mar-thà, feumaidh tu an cruth tùsail agad a "
-"ghabhail an toiseach."
+msgstr "Вече сте преобразени, първо се преобразете обратно."
 
 #: ../../../src/PowerManager.cpp:1404
 msgid "Could not untransform at this position."
-msgstr "Cha b’ urrainn dhut neo-chruth-atharrachadh air an ionad seo."
+msgstr "Не можахте да се преобразите на това място."
 
 #: ../../../src/QuestLog.cpp:234
 msgid "Completed Quests"
-msgstr "Cinn-thurais air a choileanadh"
+msgstr "Завършени куестове"
 
 #: ../../../src/SaveLoad.cpp:239 ../../../src/SaveLoad.cpp:240
 msgid "Game saved."
-msgstr "Chaidh an geama a shàbhaladh."
+msgstr "Играта е запазена."
 
 #: ../../../src/SDLInputState.cpp:581
 msgid "Backspace"
@@ -1297,15 +1290,15 @@ msgstr "Insert"
 
 #: ../../../src/SDLInputState.cpp:589
 msgid "Left Alt"
-msgstr "Alt clì"
+msgstr "Left Alt"
 
 #: ../../../src/SDLInputState.cpp:590
 msgid "Left Ctrl"
-msgstr "Ctrl clì"
+msgstr "Left Ctrl"
 
 #: ../../../src/SDLInputState.cpp:592
 msgid "Left Shift"
-msgstr "Shift clì"
+msgstr "Left Shift"
 
 #: ../../../src/SDLInputState.cpp:593
 msgid "NumLock"
@@ -1329,11 +1322,11 @@ msgstr "PrintScreen"
 
 #: ../../../src/SDLInputState.cpp:598
 msgid "Right Alt"
-msgstr "Alt deas"
+msgstr "Right Alt"
 
 #: ../../../src/SDLInputState.cpp:599
 msgid "Right Ctrl"
-msgstr "Ctrl deas"
+msgstr "Right Ctrl"
 
 #: ../../../src/SDLInputState.cpp:600
 msgid "Return"
@@ -1341,7 +1334,7 @@ msgstr "Return"
 
 #: ../../../src/SDLInputState.cpp:602
 msgid "Right Shift"
-msgstr "Shift deas"
+msgstr "Right Shift"
 
 #: ../../../src/SDLInputState.cpp:603
 msgid "ScrollLock"
@@ -1358,226 +1351,224 @@ msgstr "Tab"
 #: ../../../src/SDLInputState.cpp:619
 #, c-format
 msgid "Mouse %d"
-msgstr "%d na luchaige"
+msgstr "Mouse %d"
 
 #: ../../../src/SDLInputState.cpp:627
 #, c-format
 msgid "Axis %d -"
-msgstr "Aiseal %d -"
+msgstr "Axis %d -"
 
 #: ../../../src/SDLInputState.cpp:629
 #, c-format
 msgid "Axis %d +"
-msgstr "Aiseal %d +"
+msgstr "Axis %d +"
 
 #: ../../../src/SDLInputState.cpp:632
 #, c-format
 msgid "Button %d"
-msgstr "Putan %d"
+msgstr "Бутон %d"
 
 #: ../../../src/SDLInputState.cpp:636
 msgid "(none)"
-msgstr "(chan eil gin)"
+msgstr "(няма)"
 
 #: ../../../src/SDLInputState.cpp:677 ../../../src/SDLInputState.cpp:701
 #: ../../../src/SDLInputState.cpp:719
 msgid "Tap"
-msgstr "Gnogadh"
+msgstr "Натискане"
 
 #: ../../../src/SDLInputState.cpp:677 ../../../src/SDLInputState.cpp:680
 #, c-format
 msgid "%s on ground"
-msgstr "%s air an làr"
+msgstr "%s в/у земя"
 
 #: ../../../src/SDLInputState.cpp:701 ../../../src/SDLInputState.cpp:704
 #, c-format
 msgid "%s on enemy"
-msgstr "%s air an nàmhaid"
+msgstr "%s в/у враг"
 
 #: ../../../src/SDLInputState.cpp:763 ../../../src/SDLInputState.cpp:767
 #: ../../../src/SDLInputState.cpp:771
 #, c-format
 msgid "'%s' is no longer bound to:"
-msgstr "Chan eil “%s” naisgte tuilleadh ri:"
+msgstr "'%s' вече не е свързан с:"
 
 #: ../../../src/Stats.cpp:38
 msgid "Max HP"
-msgstr "Puingean-beatha as motha"
+msgstr "Здраве"
 
 #: ../../../src/Stats.cpp:39
 msgid "Total amount of HP."
-msgstr "Na PB iomlan."
+msgstr "Общо здраве."
 
 #: ../../../src/Stats.cpp:43
 msgid "HP Regen"
-msgstr "Ath-ghintinn nam puingean-beatha"
+msgstr "Регенериране на здраве"
 
 #: ../../../src/Stats.cpp:44
 msgid "Ticks of HP regen per minute."
-msgstr "Ath-ghintinn nam puingean-beatha gach mionaid."
+msgstr "Точки на регенериране на здраве в минута."
 
 #: ../../../src/Stats.cpp:48
 msgid "Max MP"
-msgstr "Puingean-gluasaid as motha"
+msgstr "Мана"
 
 #: ../../../src/Stats.cpp:49
 msgid "Total amount of MP."
-msgstr "Na PG iomlan."
+msgstr "Общо мана."
 
 #: ../../../src/Stats.cpp:53
 msgid "MP Regen"
-msgstr "Ath-ghintinn nam puingean-gluasaid"
+msgstr "Регенериране на мана"
 
 #: ../../../src/Stats.cpp:54
 msgid "Ticks of MP regen per minute."
-msgstr "Ath-ghintinn nam puingean-gluasaid gach mionaid."
+msgstr "Точки на регенериране на мана в минута."
 
 #: ../../../src/Stats.cpp:58
 msgid "Accuracy"
-msgstr "Pongalachd"
+msgstr "Точност"
 
 #: ../../../src/Stats.cpp:59
 msgid ""
 "Accuracy rating. The enemy's Avoidance rating is subtracted from this value "
 "to calculate your likeliness to land a direct hit."
 msgstr ""
-"Rangachadh na pongalachd. Thèid teàrnadh an nàmhad a thoirt air falbh on "
-"luach seo airson àireamhachadh dè cho coltach ’s a bhios e gum buail thu "
-"air."
+"Процент на точност. Вражеският процент на избягване се изважда от тази "
+"стойност, за да се изчисли вашата вероятност да направите директен удар."
 
 #: ../../../src/Stats.cpp:63
 msgid "Avoidance"
-msgstr "Teàrnadh"
+msgstr "Избягване"
 
 #: ../../../src/Stats.cpp:64
 msgid ""
 "Avoidance rating. This value is subtracted from the enemy's Accuracy rating "
 "to calculate their likeliness to land a direct hit."
 msgstr ""
-"Rangachadh an tèarnaidh. Thèid an luach seo a thoirt air falbh o rangachd "
-"pongalachd nan nàimhdean airson àireamhachadh dè cho coltach ’s a bhios e "
-"gum buail iad ort."
+"Процент на избягване. Тази стойност се изважда от вражеският процент на "
+"точност, за да се изчисли тяхната вероятност да направят директен удар."
 
 #: ../../../src/Stats.cpp:68
 msgid "Absorb Min"
-msgstr "Ceapadh as lugha"
+msgstr "Абсорбиране (мин.)"
 
 #: ../../../src/Stats.cpp:69 ../../../src/Stats.cpp:74
 msgid "Reduces the amount of damage taken."
-msgstr "Ìslichidh seo am meud a dhochann a dh’fhulaingeas tu."
+msgstr "Намалява количеството на понесените щети."
 
 #: ../../../src/Stats.cpp:73
 msgid "Absorb Max"
-msgstr "Ceapadh as motha"
+msgstr "Абсорбиране (макс.)"
 
 #: ../../../src/Stats.cpp:78
 msgid "Critical Hit Chance"
-msgstr "Teans air bualadh èiginneach"
+msgstr "Шанс за критичен удар"
 
 #: ../../../src/Stats.cpp:79
 msgid "Chance for an attack to do extra damage."
-msgstr "An teans gun dèan ionnsaigh dochann a bharrachd."
+msgstr "Шанс за атака да направи допълнителни щети."
 
 #: ../../../src/Stats.cpp:83
 msgid "Bonus XP"
-msgstr "Duais phuingean-eòlais"
+msgstr "Бонус опит"
 
 #: ../../../src/Stats.cpp:84
 msgid "Increases the XP gained per kill."
-msgstr "Bheir seo barrachd phuingean-beatha dhut leis gach marbhadh."
+msgstr "Увеличава опита, получен за убийство."
 
 #: ../../../src/Stats.cpp:88
 #, c-format
 msgid "Bonus %s"
-msgstr "Duais %s"
+msgstr "Бонус %s"
 
 #: ../../../src/Stats.cpp:89
 #, c-format
 msgid "Increases the %s found per drop."
-msgstr "Lorgaidh tu %s a bharrachd leis gach leigeil às."
+msgstr "Увеличава намереното %s."
 
 #: ../../../src/Stats.cpp:93
 msgid "Item Find Chance"
-msgstr "Teans air nithean a lorg"
+msgstr "Шанс за намиране на предмет"
 
 #: ../../../src/Stats.cpp:94
 msgid "Increases the chance that an enemy will drop an item."
-msgstr "Bidh barrachd teans gun leig nàmhaid nì às nuair a mharbhas tu e."
+msgstr "Увеличава шанса враг да пусне предмет."
 
 #: ../../../src/Stats.cpp:98
 msgid "Stealth"
-msgstr "Tàisleachadh"
+msgstr "Хитрост"
 
 #: ../../../src/Stats.cpp:99
 msgid "Increases your ability to move undetected."
-msgstr "Cuiridh seo ri do chomas nach tèid mothachadh dhut."
+msgstr "Увеличава способността ви да се движите незабелязано."
 
 #: ../../../src/Stats.cpp:103
 msgid "Poise"
-msgstr "Dòigh-sheasaimh"
+msgstr "Уравновесеност"
 
 #: ../../../src/Stats.cpp:104
 msgid "Reduces your chance of stumbling when hit."
-msgstr "Cha tuit thu gu furasta nuair a thèid bualadh ort."
+msgstr "Намалява шанса ви да се препънете, когато ви ударят."
 
 #: ../../../src/Stats.cpp:108
 msgid "Missile Reflect Chance"
-msgstr "Teans frith-thilgeil astais"
+msgstr "Шанс за отразяване на снаряди"
 
 #: ../../../src/Stats.cpp:109
 msgid "Increases your chance of reflecting missiles back at enemies."
-msgstr "Cuiridh seo ris an teans gun tilg thu astas air ais dhan nàmhaid."
+msgstr "Увеличава шанса ви да отразявате снаряди обратно към врагове."
 
 #: ../../../src/Stats.cpp:113
 msgid "Damage Reflection"
-msgstr "Frith-thilgeil dochainn"
+msgstr "Отразяване на щети"
 
 #: ../../../src/Stats.cpp:114
 msgid "Deals a percentage of damage taken back to the attacker."
-msgstr "Nì seo cuid dhen dochann a fhuair thu air an ionnsaighear."
+msgstr "Нанася процент от понесените щети обратно към нападателя."
 
 #: ../../../src/Stats.cpp:118
 msgid "HP Steal"
-msgstr "Goid phuingean-beatha"
+msgstr "Крадене на здраве"
 
 #: ../../../src/Stats.cpp:119
 msgid "Percentage of HP stolen per hit."
-msgstr "An ceudad de phuingean-beatha a thèid a ghoid le gach buille."
+msgstr "Процент от откраднатото здраве за удар."
 
 #: ../../../src/Stats.cpp:123
 msgid "MP Steal"
-msgstr "Goid phuingean-gluasaid"
+msgstr "Крадене на мана"
 
 #: ../../../src/Stats.cpp:124
 msgid "Percentage of MP stolen per hit."
-msgstr "An ceudad de phuingean-gluasaid a thèid a ghoid le gach buille."
+msgstr "Процент от откраднатата мана за удар."
 
 #: ../../../src/Stats.cpp:128
 msgid "Base HP"
-msgstr "Puingean-beatha bunasach"
+msgstr "Основно здраве"
 
 #: ../../../src/Stats.cpp:133
 msgid "Base MP"
-msgstr "Puingean-gluasaid bunasach"
+msgstr "Основна мана"
 
 #: ../../../src/Utils.cpp:297
 msgid "k"
-msgstr "k"
+msgstr "к"
 
 #: ../../../src/Utils.cpp:531
 #, c-format
 msgid "%s second"
-msgstr "%s diog"
+msgstr "%s секунда"
 
 #: ../../../src/Utils.cpp:534
 #, c-format
 msgid "%s seconds"
-msgstr "%s diog(an)"
+msgstr "%s секунди"
 
 #: ../../../src/Version.cpp:139
 msgid "or newer"
-msgstr "no nas ùire"
+msgstr "или по-нова"
 
 #: ../../../src/Version.cpp:142
 msgid "or older"
-msgstr "no nas sine"
+msgstr "или по-стара"

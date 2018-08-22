@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-08-04 22:10+\n"
+"POT-Creation-Date: 2018-08-05 20:36+\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Justin Jacobs <jajdorkster@gmail.com>, 2018\n"
 "Language-Team: German (https://www.transifex.com/flareorg/teams/84925/de/)\n"
@@ -42,6 +42,8 @@ msgstr "Nahkampfschaden"
 #: ../engine/damage_types.txt:4
 msgid "Increases the damage done with swords and other melee weapons."
 msgstr ""
+"Erhöht den Schaden, der mit Schwertern und anderen Nahkampfwaffen "
+"angerichtet wird."
 
 #: ../engine/damage_types.txt:5
 msgid "Melee Damage Min"
@@ -58,6 +60,7 @@ msgstr "Fernkampfschaden"
 #: ../engine/damage_types.txt:13
 msgid "Increases the damage done with bows and other ranged weapons."
 msgstr ""
+"Erhöht den Schaden, der mit Bögen und anderen Fernwaffen angerichtet wird."
 
 #: ../engine/damage_types.txt:14
 msgid "Ranged Damage Min"
@@ -74,6 +77,7 @@ msgstr "Magieschaden"
 #: ../engine/damage_types.txt:22
 msgid "Increases the damage done with staves and other mental weapons."
 msgstr ""
+"Erhöht den Schaden, der mit Stäben und anderen Magiewaffen angerichtet wird."
 
 #: ../engine/damage_types.txt:23
 msgid "Mental Damage Min"
@@ -245,7 +249,7 @@ msgstr "Diego J. Romero López"
 
 #: ../cutscenes/credits.txt:62
 msgid "dumaosen"
-msgstr ""
+msgstr "dumaosen"
 
 #: ../cutscenes/credits.txt:63
 msgid "Eric R"
@@ -273,7 +277,7 @@ msgstr "Hans Joachim Desserud"
 
 #: ../cutscenes/credits.txt:69
 msgid "hark34"
-msgstr ""
+msgstr "hark34"
 
 #: ../cutscenes/credits.txt:71
 msgid "Janet Hunt"
@@ -317,7 +321,7 @@ msgstr "Nea Retrogamer"
 
 #: ../cutscenes/credits.txt:81
 msgid "Nguyễn Gia Phong"
-msgstr ""
+msgstr "Nguyễn Gia Phong"
 
 #: ../cutscenes/credits.txt:82
 msgid "Nikita Vanku"
@@ -365,7 +369,7 @@ msgstr "Timo Sievänen"
 
 #: ../cutscenes/credits.txt:94
 msgid "Vicente Monteiro"
-msgstr ""
+msgstr "Vicente Monteiro"
 
 #: ../cutscenes/credits.txt:95
 msgid "Wuzzy2"
@@ -377,7 +381,7 @@ msgstr "Yannis Anthymidis"
 
 #: ../cutscenes/credits.txt:97
 msgid "Zmicer Turok"
-msgstr ""
+msgstr "Zmicer Turok"
 
 #: ../cutscenes/credits.txt:100
 msgid "Distributors"

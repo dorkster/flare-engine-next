@@ -416,7 +416,7 @@ msgstr "Erstellen"
 
 #: ../../../src/GameStateNew.cpp:76
 msgid "Randomize"
-msgstr ""
+msgstr "Würfeln"
 
 #: ../../../src/GameStateNew.cpp:92
 msgid "Choose a Portrait"
@@ -709,7 +709,7 @@ msgstr "Schnelltaste: %s"
 
 #: ../../../src/MenuActionBar.cpp:580
 msgid "Not enough MP."
-msgstr ""
+msgstr "Nicht genügend MP."
 
 #: ../../../src/MenuActiveEffects.cpp:123
 #, c-format
@@ -736,17 +736,17 @@ msgstr "Stufe"
 #: ../../../src/MenuCharacter.cpp:309
 #, c-format
 msgid "%d unspent stat point"
-msgstr ""
+msgstr "%d verfügbarer Wertepunkt"
 
 #: ../../../src/MenuCharacter.cpp:312
 #, c-format
 msgid "%d unspent stat points"
-msgstr ""
+msgstr "%d verfügbare Wertepunkte"
 
 #: ../../../src/MenuCharacter.cpp:354
 #, c-format
 msgid "Reduces the damage taken from \"%s\" elemental attacks."
-msgstr ""
+msgstr "Reduziert den Schaden von „%s“-Elementarangriffen."
 
 #: ../../../src/MenuCharacter.cpp:364 ../../../src/MenuManager.cpp:288
 #, c-format
@@ -943,7 +943,7 @@ msgstr "Tot"
 
 #: ../../../src/MenuEnemy.cpp:161
 msgid "Destroyed"
-msgstr ""
+msgstr "Zerstört"
 
 #: ../../../src/MenuExit.cpp:85 ../../../src/MenuExit.cpp:139
 msgid "Paused"
@@ -1202,7 +1202,7 @@ msgstr "Benötigt Fähigkeit: %s"
 
 #: ../../../src/MenuPowers.cpp:1107
 msgid "Click to Unlock (uses 1 Skill Point)"
-msgstr "Klicken zum Freischalten (benutzt 1 Fertigungspunkt)"
+msgstr "Klicken zum Freischalten (benutzt 1 Fertigkeitspunkt)"
 
 #: ../../../src/MenuPowers.cpp:1111 ../../../src/MenuPowers.cpp:1113
 msgid "Requires 1 Skill Point"
@@ -1211,12 +1211,12 @@ msgstr "Benötigt 1 Fertigkeitspunkt"
 #: ../../../src/MenuPowers.cpp:1347
 #, c-format
 msgid "%d unspent skill point"
-msgstr ""
+msgstr "%d verfügbarer Fertigkeitspunkt"
 
 #: ../../../src/MenuPowers.cpp:1350
 #, c-format
 msgid "%d unspent skill points"
-msgstr ""
+msgstr "%d verfügbare Fertigkeitspunkte"
 
 #: ../../../src/MenuPowers.cpp:1380
 msgid "Next Level:"
@@ -1257,7 +1257,7 @@ msgstr "An diesem Ort ist eine Zurückverwandlung nicht möglich."
 
 #: ../../../src/QuestLog.cpp:234
 msgid "Completed Quests"
-msgstr ""
+msgstr "Fertige Aufgaben"
 
 #: ../../../src/SaveLoad.cpp:239 ../../../src/SaveLoad.cpp:240
 msgid "Game saved."
@@ -1398,7 +1398,7 @@ msgstr "Max. TP"
 
 #: ../../../src/Stats.cpp:39
 msgid "Total amount of HP."
-msgstr ""
+msgstr "Gesamtanzahl an TP."
 
 #: ../../../src/Stats.cpp:43
 msgid "HP Regen"
@@ -1414,7 +1414,7 @@ msgstr "Max. MP"
 
 #: ../../../src/Stats.cpp:49
 msgid "Total amount of MP."
-msgstr ""
+msgstr "Gesamtanzahl an MP."
 
 #: ../../../src/Stats.cpp:53
 msgid "MP Regen"
@@ -1433,6 +1433,9 @@ msgid ""
 "Accuracy rating. The enemy's Avoidance rating is subtracted from this value "
 "to calculate your likeliness to land a direct hit."
 msgstr ""
+"Treffsicherheitswertung. Die Ausweichwertung des Feindes wird von diesem "
+"Wert subtrahiert, um die Wahrscheinlichkeit, dass du einen direkten Treffer "
+"landest, zu berechnen."
 
 #: ../../../src/Stats.cpp:63
 msgid "Avoidance"
@@ -1443,6 +1446,9 @@ msgid ""
 "Avoidance rating. This value is subtracted from the enemy's Accuracy rating "
 "to calculate their likeliness to land a direct hit."
 msgstr ""
+"Ausweichwertung. Dieser Wert wird von der Treffsicherheitswertung des "
+"Feindes subtrahiert, um die Wahrscheinlichkeit, dass er einen direkten "
+"Treffer landet, zu berechnen."
 
 #: ../../../src/Stats.cpp:68
 msgid "Absorb Min"
@@ -1450,7 +1456,7 @@ msgstr "Absorbieren min."
 
 #: ../../../src/Stats.cpp:69 ../../../src/Stats.cpp:74
 msgid "Reduces the amount of damage taken."
-msgstr ""
+msgstr "Reduziert die Menge des erhaltenen Schadens."
 
 #: ../../../src/Stats.cpp:73
 msgid "Absorb Max"
@@ -1462,7 +1468,7 @@ msgstr "Wahrsch. für kritischen Treffer"
 
 #: ../../../src/Stats.cpp:79
 msgid "Chance for an attack to do extra damage."
-msgstr ""
+msgstr "Wahrscheinlichkeit, dass ein Angriff zusätzlichen Schaden anrichtet."
 
 #: ../../../src/Stats.cpp:83
 msgid "Bonus XP"
