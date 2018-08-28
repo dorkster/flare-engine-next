@@ -332,7 +332,8 @@ void NPC::logic() {
 	else
 	{
 		// TODO: check logic
-		activeAnimation->advanceFrame();
+		if (activeAnimation)
+			activeAnimation->advanceFrame();
 		mapr->collider.block(stats.pos.x, stats.pos.y, true);
 	}
 }
