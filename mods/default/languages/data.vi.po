@@ -40,7 +40,7 @@ msgstr "Sát thương tầm gần"
 
 #: ../engine/damage_types.txt:4
 msgid "Increases the damage done with swords and other melee weapons."
-msgstr ""
+msgstr "Tăng sát thương khi sử dụng vũ khí tầm gần."
 
 #: ../engine/damage_types.txt:5
 msgid "Melee Damage Min"
@@ -56,7 +56,7 @@ msgstr "Sát thương tầm xa"
 
 #: ../engine/damage_types.txt:13
 msgid "Increases the damage done with bows and other ranged weapons."
-msgstr ""
+msgstr "Tăng sát thương khi sử dụng vũ khí tầm xa."
 
 #: ../engine/damage_types.txt:14
 msgid "Ranged Damage Min"
@@ -72,7 +72,7 @@ msgstr "Sát thương pháp thuật"
 
 #: ../engine/damage_types.txt:22
 msgid "Increases the damage done with staves and other mental weapons."
-msgstr ""
+msgstr "Tăng sát thương khi sử dụng các loại gậy phép."
 
 #: ../engine/damage_types.txt:23
 msgid "Mental Damage Min"
