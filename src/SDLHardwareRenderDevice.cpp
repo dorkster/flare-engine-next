@@ -135,7 +135,11 @@ SDLHardwareRenderDevice::SDLHardwareRenderDevice()
 }
 
 int SDLHardwareRenderDevice::createContextInternal() {
-	bool settings_changed = (fullscreen != settings->fullscreen || hwsurface != settings->hwsurface || vsync != settings->vsync || texture_filter != settings->texture_filter);
+	bool settings_changed = (fullscreen != settings->fullscreen ||
+			                 hwsurface != settings->hwsurface ||
+							 vsync != settings->vsync ||
+							 texture_filter != settings->texture_filter ||
+							 ignore_texture_filter != eset->resolutions.ignore_texture_filter);
 
 	Uint32 w_flags = 0;
 	Uint32 r_flags = 0;
@@ -204,6 +208,7 @@ int SDLHardwareRenderDevice::createContextInternal() {
 			hwsurface = settings->hwsurface;
 			vsync = settings->vsync;
 			texture_filter = settings->texture_filter;
+			ignore_texture_filter = eset->resolutions.ignore_texture_filter;
 			is_initialized = true;
 
 			Utils::logInfo("RenderDevice: Fullscreen=%d, Hardware surfaces=%d, Vsync=%d, Texture Filter=%d", fullscreen, hwsurface, vsync, texture_filter);
@@ -367,8 +372,10 @@ void SDLHardwareRenderDevice::drawRectangle(const Point& p0, const Point& p1, co
 }
 
 void SDLHardwareRenderDevice::blankScreen() {
-	SDL_SetRenderTarget(renderer, texture);
 	SDL_SetRenderDrawColor(renderer, background_color.r, background_color.g, background_color.b, background_color.a);
+	SDL_SetRenderTarget(renderer, NULL);
+	SDL_RenderClear(renderer);
+	SDL_SetRenderTarget(renderer, texture);
 	SDL_RenderClear(renderer);
 	return;
 }

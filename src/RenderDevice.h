@@ -237,6 +237,7 @@ protected:
 	bool hwsurface;
 	bool vsync;
 	bool texture_filter;
+	bool ignore_texture_filter;
 	Point min_screen;
 
 	bool is_initialized;
