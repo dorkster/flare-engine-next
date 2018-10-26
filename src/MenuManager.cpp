@@ -41,7 +41,6 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuLog.h"
 #include "MenuManager.h"
 #include "MenuMiniMap.h"
-#include "MenuNPCActions.h"
 #include "MenuNumPicker.h"
 #include "MenuPowers.h"
 #include "MenuStash.h"
@@ -87,7 +86,6 @@ MenuManager::MenuManager()
 	, mp(NULL)
 	, xp(NULL)
 	, mini(NULL)
-	, npc(NULL)
 	, num_picker(NULL)
 	, enemy(NULL)
 	, vendor(NULL)
@@ -109,8 +107,7 @@ MenuManager::MenuManager()
 	act = new MenuActionBar();
 	enemy = new MenuEnemy();
 	vendor = new MenuVendor();
-	npc = new MenuNPCActions();
-	talker = new MenuTalker(npc);
+	talker = new MenuTalker();
 	exit = new MenuExit();
 	mini = new MenuMiniMap();
 	chr = new MenuCharacter();
@@ -137,9 +134,8 @@ MenuManager::MenuManager()
 	menus.push_back(pow); // menus[13]
 	menus.push_back(questlog); // menus[14]
 	menus.push_back(stash); // menus[15]
-	menus.push_back(npc); // menus[16]
-	menus.push_back(book); // menus[17]
-	menus.push_back(num_picker); // menus[18]
+	menus.push_back(book); // menus[16]
+	menus.push_back(num_picker); // menus[17]
 
 	if (settings->dev_mode) {
 		devconsole = new MenuDevConsole();
@@ -403,11 +399,6 @@ void MenuManager::logic() {
 	if (settings->dev_mode && devconsole->inputFocus())
 		key_lock = true;
 
-	// handle npc action menu
-	if (npc->visible) {
-		npc->logic();
-	}
-
 	// cancel dragging and defocus menu tablists
 	if (!key_lock && inpt->pressing[Input::CANCEL] && !inpt->lock[Input::CANCEL] && !pc->stats.corpse) {
 		if (keyboard_dragging || mouse_dragging) {
@@ -545,7 +536,7 @@ void MenuManager::logic() {
 	}
 
 	bool console_open = settings->dev_mode && devconsole->visible;
-	menus_open = (inv->visible || pow->visible || chr->visible || questlog->visible || vendor->visible || talker->visible || npc->visible || book->visible || console_open);
+	menus_open = (inv->visible || pow->visible || chr->visible || questlog->visible || vendor->visible || talker->visible || book->visible || console_open);
 	pause = (eset->misc.menus_pause && menus_open) || exit->visible || console_open || book->visible;
 
 	touch_controls->visible = !menus_open && !exit->visible;
@@ -1324,7 +1315,6 @@ void MenuManager::closeLeft() {
 	book->book_name = "";
 	num_picker->visible = false;
 
-	npc->setNPC(NULL);
 	talker->setNPC(NULL);
 	vendor->setNPC(NULL);
 
@@ -1342,7 +1332,6 @@ void MenuManager::closeRight() {
 	book->book_name = "";
 	num_picker->visible = false;
 
-	npc->setNPC(NULL);
 	talker->setNPC(NULL);
 
 	if (settings->dev_mode && devconsole->visible) {
@@ -1355,7 +1344,7 @@ bool MenuManager::isDragging() {
 }
 
 bool MenuManager::isNPCMenuVisible() {
-	return npc->visible || talker->visible || vendor->visible;
+	return talker->visible || vendor->visible;
 }
 
 void MenuManager::showExitMenu() {
@@ -1383,7 +1372,6 @@ MenuManager::~MenuManager() {
 	delete enemy;
 	delete effects;
 	delete stash;
-	delete npc;
 	delete book;
 	delete num_picker;
 
