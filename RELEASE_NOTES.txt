@@ -7,6 +7,7 @@ Engine features:
 * Overhead markers are now displayed for entities that are obscured by tall tiles.
 * Dialog options are no longer shown in a separate menu, but are instead part of the main dialog window.
 * Added support for dialog responses. For any line of dialog, a list of response topics can be given.
+* Add 'save_pos_onexit' to engine/misc.txt for saving the player's current position upon exiting.
 
 Engine fixes:
 * Fixed shrinking tab widgets when widow was resized.
@@ -14,6 +15,10 @@ Engine fixes:
 * Add tooltips to language list to show language codes.
 * Make strings related to elements more translator-friendly.
 * Fixed a bug where looped map sounds wouldn't play if the player entered the map with a sound volume of 0, but later raised the volume.
+
+New translations:
+
+* Catalan (ca) by Marc Tormo i Bochaca
 
 Translation updates:
 
