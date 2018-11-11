@@ -328,8 +328,6 @@ public:
 	StatBlock* summoner;
 	std::queue<int> party_buffs;
 
-	bool attacking;
-
 	std::vector<int> power_filter;
 
 	int bleed_source_type;
