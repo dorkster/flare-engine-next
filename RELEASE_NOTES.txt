@@ -11,6 +11,8 @@ Engine features:
 * Added a compass to the minimap.
 * Moved several interface options to the actionbar. Loot tooltips, combat text, statbar labels, and mini-map mode can be adjusted.
 * Moved the interface option for automatically equipping items to the Inventory menu.
+* Add 'toggle_fps' to the developer console commands.
+* Added a 2x zoom mode for the mini-map.
 
 Engine fixes:
 * Fixed shrinking tab widgets when widow was resized.
@@ -21,6 +23,7 @@ Engine fixes:
 * Redesigned mouse movement to use the secondary button (right mouse) for movement.
 * Fix buttons and checkboxes not handling clicks while the "Accept" key is pressed.
 * Fix incorrect descriptions of controls on mobile devices.
+* Add renderer support for batching calls to local pixel drawing. This speeds up the pre-render of the minimap.
 
 Game changes:
 
