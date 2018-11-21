@@ -31,8 +31,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Entity.h"
 #include "Utils.h"
 
+class Enemy;
 class Entity;
-class Hazard;
 class StatBlock;
 
 class ActionData {
@@ -80,6 +80,8 @@ private:
 
 	bool attack_cursor;
 
+	int mm_key; // mouse movement key
+
 protected:
 	virtual void resetActiveAnimation();
 
@@ -99,6 +101,7 @@ public:
 	~Avatar();
 
 	void init();
+	void handleNewMap();
 	void loadGraphics(std::vector<Layer_gfx> _img_gfx);
 	void loadStepFX(const std::string& stepname);
 
@@ -129,7 +132,6 @@ public:
 	std::string transform_map;
 
 	// vars
-	Hazard *haz;
 	int current_power;
 	FPoint act_target;
 	bool drag_walking;
@@ -139,11 +141,12 @@ public:
 	bool allow_movement;
 	std::vector<Timer> power_cooldown_timers;
 	std::vector<Timer> power_cast_timers;
-	FPoint enemy_pos; // positon of the highlighted enemy
+	Enemy* cursor_enemy; // enemy selected with the mouse cursor
+	Enemy* lock_enemy;
 	unsigned long time_played;
 	bool questlog_dismissed;
-	bool attacking_with_main1;
-	bool moving_with_main2;
+	bool using_main1;
+	bool using_main2;
 };
 
 #endif

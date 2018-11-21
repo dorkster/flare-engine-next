@@ -32,10 +32,10 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CommonIncludes.h"
 #include "CursorManager.h"
 #include "EnemyGroupManager.h"
+#include "Enemy.h"
 #include "EnemyManager.h"
 #include "EngineSettings.h"
 #include "FileParser.h"
-#include "Hazard.h"
 #include "InputState.h"
 #include "MapRenderer.h"
 #include "MenuActionBar.h"
@@ -57,6 +57,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 Avatar::Avatar()
 	: Entity()
 	, attack_cursor(false)
+	, mm_key(settings->mouse_move_swap ? Input::MAIN2 : Input::MAIN1)
 	, hero_stats(NULL)
 	, charmed_stats(NULL)
 	, act_target()
@@ -64,11 +65,12 @@ Avatar::Avatar()
 	, respawn(false)
 	, close_menus(false)
 	, allow_movement(true)
-	, enemy_pos(FPoint(-1,-1))
+	, cursor_enemy(NULL)
+	, lock_enemy(NULL)
 	, time_played(0)
 	, questlog_dismissed(false)
-	, attacking_with_main1(false)
-	, moving_with_main2(false) {
+	, using_main1(false)
+	, using_main2(false) {
 
 	init();
 
@@ -147,8 +149,6 @@ void Avatar::init() {
 
 	stats.cooldown.reset(Timer::END);
 
-	haz = NULL;
-
 	body = -1;
 
 	transform_triggered = false;
@@ -170,6 +170,11 @@ void Avatar::init() {
 	power_cast_timers.clear();
 	power_cast_timers.resize(powers->powers.size());
 
+}
+
+void Avatar::handleNewMap() {
+	cursor_enemy = NULL;
+	lock_enemy = NULL;
 }
 
 /**
@@ -294,7 +299,7 @@ bool Avatar::pressing_move() {
 		return false;
 	}
 	else if (settings->mouse_move) {
-		return inpt->pressing[Input::MAIN2] && !inpt->pressing[Input::SHIFT];
+		return inpt->pressing[mm_key] && !inpt->pressing[Input::SHIFT];
 	}
 	else {
 		return (inpt->pressing[Input::UP] && !inpt->lock[Input::UP]) ||
@@ -380,13 +385,13 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 	}
 
 	// assist mouse movement
-	if (!inpt->pressing[Input::MAIN2]) {
+	if (!inpt->pressing[mm_key]) {
 		drag_walking = false;
 	}
 
 	// block some interactions when attacking/moving
-	attacking_with_main1 = inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1];
-	moving_with_main2 = inpt->pressing[Input::MAIN2] && !inpt->lock[Input::MAIN2];
+	using_main1 = inpt->pressing[Input::MAIN1] && !inpt->lock[Input::MAIN1];
+	using_main2 = inpt->pressing[Input::MAIN2] && !inpt->lock[Input::MAIN2];
 
 	// handle animation
 	if (!stats.effects.stun) {
@@ -403,6 +408,32 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 		transform_map = mapr->getFilename();
 	}
 
+	int mm_attack_id = (settings->mouse_move_swap ? menu->act->getSlotPower(MenuActionBar::SLOT_MAIN2) : menu->act->getSlotPower(MenuActionBar::SLOT_MAIN1));
+	bool mm_can_use_power = true;
+
+	if (settings->mouse_move) {
+		if (!inpt->pressing[mm_key]) {
+			lock_enemy = NULL;
+		}
+		if (lock_enemy && lock_enemy->stats.hp <= 0) {
+			lock_enemy = NULL;
+		}
+		if (mm_attack_id > 0) {
+			if (!stats.canUsePower(mm_attack_id, !StatBlock::CAN_USE_PASSIVE)) {
+				lock_enemy = NULL;
+				mm_can_use_power = false;
+			}
+			else if (!power_cooldown_timers[mm_attack_id].isEnd()) {
+				lock_enemy = NULL;
+				mm_can_use_power = false;
+			}
+			else if (lock_enemy && powers->powers[mm_attack_id].requires_los && !mapr->collider.lineOfSight(stats.pos.x, stats.pos.y, lock_enemy->stats.pos.x, lock_enemy->stats.pos.y)) {
+				lock_enemy = NULL;
+				mm_can_use_power = false;
+			}
+		}
+	}
+
 	if (!stats.effects.stun) {
 		bool allowed_to_move;
 		bool allowed_to_use_power = true;
@@ -414,11 +445,11 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				// allowed to move or use powers?
 				if (settings->mouse_move) {
-					allowed_to_move = restrict_power_use && (!inpt->lock[Input::MAIN2] || drag_walking);
+					allowed_to_move = restrict_power_use && (!inpt->lock[mm_key] || drag_walking) && !lock_enemy;
 					allowed_to_use_power = true;
 
-					if (inpt->pressing[Input::MAIN2] && inpt->pressing[Input::SHIFT]) {
-						inpt->lock[Input::MAIN2] = false;
+					if ((inpt->pressing[mm_key] && inpt->pressing[Input::SHIFT]) || lock_enemy) {
+						inpt->lock[mm_key] = false;
 					}
 				}
 				else {
@@ -432,13 +463,18 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				if (pressing_move() && allowed_to_move) {
 					if (move()) { // no collision
-						if (settings->mouse_move && inpt->pressing[Input::MAIN2]) {
-							inpt->lock[Input::MAIN2] = true;
+						if (settings->mouse_move && inpt->pressing[mm_key]) {
+							inpt->lock[mm_key] = true;
 							drag_walking = true;
 						}
 
 						stats.cur_state = StatBlock::AVATAR_RUN;
 					}
+				}
+
+				if (settings->mouse_move &&  settings->mouse_move_attack && cursor_enemy && mm_can_use_power && powers->checkCombatRange(mm_attack_id, &stats, cursor_enemy->stats.pos)) {
+					stats.cur_state = StatBlock::AVATAR_STANCE;
+					lock_enemy = cursor_enemy;
 				}
 
 				break;
@@ -474,6 +510,11 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 				if (activeAnimation->getName() != "run")
 					stats.cur_state = StatBlock::AVATAR_STANCE;
+
+				if (settings->mouse_move && settings->mouse_move_attack && cursor_enemy && mm_can_use_power && powers->checkCombatRange(mm_attack_id, &stats, cursor_enemy->stats.pos)) {
+					stats.cur_state = StatBlock::AVATAR_STANCE;
+					lock_enemy = cursor_enemy;
+				}
 
 				break;
 
@@ -514,6 +555,10 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 					if (settings->mouse_move) {
 						drag_walking = true;
 					}
+				}
+
+				if (settings->mouse_move && lock_enemy && !powers->checkCombatRange(mm_attack_id, &stats, lock_enemy->stats.pos)) {
+					lock_enemy = NULL;
 				}
 
 				break;
@@ -653,8 +698,8 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 						continue;
 
 					// automatically target the selected enemy with melee attacks
-					if (inpt->usingMouse() && power.type == Power::TYPE_FIXED && power.starting_pos == Power::STARTING_POS_MELEE && enemy_pos.x != -1 && enemy_pos.y != -1) {
-						target = enemy_pos;
+					if (inpt->usingMouse() && power.type == Power::TYPE_FIXED && power.starting_pos == Power::STARTING_POS_MELEE && cursor_enemy) {
+						target = cursor_enemy->stats.pos;
 					}
 
 					// is this a power that requires changing direction?
@@ -992,6 +1037,4 @@ Avatar::~Avatar() {
 
 	for (unsigned i=0; i<sound_steps.size(); i++)
 		snd->unload(sound_steps[i]);
-
-	delete haz;
 }
