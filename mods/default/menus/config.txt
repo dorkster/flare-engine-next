@@ -9,81 +9,12 @@ button_cancel=0,0,bottom
 
 listbox_scrollbar_offset=2
 
-[video]
-renderer=104,16,32,32
-fullscreen=568,36,584,32
-hwsurface=568,68,584,64
-vsync=568,100,584,96
-texture_filter=568,132,584,128
-dpi_scaling=568,164,584,160
-parallax_layers=568,196,584,192
-change_gamma=568,228,584,224
-gamma=368,264,384,256
-
-[audio]
-music_volume=368,40,384,32
-sound_volume=368,72,384,64
-
-[interface]
-language=104,16,32,32
-show_fps=568,36,584,32
-colorblind=568,68,584,64
-hardware_cursor=568,100,584,96
-dev_mode=568,132,584,128
-subtitles=568,164,584,160
-
-[input]
-joystick_device=104,16,32,32
-enable_joystick=568,36,584,32
-mouse_move=568,68,584,64
-mouse_aim=568,100,584,96
-no_mouse=568,132,584,128
-mouse_move_swap=568,164,584,160
-mouse_move_attack=568,196,584,192
-joystick_deadzone=368,232,384,224
-
-[key_bindings]
-
 # scrollpane values are positions x, y and sizes width, height
-scrollpane=0,4,600,320
-# scrollpane_contents is the height of the scrollpane's internal area
-scrollpane_contents=940
-
-keybinds_bg_color=26,26,26
-cancel=120,14,138,10
-accept=120,44,138,40
-up=120,74,138,70
-down=120,104,138,100
-left=120,134,138,130
-right=120,164,138,160
-bar1=120,194,138,190
-bar2=120,224,138,220
-
-bar3=120,254,138,250
-bar4=120,284,138,280
-bar5=120,314,138,310
-bar6=120,344,138,340
-bar7=120,374,138,370
-bar8=120,404,138,400
-bar9=120,434,138,430
-bar0=120,464,138,460
-
-main1=120,494,138,490
-main2=120,524,138,520
-character=120,554,138,550
-inventory=120,584,138,580
-powers=120,614,138,610
-log=120,644,138,640
-ctrl=120,674,138,670
-shift=120,704,138,700
-alt=120,734,138,730
-delete=120,764,138,760
-actionbar=120,794,138,790
-actionbar_back=120,824,138,820
-actionbar_forward=120,854,138,850
-actionbar_use=120,884,138,880
-developer_menu=120,914,138,910
-secondary_offset=145,0
+# scrollpane=0,4,600,320
+scrollpane=-6,-6,616,344
+scrollpane_padding=80,40
+# scrollpane_bg_color=26,26,26,127
+scrollpane_separator_color=63,63,63
 
 [mods]
 activemods=456,16,384,32

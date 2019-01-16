@@ -314,6 +314,7 @@ void GameStatePlay::checkTeleport() {
 			// during intermap teleport, we set the camera to the player position
 			pc->stats.pos.x = mapr->teleport_destination.x;
 			pc->stats.pos.y = mapr->teleport_destination.y;
+			pc->teleport_camera_lock = true;
 		}
 		else {
 			pc->stats.pos.x = pc->stats.teleport_destination.x;
@@ -430,6 +431,7 @@ void GameStatePlay::checkCancel() {
 
 		// audio levels can be changed in the pause menu, so update our settings file
 		settings->saveSettings();
+		inpt->saveKeyBindings();
 
 		snd->stopMusic();
 		showLoading();
@@ -444,6 +446,9 @@ void GameStatePlay::checkCancel() {
 
 		if (save_on_exit)
 			save_load->saveGame();
+
+		settings->saveSettings();
+		inpt->saveKeyBindings();
 
 		snd->stopMusic();
 		exitRequested = true;

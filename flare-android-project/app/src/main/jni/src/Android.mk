@@ -38,8 +38,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	../../../../../../src/FontEngine.cpp \
 	../../../../../../src/GameSlotPreview.cpp \
 	../../../../../../src/GameState.cpp \
-	../../../../../../src/GameStateConfigBase.cpp \
-	../../../../../../src/GameStateConfigDesktop.cpp \
+	../../../../../../src/GameStateConfig.cpp \
 	../../../../../../src/GameStateCutscene.cpp \
 	../../../../../../src/GameStateTitle.cpp \
 	../../../../../../src/GameStateLoad.cpp \
@@ -64,6 +63,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	../../../../../../src/MenuActiveEffects.cpp \
 	../../../../../../src/MenuBook.cpp \
 	../../../../../../src/MenuCharacter.cpp \
+	../../../../../../src/MenuConfig.cpp \
 	../../../../../../src/MenuConfirm.cpp \
 	../../../../../../src/MenuDevConsole.cpp \
 	../../../../../../src/MenuEnemy.cpp \
@@ -112,6 +112,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	../../../../../../src/Widget.cpp \
 	../../../../../../src/WidgetCheckBox.cpp \
 	../../../../../../src/WidgetButton.cpp \
+	../../../../../../src/WidgetHorizontalList.cpp \
 	../../../../../../src/WidgetInput.cpp \
  	../../../../../../src/WidgetLabel.cpp \
  	../../../../../../src/WidgetListBox.cpp \

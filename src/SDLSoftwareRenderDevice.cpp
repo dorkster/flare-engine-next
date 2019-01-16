@@ -111,6 +111,36 @@ void SDLSoftwareImage::drawPixel(int x, int y, const Color& color) {
 	}
 }
 
+void SDLSoftwareImage::drawLine(int x0, int y0, int x1, int y1, const Color& color) {
+	const int dx = abs(x1-x0);
+	const int dy = abs(y1-y0);
+	const int sx = x0 < x1 ? 1 : -1;
+	const int sy = y0 < y1 ? 1 : -1;
+	int err = dx-dy;
+
+	int max_width = getWidth();
+	int max_height = getHeight();
+
+	do {
+		//skip draw if outside screen
+		if (x0 > 0 && y0 > 0 && x0 < max_width && y0 < max_height) {
+			this->drawPixel(x0,y0,color);
+		}
+
+		int e2 = 2*err;
+		if (e2 > -dy) {
+			err = err - dy;
+			x0 = x0 + sx;
+		}
+		if (e2 <  dx) {
+			err = err + dx;
+			y0 = y0 + sy;
+		}
+	}
+	while(x0 != x1 || y0 != y1);
+}
+
+
 Uint32 SDLSoftwareImage::MapRGBA(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 	if (!surface) return 0;
 	return SDL_MapRGBA(surface->format, r, g, b, a);
@@ -175,7 +205,7 @@ SDLSoftwareRenderDevice::SDLSoftwareRenderDevice()
 }
 
 int SDLSoftwareRenderDevice::createContextInternal() {
-	bool settings_changed = (fullscreen != settings->fullscreen ||
+	bool settings_changed = ((fullscreen != settings->fullscreen && destructive_fullscreen) ||
 			                 hwsurface != settings->hwsurface ||
 							 vsync != settings->vsync ||
 							 texture_filter != settings->texture_filter ||
@@ -630,4 +660,16 @@ void SDLSoftwareRenderDevice::windowResize() {
 
 void SDLSoftwareRenderDevice::setBackgroundColor(Color color) {
 	background_color = SDL_MapRGBA(screen->format, color.r, color.g, color.b, color.a);
+}
+
+void SDLSoftwareRenderDevice::setFullscreen(bool enable_fullscreen) {
+	if (!destructive_fullscreen) {
+		if (enable_fullscreen) {
+			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		}
+		else {
+			SDL_SetWindowFullscreen(window, 0);
+		}
+		windowResize();
+	}
 }

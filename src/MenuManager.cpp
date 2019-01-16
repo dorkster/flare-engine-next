@@ -70,7 +70,7 @@ MenuManager::MenuManager()
 	, drag_stack()
 	, drag_power(0)
 	, drag_src(DRAG_SRC_NONE)
-	, drag_icon(new WidgetSlot(WidgetSlot::NO_ICON, Input::ACCEPT, WidgetSlot::SIZE_NORMAL))
+	, drag_icon(new WidgetSlot(WidgetSlot::NO_ICON, Input::ACCEPT))
 	, done(false)
 	, act_drag_hover(false)
 	, keydrag_pos(Point())
@@ -436,7 +436,7 @@ void MenuManager::logic() {
 				closeAll();
 			}
 			else {
-				exit->visible = !exit->visible;
+				exit->handleCancel();
 			}
 		}
 	}
@@ -445,6 +445,10 @@ void MenuManager::logic() {
 		exit->logic();
 		if (exit->isExitRequested()) {
 			done = true;
+		}
+		// if dpi scaling is changed, we need to realign the menus
+		if (inpt->window_resized) {
+			alignAll();
 		}
 	}
 	else {
@@ -731,7 +735,7 @@ void MenuManager::logic() {
 				}
 			}
 			// action bar
-			if (!inpt->touch_locked && (act->isWithinSlots(inpt->mouse) || act->isWithinMenus(inpt->mouse))) {
+			if (!exit->visible && !inpt->touch_locked && (act->isWithinSlots(inpt->mouse) || act->isWithinMenus(inpt->mouse))) {
 				inpt->lock[Input::MAIN1] = true;
 
 				// ctrl-click action bar to clear that slot
@@ -1244,8 +1248,10 @@ void MenuManager::render() {
 				pow->renderTooltips(inpt->mouse);
 				inv->renderTooltips(inpt->mouse);
 			}
-			effects->renderTooltips(inpt->mouse);
-			act->renderTooltips(inpt->mouse);
+			if (!exit->visible) {
+				effects->renderTooltips(inpt->mouse);
+				act->renderTooltips(inpt->mouse);
+			}
 		}
 	}
 

@@ -984,7 +984,7 @@ void MapRenderer::checkHotspots() {
 					createTooltip(it->getComponent(EventComponent::TOOLTIP));
 
 					if (((it->reachable_from.w == 0 && it->reachable_from.h == 0) || Utils::isWithinRect(it->reachable_from, Point(cam)))
-							&& Utils::calcDist(cam, it->center) < eset->misc.interact_range) {
+							&& Utils::calcDist(pc->stats.pos, it->center) < eset->misc.interact_range) {
 
 						// only check events if the player is clicking
 						// and allowed to click
@@ -1030,7 +1030,7 @@ void MapRenderer::checkNearestEvent() {
 		// skip events on cooldown
 		if (!it->cooldown.isEnd() || !it->delay.isEnd()) continue;
 
-		float distance = Utils::calcDist(cam, it->center);
+		float distance = Utils::calcDist(pc->stats.pos, it->center);
 		if (((it->reachable_from.w == 0 && it->reachable_from.h == 0) || Utils::isWithinRect(it->reachable_from, Point(cam)))
 				&& distance < eset->misc.interact_range && distance < best_distance) {
 			best_distance = distance;
@@ -1216,6 +1216,9 @@ void MapRenderer::drawDevHUD() {
 }
 
 void MapRenderer::drawHiddenEntityMarkers() {
+	if (!settings->entity_markers)
+		return;
+
 	std::vector<std::vector<Renderable>::iterator>::iterator hero_it = hidden_entities.end();
 	Point hidden_hero_pos(0, settings->view_h);
 
@@ -1264,6 +1267,9 @@ void MapRenderer::drawHiddenEntityMarkers() {
 }
 
 void MapRenderer::checkHiddenEntities(const int_fast16_t x, const int_fast16_t y, const Map_Layer& layerdata, std::vector<Renderable> &r) {
+	if (!settings->entity_markers)
+		return;
+
 	Rect tile_bounds;
 	Point tile_center;
 	getTileBounds(x, y, layerdata, tile_bounds, tile_center);

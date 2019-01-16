@@ -113,6 +113,7 @@ public:
 
 	virtual void fillWithColor(const Color& color) = 0;
 	virtual void drawPixel(int x, int y, const Color& color) = 0;
+	virtual void drawLine(int x0, int y0, int x1, int y1, const Color& color) = 0;
 	virtual void beginPixelBatch();
 	virtual void endPixelBatch();
 	virtual Image* resize(int width, int height) = 0;
@@ -229,6 +230,7 @@ public:
 	void drawEllipse(int x0, int y0, int x1, int y1, const Color& color, float step);
 	virtual void windowResize() = 0;
 	virtual void setBackgroundColor(Color color);
+	virtual void setFullscreen(bool enable_fullscreen);
 
 	bool reloadGraphics();
 
@@ -253,6 +255,7 @@ protected:
 	bool texture_filter;
 	bool ignore_texture_filter;
 	Point min_screen;
+	bool destructive_fullscreen;
 
 	bool is_initialized;
 	bool reload_graphics;

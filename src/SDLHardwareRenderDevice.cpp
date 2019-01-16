@@ -128,6 +128,15 @@ void SDLHardwareImage::drawPixel(int x, int y, const Color& color) {
 	}
 }
 
+void SDLHardwareImage::drawLine(int x0, int y0, int x1, int y1, const Color& color) {
+	SDL_SetRenderTarget(renderer, surface);
+	SDL_SetTextureBlendMode(surface, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+	SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
+	SDL_SetRenderTarget(renderer, NULL);
+}
+
+
 /**
  * Creates a non-accelerated SDL_Surface as a pixel buffer
  * The buffer is drawn when SDLHardwareImag::endPixelBatch() is called
@@ -228,7 +237,7 @@ SDLHardwareRenderDevice::SDLHardwareRenderDevice()
 }
 
 int SDLHardwareRenderDevice::createContextInternal() {
-	bool settings_changed = (fullscreen != settings->fullscreen ||
+	bool settings_changed = ((fullscreen != settings->fullscreen && destructive_fullscreen) ||
 			                 hwsurface != settings->hwsurface ||
 							 vsync != settings->vsync ||
 							 texture_filter != settings->texture_filter ||
@@ -624,4 +633,16 @@ void SDLHardwareRenderDevice::windowResize() {
 
 void SDLHardwareRenderDevice::setBackgroundColor(Color color) {
 	background_color = color;
+}
+
+void SDLHardwareRenderDevice::setFullscreen(bool enable_fullscreen) {
+	if (!destructive_fullscreen) {
+		if (enable_fullscreen) {
+			SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		}
+		else {
+			SDL_SetWindowFullscreen(window, 0);
+		}
+		windowResize();
+	}
 }

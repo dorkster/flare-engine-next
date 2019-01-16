@@ -2,7 +2,7 @@ Project (Flare)
 cmake_minimum_required (VERSION 2.6)
 
 Set (PACKAGE "FLARE")
-Set (VERSION "1.08")
+Set (VERSION "1.09.01")
 
 option(USE_OPENGL "USE_OPENGL" Off)
 
@@ -120,8 +120,7 @@ Set (FLARE_SOURCES
 	./src/FontEngine.cpp
 	./src/GameSlotPreview.cpp
 	./src/GameState.cpp
-	./src/GameStateConfigBase.cpp
-	./src/GameStateConfigDesktop.cpp
+	./src/GameStateConfig.cpp
 	./src/GameStateCutscene.cpp
 	./src/GameStateTitle.cpp
 	./src/GameStateLoad.cpp
@@ -146,6 +145,7 @@ Set (FLARE_SOURCES
 	./src/MenuActiveEffects.cpp
 	./src/MenuBook.cpp
 	./src/MenuCharacter.cpp
+	./src/MenuConfig.cpp
 	./src/MenuConfirm.cpp
 	./src/MenuDevConsole.cpp
 	./src/MenuEnemy.cpp
@@ -194,6 +194,7 @@ Set (FLARE_SOURCES
 	./src/Widget.cpp
 	./src/WidgetCheckBox.cpp
 	./src/WidgetButton.cpp
+	./src/WidgetHorizontalList.cpp
 	./src/WidgetInput.cpp
  	./src/WidgetLabel.cpp
  	./src/WidgetListBox.cpp
@@ -233,8 +234,7 @@ Set (FLARE_HEADERS
 	./src/FontEngine.h
 	./src/GameSlotPreview.h
 	./src/GameState.h
-	./src/GameStateConfigBase.h
-	./src/GameStateConfigDesktop.h
+	./src/GameStateConfig.h
 	./src/GameStateCutscene.h
 	./src/GameStateTitle.h
 	./src/GameStateLoad.h
@@ -259,6 +259,7 @@ Set (FLARE_HEADERS
 	./src/MenuActiveEffects.h
 	./src/MenuBook.h
 	./src/MenuCharacter.h
+	./src/MenuConfig.h
 	./src/MenuConfirm.h
 	./src/MenuDevConsole.h
 	./src/MenuEnemy.h
@@ -307,6 +308,7 @@ Set (FLARE_HEADERS
 	./src/Widget.h
 	./src/WidgetCheckBox.h
 	./src/WidgetButton.h
+	./src/WidgetHorizontalList.h
 	./src/WidgetInput.h
  	./src/WidgetLabel.h
  	./src/WidgetListBox.h

@@ -1,7 +1,9 @@
 /*
-Copyright © 2011-2012 kitano
-Copyright © 2014 Henrik Andersson
-Copyright © 2012-2016 Justin Jacobs
+Copyright © 2012 Clint Bellanger
+Copyright © 2012 davidriod
+Copyright © 2012 Igor Paliychuk
+Copyright © 2013 Kurt Rinnert
+Copyright © 2014-2016 Justin Jacobs
 
 This file is part of FLARE.
 
@@ -18,37 +20,34 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
 /**
- * class MenuExit
+ * GameStateConfig
+ *
+ * Handle game Settings Menu
  */
 
-#ifndef MENU_EXIT_H
-#define MENU_EXIT_H
+#ifndef GAMESTATECONFIG_H
+#define GAMESTATECONFIG_H
 
 #include "CommonIncludes.h"
-#include "Menu.h"
+#include "GameState.h"
 
 class MenuConfig;
 
-class MenuExit : public Menu {
-protected:
+class GameStateConfig : public GameState {
+private:
 	MenuConfig* menu_config;
-	bool exitClicked;
 
 public:
-	MenuExit();
-	~MenuExit();
-	void align();
+	explicit GameStateConfig();
+	~GameStateConfig();
+
 	void logic();
-	virtual void render();
+	void logicAccept();
+	void logicCancel();
+	void refreshFont();
 
-	bool isExitRequested() {
-		return exitClicked;
-	}
-
-	void disableSave();
-	void handleCancel();
-
-	bool reload_music;
+	void render();
 };
 
 #endif
+
