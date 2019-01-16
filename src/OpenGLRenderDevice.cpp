@@ -206,6 +206,29 @@ void OpenGLImage::drawPixel(int x, int y, const Color& color) {
 	disableFrameBuffer(&frameBuffer, view);
 }
 
+void OpenGLImage::drawLine(
+	int x0,
+	int y0,
+	int x1,
+	int y1,
+	const Color& color
+) {
+	GLuint frameBuffer;
+	GLint view[4];
+	glGetIntegerv(GL_VIEWPORT, view);
+	configureFrameBuffer(&frameBuffer, this->texture, w, h);
+
+	GLfloat positionData[4];
+	positionData[0] = 2.0f * static_cast<float>(x0)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[1] = 1.0f - 2.0f * static_cast<float>(y0)/static_cast<float>(settings->view_h);
+	positionData[2] = 2.0f * static_cast<float>(x1)/static_cast<float>(settings->view_w) - 1.0f;
+	positionData[3] = 1.0f - 2.0f * static_cast<float>(y1)/static_cast<float>(settings->view_h);
+
+	drawPrimitive(positionData, color, TYPE_LINE);
+
+	disableFrameBuffer(&frameBuffer, view);
+}
+
 /**
  * Resizes an image
  * Deletes the original image and returns a pointer to the resized version
