@@ -34,6 +34,8 @@ class WidgetLabel;
 
 class MenuStatBar : public Menu {
 private:
+	bool disappear();
+
 	enum {
 		HORIZONTAL = 0,
 		VERTICAL = 1
@@ -43,6 +45,7 @@ private:
 	WidgetLabel *label;
 	unsigned long stat_min;
 	unsigned long stat_cur;
+	unsigned long stat_cur_prev;
 	unsigned long stat_max;
 	Rect bar_pos;
 	LabelInfo text_pos;
@@ -51,9 +54,18 @@ private:
 	std::string custom_string;
 	std::string bar_gfx;
 	std::string bar_gfx_background;
+	short type;
+	Timer timeout;
+
 
 public:
-	explicit MenuStatBar(const std::string& type);
+	enum {
+		TYPE_HP = 0,
+		TYPE_MP = 1,
+		TYPE_XP = 2
+	};
+
+	explicit MenuStatBar(short _type);
 	~MenuStatBar();
 	void loadGraphics();
 	void update(unsigned long _stat_min, unsigned long _stat_cur, unsigned long _stat_max);
