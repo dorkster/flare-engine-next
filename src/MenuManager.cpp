@@ -351,6 +351,9 @@ void MenuManager::logic() {
 		}
 	}
 
+	if (!exit->visible)
+		mini->logic();
+
 	book->logic();
 	effects->logic();
 	act->logic();
