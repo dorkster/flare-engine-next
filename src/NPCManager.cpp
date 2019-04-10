@@ -163,7 +163,7 @@ void NPCManager::createMapEvent(const NPC& npc, size_t _npcs) {
 		ev.type = npc.filename;
 	}
 	else {
-		Utils::logError("NPCManager: Unable to set click hotspot for '%s' due to lack of animation.", npc.id.c_str());
+		Utils::logError("NPCManager: Unable to set click hotspot for '%s' due to lack of animation.", npc.filename.c_str());
 	}
 
 	mapr->events.push_back(ev);
