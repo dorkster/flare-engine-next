@@ -155,7 +155,10 @@ void ItemManager::loadItems(const std::string& filename) {
 			id_line = true;
 			id = Parse::toInt(infile.val);
 			addUnknownItem(id);
-			items[id].max_quantity = 1;
+
+			// set the max quantity if it has not been done yet
+			if (items[id].max_quantity == INT_MAX)
+				items[id].max_quantity = 1;
 
 			clear_req_stat = true;
 			clear_bonus = true;
