@@ -9,10 +9,12 @@ Engine fixes:
 
 * Fix bug where items could be dragged from the vendor window and dropped in the opposite vendor tab.
 * Fix bug that caused item max_quantity to be reset when attempting to append an item definition.
+* Fix bug where Powers with 'replace_by_effect' would still use properties from the parent power, such as animation state.
 
 Game updates:
 
 * Items that couldn't be stashed in the last update can now be put in the private stash.
+* Salted Field: moved chest to the south end of the map to prevent easy farming.
 
 Translation updates:
 
