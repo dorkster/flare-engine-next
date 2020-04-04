@@ -48,6 +48,7 @@ NPC::NPC(const Enemy& e)
 	, vox_quests()
 	, name("")
 	, direction(0)
+	, show_on_minimap(true)
 	, npc_portrait(NULL)
 	, hero_portrait(NULL)
 	, talker(false)
@@ -185,6 +186,10 @@ void NPC::load(const std::string& npc_id) {
 				else if (infile.key == "direction") {
 					// @ATTR direction|direction|The direction to use for this NPC's stance animation.
 					direction = Parse::toDirection(infile.val);
+				}
+				else if (infile.key == "show_on_minimap") {
+					// @ATTR show_on_minimap|bool|If true, this NPC will be shown on the minimap. The default is true.
+					show_on_minimap = Parse::toBool(infile.val);
 				}
 
 				// handle talkers

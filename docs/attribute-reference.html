@@ -219,6 +219,8 @@ body {
 
 <p><strong>save_oncutscene</strong> | <code>bool</code> | Saves the game when triggering any cutscene via an Event.</p>
 
+<p><strong>save_anywhere</strong> | <code>bool</code> | Saves the game when using a button.</p>
+
 <p><strong>camera_speed</strong> | <code>float</code> | Modifies how fast the camera moves to recenter on the player. Larger values mean a slower camera. Default value is 10.</p>
 
 <p><strong>save_buyback</strong> | <code>bool</code> | Saves the vendor buyback stock whenever the game is saved.</p>
@@ -564,6 +566,8 @@ body {
 <p><strong>event.chance_exec</strong> | <code>int</code> | Percentage chance that this event will execute when triggered.</p>
 
 <p><strong>event.respec</strong> | <code>["xp", "stats", "powers"], bool : Respec mode, Ignore class defaults</code> | Resets various aspects of the character&rsquo;s progression. Resetting &ldquo;xp&rdquo; also resets &ldquo;stats&rdquo;. Resetting &ldquo;stats&rdquo; also resets &ldquo;powers&rdquo;.</p>
+
+<p><strong>event.show_on_minimap</strong> | <code>bool</code> | If true, this event will be shown on the minimap if it is the appropriate type (e.g. an intermap teleport).</p>
 
 <hr />
 
@@ -1303,6 +1307,20 @@ body {
 
 <p><strong>background</strong> | <code>filename</code> | Optional background image.</p>
 
+<p><strong>color_wall</strong> | <code>color, int : Color, Alpha</code> | Color used for walls.</p>
+
+<p><strong>color_obst</strong> | <code>color, int : Color, Alpha</code> | Color used for small obstacles and pits.</p>
+
+<p><strong>color_hero</strong> | <code>color, int : Color, Alpha</code> | Color used for the player character.</p>
+
+<p><strong>color_enemy</strong> | <code>color, int : Color, Alpha</code> | Color used for enemies engaged in combat.</p>
+
+<p><strong>color_ally</strong> | <code>color, int : Color, Alpha</code> | Color used for allies.</p>
+
+<p><strong>color_npc</strong> | <code>color, int : Color, Alpha</code> | Color used for NPCs.</p>
+
+<p><strong>color_teleport</strong> | <code>color, int : Color, Alpha</code> | Color used for intermap teleports.</p>
+
 <hr />
 
 <h4>MenuNumPicker</h4>
@@ -1530,6 +1548,8 @@ body {
 <p><strong>gfx</strong> | <code>filename</code> | Filename of an animation definition.</p>
 
 <p><strong>direction</strong> | <code>direction</code> | The direction to use for this NPC&rsquo;s stance animation.</p>
+
+<p><strong>show_on_minimap</strong> | <code>bool</code> | If true, this NPC will be shown on the minimap. The default is true.</p>
 
 <p><strong>talker</strong> | <code>bool</code> | Allows this NPC to be talked to.</p>
 

@@ -79,6 +79,7 @@ public:
 	std::string filename;
 
 	int direction;
+	bool show_on_minimap;
 
 	// talker info
 	Sprite* npc_portrait;
