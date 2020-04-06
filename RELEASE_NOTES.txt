@@ -11,6 +11,7 @@ Engine features:
 * Added support for defining the colors of tiles and entities on the minimap.
 * Added 'show_on_minimap' event component. Currently, this only applies to intermap teleport events.
 * Added 'show_on_minimap' property to NPCs.
+* Properties that take an alignment can now be aligned to the menu frame.
 
 Engine fixes:
 
@@ -18,6 +19,8 @@ Engine fixes:
 * Fixed stat bars not having any fill when the value they were representing was non-zero. Now they will always show at least 1 pixel of the bar's fill graphics.
 * Fixed a bug where the game window could be resized below the minimum size after exiting fullscreen mode.
 * Removed the default resolution scaling when virtual_heights is undefined.
+* Improved performance when checking map event hotspots.
+* Fix Windows-style paths with backslashes not working on non-Windows systems.
 
 Game updates:
 

@@ -382,6 +382,42 @@ void Utils::alignToScreenEdge(int alignment, Rect *r) {
 		r->x = (settings->view_w - r->w) + r->x;
 		r->y = (settings->view_h - r->h) + r->y;
 	}
+	else if (alignment == ALIGN_FRAME_TOPLEFT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_TOP) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w/2 - r->w/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_TOPRIGHT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w - r->w) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_LEFT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h/2 - r->h/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_CENTER) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w/2 - r->w/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h/2 - r->h/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_RIGHT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w - r->w) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h/2 - r->h/2) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_BOTTOMLEFT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h - r->h) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_BOTTOM) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w/2 - r->w/2) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h - r->h) + r->y;
+	}
+	else if (alignment == ALIGN_FRAME_BOTTOMRIGHT) {
+		r->x = ((settings->view_w - eset->resolutions.frame_w)/2) + (eset->resolutions.frame_w - r->w) + r->x;
+		r->y = ((settings->view_h - eset->resolutions.frame_h)/2) + (eset->resolutions.frame_h - r->h) + r->y;
+	}
 	else {
 		// do nothing
 	}
@@ -504,10 +540,10 @@ void Utils::createSaveDir(int slot) {
 	std::stringstream ss;
 	ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/";
 
-	Filesystem::createDir(Filesystem::convertSlashes(&ss));
+	Filesystem::createDir(ss.str());
 
 	ss << slot;
-	Filesystem::createDir(Filesystem::convertSlashes(&ss));
+	Filesystem::createDir(ss.str());
 }
 
 void Utils::removeSaveDir(int slot) {
@@ -517,8 +553,8 @@ void Utils::removeSaveDir(int slot) {
 	std::stringstream ss;
 	ss << settings->path_user << "saves/" << eset->misc.save_prefix << "/" << slot;
 
-	if (Filesystem::isDirectory(Filesystem::convertSlashes(&ss))) {
-		Filesystem::removeDirRecursive(Filesystem::convertSlashes(&ss));
+	if (Filesystem::isDirectory(ss.str())) {
+		Filesystem::removeDirRecursive(ss.str());
 	}
 }
 
@@ -712,7 +748,7 @@ void Utils::lockFileRead() {
 	if (!platform.has_lock_file)
 		return;
 
-	std::string lock_file_path = settings->path_conf + "flare_lock";
+	std::string lock_file_path = Filesystem::convertSlashes(settings->path_conf + "flare_lock");
 
 	std::ifstream infile;
 	infile.open(lock_file_path.c_str(), std::ios::in);
