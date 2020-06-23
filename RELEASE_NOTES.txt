@@ -19,6 +19,7 @@ Engine features:
 * Added 'show_randomize' property to new game menu configuration.
 * Added 'disable_equip_slots' property for passive powers.
 * 'Block' powers can now use post_power to trigger a power when taking damage.
+* Power descriptions are now displayed in action bar tooltips. This can be controlled with the 'tooltip_height' property in menus/actionbar.txt.
 
 Engine fixes:
 
@@ -38,6 +39,7 @@ Engine fixes:
 * Fixed bug where dead entities could steal HP/MP.
 * Fix broken parsing of engine/default_keybindings.txt.
 * Fix Effect animations not being synced properly in some cases.
+* Removed hard-coded restrictions on using items from the inventory. Now any item that has a power and is not equipment can be used.
 
 Game updates:
 
