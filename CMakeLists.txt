@@ -151,6 +151,7 @@ Set (FLARE_SOURCES
 	./src/MenuDevConsole.cpp
 	./src/MenuEnemy.cpp
 	./src/MenuExit.cpp
+	./src/MenuGameOver.cpp
 	./src/MenuHUDLog.cpp
 	./src/MenuInventory.cpp
 	./src/MenuItemStorage.cpp
@@ -266,6 +267,7 @@ Set (FLARE_HEADERS
 	./src/MenuDevConsole.h
 	./src/MenuEnemy.h
 	./src/MenuExit.h
+	./src/MenuGameOver.h
 	./src/MenuHUDLog.h
 	./src/MenuInventory.h
 	./src/MenuItemStorage.h

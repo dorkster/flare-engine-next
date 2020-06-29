@@ -36,6 +36,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "MenuDevConsole.h"
 #include "MenuEnemy.h"
 #include "MenuExit.h"
+#include "MenuGameOver.h"
 #include "MenuHUDLog.h"
 #include "MenuInventory.h"
 #include "MenuLog.h"
@@ -74,7 +75,6 @@ MenuManager::MenuManager()
 	, done(false)
 	, act_drag_hover(false)
 	, keydrag_pos(Point())
-/*std::vector<Menu*> menus;*/
 	, inv(NULL)
 	, pow(NULL)
 	, chr(NULL)
@@ -93,6 +93,7 @@ MenuManager::MenuManager()
 	, exit(NULL)
 	, effects(NULL)
 	, stash(NULL)
+	, game_over(NULL)
 	, devconsole(NULL)
 	, touch_controls(NULL)
 	, subtitles(NULL)
@@ -117,6 +118,7 @@ MenuManager::MenuManager()
 	stash = new MenuStash();
 	book = new MenuBook();
 	num_picker = new MenuNumPicker();
+	game_over = new MenuGameOver();
 
 	menus.push_back(hp); // menus[0]
 	menus.push_back(mp); // menus[1]
@@ -136,6 +138,7 @@ MenuManager::MenuManager()
 	menus.push_back(stash); // menus[15]
 	menus.push_back(book); // menus[16]
 	menus.push_back(num_picker); // menus[17]
+	menus.push_back(game_over); // menus[18]
 
 	if (settings->dev_mode) {
 		devconsole = new MenuDevConsole();
@@ -383,6 +386,7 @@ void MenuManager::logic() {
 	questlog->logic();
 	talker->logic();
 	stash->logic();
+	game_over->logic();
 
 	if (settings->dev_mode) {
 		devconsole->logic();
@@ -457,7 +461,7 @@ void MenuManager::logic() {
 			else if (menus_open) {
 				closeAll();
 			}
-			else {
+			else if (!game_over->visible) {
 				exit->handleCancel();
 			}
 		}
@@ -471,6 +475,12 @@ void MenuManager::logic() {
 		// if dpi scaling is changed, we need to realign the menus
 		if (inpt->window_resized) {
 			alignAll();
+		}
+	}
+	else if (game_over->visible) {
+		if (game_over->exit_clicked) {
+			game_over->close();
+			done = true;
 		}
 	}
 	else {
@@ -1422,6 +1432,9 @@ bool MenuManager::isNPCMenuVisible() {
 }
 
 void MenuManager::showExitMenu() {
+	if (game_over->visible)
+		return;
+
 	pause = true;
 	closeAll();
 	if (exit)
@@ -1448,6 +1461,7 @@ MenuManager::~MenuManager() {
 	delete stash;
 	delete book;
 	delete num_picker;
+	delete game_over;
 
 	if (settings->dev_mode) {
 		delete devconsole;
