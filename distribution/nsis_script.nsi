@@ -76,6 +76,30 @@ RequestExecutionLevel admin
   !insertmacro MUI_LANGUAGE "English"
 
 ;--------------------------------
+; The "" makes the section hidden.
+Section "" SecUninstallPrevious
+
+    Call UninstallPrevious
+
+SectionEnd
+
+Function UninstallPrevious
+
+    ; Check for uninstaller.
+    ReadRegStr $R0 HKLM "SOFTWARE\Flare" "Install_Dir"
+
+    ${If} $R0 == ""        
+        Goto Done
+    ${EndIf}
+
+    DetailPrint "Removing previous installation."    
+
+    ; Run the uninstaller silently.
+    ExecWait '"$R0\uninstall.exe /S"'
+
+    Done:
+
+FunctionEnd
 
 ; The stuff to install
 Section "Flare engine" SecEngine
@@ -173,6 +197,7 @@ Section "Uninstall"
   Delete "$INSTDIR\README.engine.md"
   Delete "$INSTDIR\README.md"
   Delete "$INSTDIR\RELEASE_NOTES.txt"
+  Delete "$INSTDIR\LICENSE.txt"
   Delete "$INSTDIR\*.dll"
   Delete "$INSTDIR\uninstall.exe"
   RMDir /r "$INSTDIR\mods\"
