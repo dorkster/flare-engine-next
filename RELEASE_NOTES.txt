@@ -21,6 +21,7 @@ Engine features:
 * 'Block' powers can now use post_power to trigger a power when taking damage.
 * Power descriptions are now displayed in action bar tooltips. This can be controlled with the 'tooltip_length' property in menus/actionbar.txt.
 * A dialog box is now displayed instead of a log message when the player dies, giving the options to exit or respawn (if applicable).
+* Added movement input type dialog box. It is displayed for new players to easily select between keyboard, mouse, and joystick movement.
 
 Engine fixes:
 
@@ -46,6 +47,9 @@ Engine fixes:
 Game updates:
 
 * New graphics for HP and MP status bars
+* Reworked art for the Cleave power
+* Cleave power radius reduced to closer match its artwork
+* Reduced the strength and radius of Rakk's freeze attack
 
 Translation updates:
 
@@ -55,6 +59,7 @@ Translation updates:
 * Scottish Gaelic (gd) update (GunChleoc)
 * Hungarian (hu) update (litoll)
 * Norwegian (nb) update (Elias Nykrem)
+* Polish (pl) update (Błażej Pęksyk)
 * Portuguese (pt) update (Rui)
 * Russian (ru) update (Igor Polyakov)
 * Slovak (sk) update (MiroslavR)
