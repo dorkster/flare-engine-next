@@ -45,6 +45,9 @@ Engine fixes:
 * Removed hard-coded restrictions on using items from the inventory. Now any item that has a power and is not equipment can be used.
 * Fix crash when fonts are missing. The engine will try to fall back to the next available font for the current language.
 * Background color when using sdl_hardware renderer no longer fills entire window, instead only filling the drawing surface as it should.
+* Fix crash when loading a cutscene from a book event.
+* Fix infinite transformation loop when dying in a transformed state that was activated by a passive power.
+* Fix bug where the player wasn't returned to their normal state after dying in a transformed state.
 
 Game updates:
 
@@ -66,7 +69,7 @@ Translation updates:
 * Russian (ru) update (Igor Polyakov)
 * Slovak (sk) update (MiroslavR)
 * Vietnamese (vi) update (Nguyễn Gia Phong)
-* Chinese (zh) update (sakura09123)
+* Chinese (zh) update (dumaosen, sakura09123)
 
 
 
