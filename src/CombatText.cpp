@@ -42,9 +42,12 @@ Combat_Text_Item::Combat_Text_Item()
 	, floating_offset(0)
 	, text("")
 	, displaytype(0)
+	, is_int(false)
+	, int_value(0)
 {}
 
 Combat_Text_Item::~Combat_Text_Item() {
+	// label deletion is handled by CombatText class
 }
 
 CombatText::CombatText() {
@@ -100,39 +103,56 @@ CombatText::~CombatText() {
 }
 
 void CombatText::addString(const std::string& message, const FPoint& location, int displaytype) {
-	if (settings->combat_text) {
-		Combat_Text_Item *c = new Combat_Text_Item();
-		WidgetLabel *label = new WidgetLabel();
-		c->pos.x = location.x;
-		c->pos.y = location.y;
-		c->floating_offset = static_cast<float>(offset);
-		c->label = label;
-		c->text = message;
-		c->lifespan = duration;
-		c->displaytype = displaytype;
+	if (!settings->combat_text)
+		return;
 
-		c->label->setPos(static_cast<int>(c->pos.x), static_cast<int>(c->pos.y));
-		c->label->setJustify(FontEngine::JUSTIFY_CENTER);
-		c->label->setVAlign(LabelInfo::VALIGN_BOTTOM);
-		c->label->setText(c->text);
-		c->label->setColor(msg_color[c->displaytype]);
-		combat_text.push_back(*c);
-		delete c;
-	}
+	Combat_Text_Item c;
+	c.pos.x = location.x;
+	c.pos.y = location.y;
+	c.floating_offset = static_cast<float>(offset);
+	c.text = message;
+	c.lifespan = duration;
+	c.displaytype = displaytype;
+
+	c.label = new WidgetLabel();
+	c.label->setPos(static_cast<int>(c.pos.x), static_cast<int>(c.pos.y));
+	c.label->setJustify(FontEngine::JUSTIFY_CENTER);
+	c.label->setVAlign(LabelInfo::VALIGN_BOTTOM);
+	c.label->setText(c.text);
+	c.label->setColor(msg_color[c.displaytype]);
+	combat_text.push_back(c);
 }
 
 void CombatText::addInt(int num, const FPoint& location, int displaytype) {
-	if (settings->combat_text) {
-		std::stringstream ss;
-		ss << num;
-		addString(ss.str(), location, displaytype);
+	if (!settings->combat_text)
+		return;
+
+	std::stringstream ss;
+
+	// when adding multiple combat text of the same type and position on the same frame, add the num to the existing text
+	for (std::vector<Combat_Text_Item>::iterator it = combat_text.begin(); it != combat_text.end(); ++it) {
+		if (it->is_int && it->displaytype == displaytype && it->lifespan == duration && it->pos.x == location.x && it->pos.y == location.y) {
+			it->int_value += num;
+			ss << it->int_value;
+			it->text = ss.str();
+			it->label->setText(ss.str());
+			return;
+		}
 	}
+
+	ss << num;
+	addString(ss.str(), location, displaytype);
+
+	combat_text.back().is_int = true;
+	combat_text.back().int_value = num;
 }
 
 void CombatText::logic(const FPoint& _cam) {
 	cam = _cam;
 
-	for(std::vector<Combat_Text_Item>::iterator it = combat_text.begin(); it != combat_text.end(); ++it) {
+	for(std::vector<Combat_Text_Item>::iterator it = combat_text.end(); it != combat_text.begin();) {
+		it--;
+
 		it->lifespan--;
 		it->floating_offset += speed;
 
@@ -141,6 +161,21 @@ void CombatText::logic(const FPoint& _cam) {
 		scr_pos.y -= static_cast<int>(it->floating_offset);
 
 		it->label->setPos(scr_pos.x, scr_pos.y);
+
+		// try to prevent messages from overlapping
+		for (std::vector<Combat_Text_Item>::iterator overlap_it = it; overlap_it != combat_text.begin();) {
+			overlap_it--;
+			Rect bounds = *(it->label->getBounds());
+			Rect overlap_bounds = *(overlap_it->label->getBounds());
+			if (Utils::rectsOverlap(bounds, overlap_bounds)) {
+				overlap_it->floating_offset += static_cast<float>(overlap_bounds.h + (overlap_bounds.y - bounds.y));
+
+				scr_pos = Utils::mapToScreen(overlap_it->pos.x, overlap_it->pos.y, cam.x, cam.y);
+				scr_pos.y -= static_cast<int>(overlap_it->floating_offset);
+
+				overlap_it->label->setPos(scr_pos.x, scr_pos.y);
+			}
+		}
 	}
 
 	// delete expired messages
@@ -165,5 +200,8 @@ void CombatText::render() {
 }
 
 void CombatText::clear() {
-	combat_text.clear();
+	while (combat_text.size()) {
+		delete combat_text.begin()->label;
+		combat_text.erase(combat_text.begin());
+	}
 }
