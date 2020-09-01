@@ -26,7 +26,6 @@ class Point;
 
 class BehaviorStandard : public EnemyBehavior {
 private:
-
 	// logic steps
 	void doUpkeep();
 	virtual void findTarget();
@@ -38,12 +37,17 @@ private:
 	FPoint getWanderPoint();
 
 protected:
+	static const int PATH_FOUND_FAIL_THRESHOLD = 1;
+	static const int PATH_FOUND_FAIL_WAIT_SECONDS = 2;
+
 	//variables for patfinding
 	std::vector<FPoint> path;
 	FPoint prev_target;
 	bool collided;
 	bool path_found;
 	int chance_calc_path;
+	int path_found_fails;
+	Timer path_found_fail_timer;
 
 	float target_dist;
 	FPoint pursue_pos;

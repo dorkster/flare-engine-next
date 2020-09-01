@@ -70,6 +70,8 @@ public:
 	void loadAnimation(const std::string &s);
 	void unloadAnimation();
 
+	static int getTypeFromString(const std::string& _type);
+
 	std::string id;
 	std::string name;
 	int icon;
@@ -86,7 +88,7 @@ public:
 	size_t passive_id;
 	int source_type;
 	bool group_stack;
-	Color color_mod;
+	uint32_t color_mod;
 	uint8_t alpha_mod;
 	std::string attack_speed_anim;
 };
@@ -96,7 +98,7 @@ public:
 	EffectDef();
 
 	std::string id;
-	std::string type;
+	int type;
 	std::string name;
 	int icon;
 	std::string animation;
@@ -113,7 +115,6 @@ class EffectManager {
 private:
 	void removeEffect(size_t id);
 	void clearStatus();
-	int getType(const std::string& type);
 	void addEffectInternal(EffectDef &effect, int duration, int magnitude, int source_type, bool item, size_t power_id);
 
 public:
