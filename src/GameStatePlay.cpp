@@ -918,7 +918,6 @@ void GameStatePlay::logic() {
 		enemym->logic();
 		hazards->logic();
 		loot->logic();
-		enemym->checkEnemiesforXP();
 		npcs->logic();
 
 		snd->logic(pc->stats.pos);
