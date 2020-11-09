@@ -44,7 +44,7 @@ public:
 		int party_exp_percentage;
 		bool enable_ally_collision;
 		bool enable_ally_collision_ai;
-		int currency_id;
+		ItemID currency_id;
 		float interact_range;
 		bool menus_pause;
 		bool save_onload;
@@ -152,8 +152,8 @@ public:
 			std::string equipment;
 			std::string carried;
 			std::vector<int> primary;
-			std::vector<int> hotkeys;
-			std::vector<int> powers;
+			std::vector<PowerID> hotkeys;
+			std::vector<PowerID> powers;
 			std::vector<std::string> statuses;
 			std::string power_tree;
 			int default_power_tab;

@@ -222,8 +222,8 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		// @ATTR event.power_damage|int, int : Min, Max|Range of power damage
 		e->type = EventComponent::POWER_DAMAGE;
 
-		e->a = Parse::popFirstInt(val);
-		e->b = Parse::popFirstInt(val);
+		e->x = Parse::popFirstInt(val);
+		e->y = Parse::popFirstInt(val);
 	}
 	else if (key == "intermap") {
 		// @ATTR event.intermap|filename, int, int : Map file, X, Y|Jump to specific map at location specified.
@@ -390,9 +390,9 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		// @ATTR event.requires_item|list(item_id)|Event requires specific item (not equipped). Quantity can be specified by appending ":Q" to the item_id, where Q is an integer.
 		e->type = EventComponent::REQUIRES_ITEM;
 
-		Point item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
-		e->x = item_stack.x;
-		e->y = item_stack.y;
+		ItemStack item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
+		e->id = item_stack.item;
+		e->x = item_stack.quantity;
 
 		// add repeating requires_item
 		if (evnt) {
@@ -402,8 +402,8 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 				e = &evnt->components.back();
 				e->type = EventComponent::REQUIRES_ITEM;
 				item_stack = Parse::toItemQuantityPair(repeat_val);
-				e->x = item_stack.x;
-				e->y = item_stack.y;
+				e->id = item_stack.item;
+				e->x = item_stack.quantity;
 
 				repeat_val = Parse::popFirstString(val);
 			}
@@ -413,9 +413,9 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		// @ATTR event.requires_not_item|list(item_id)|Event requires not having a specific item (not equipped). Quantity can be specified by appending ":Q" to the item_id, where Q is an integer.
 		e->type = EventComponent::REQUIRES_NOT_ITEM;
 
-		Point item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
-		e->x = item_stack.x;
-		e->y = item_stack.y;
+		ItemStack item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
+		e->id = item_stack.item;
+		e->x = item_stack.quantity;
 
 		// add repeating requires_not_item
 		if (evnt) {
@@ -425,8 +425,8 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 				e = &evnt->components.back();
 				e->type = EventComponent::REQUIRES_NOT_ITEM;
 				item_stack = Parse::toItemQuantityPair(repeat_val);
-				e->x = item_stack.x;
-				e->y = item_stack.y;
+				e->id = item_stack.item;
+				e->x = item_stack.quantity;
 
 				repeat_val = Parse::popFirstString(val);
 			}
@@ -492,9 +492,9 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		// @ATTR event.remove_item|list(item_id)|Removes specified item from hero inventory. Quantity can be specified by appending ":Q" to the item_id, where Q is an integer.
 		e->type = EventComponent::REMOVE_ITEM;
 
-		Point item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
-		e->x = item_stack.x;
-		e->y = item_stack.y;
+		ItemStack item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val));
+		e->id = item_stack.item;
+		e->x = item_stack.quantity;
 
 		// add repeating remove_item
 		if (evnt) {
@@ -504,8 +504,8 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 				e = &evnt->components.back();
 				e->type = EventComponent::REMOVE_ITEM;
 				item_stack = Parse::toItemQuantityPair(repeat_val);
-				e->x = item_stack.x;
-				e->y = item_stack.y;
+				e->id = item_stack.item;
+				e->x = item_stack.quantity;
 
 				repeat_val = Parse::popFirstString(val);
 			}
@@ -524,21 +524,21 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		e->x = std::max(Parse::toInt(val), 0);
 	}
 	else if (key == "reward_item") {
-		// @ATTR event.reward_item(list(item_id)|Reward hero with a specified item. Quantity can be specified by appending ":Q" to the item_id, where Q is an integer. To maintain backwards compatibility, the quantity must be defined for at least the first item in the list in order to use this syntax.
+		// @ATTR event.reward_item|(list(item_id)|Reward hero with a specified item. Quantity can be specified by appending ":Q" to the item_id, where Q is an integer. To maintain backwards compatibility, the quantity must be defined for at least the first item in the list in order to use this syntax.
 		// @ATTR event.reward_item|item_id, int : Item, Quantity|Reward hero with y number of item x. NOTE: This syntax is maintained for backwards compatibility. It is recommended to use the above syntax instead.
 		e->type = EventComponent::REWARD_ITEM;
 
 		bool check_pair = false;
-		Point item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val), &check_pair);
+		ItemStack item_stack = Parse::toItemQuantityPair(Parse::popFirstString(val), &check_pair);
 
 		if (!check_pair) {
 			// item:quantity syntax not detected, falling back to the old syntax
-			e->x = item_stack.x;
-			e->y = std::max(Parse::popFirstInt(val), 1);
+			e->id = item_stack.item;
+			e->x = std::max(Parse::popFirstInt(val), 1);
 		}
 		else {
-			e->x = item_stack.x;
-			e->y = item_stack.y;
+			e->id = item_stack.item;
+			e->y = item_stack.quantity;
 
 			// add repeating reward_item
 			if (evnt) {
@@ -548,8 +548,8 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 					e = &evnt->components.back();
 					e->type = EventComponent::REWARD_ITEM;
 					item_stack = Parse::toItemQuantityPair(repeat_val);
-					e->x = item_stack.x;
-					e->y = item_stack.y;
+					e->id = item_stack.item;
+					e->x = item_stack.quantity;
 
 					repeat_val = Parse::popFirstString(val);
 				}
@@ -579,7 +579,7 @@ bool EventManager::loadEventComponentString(std::string &key, std::string &val, 
 		// @ATTR event.power|power_id|Specify power coupled with event.
 		e->type = EventComponent::POWER;
 
-		e->x = Parse::toInt(val);
+		e->id = Parse::toPowerID(val);
 	}
 	else if (key == "spawn") {
 		// @ATTR event.spawn|list(predefined_string, int, int) : Enemy category, X, Y|Spawn an enemy from this category at location
@@ -857,7 +857,7 @@ bool EventManager::executeEventInternal(Event &ev, bool skip_delay) {
 			camp->removeCurrency(ec->x);
 		}
 		else if (ec->type == EventComponent::REMOVE_ITEM) {
-			camp->removeItem(ItemStack(ec->x, ec->y));
+			camp->removeItem(ItemStack(ec->id, ec->x));
 		}
 		else if (ec->type == EventComponent::REWARD_XP) {
 			camp->rewardXP(ec->x, CampaignManager::XP_SHOW_MSG);
@@ -866,7 +866,7 @@ bool EventManager::executeEventInternal(Event &ev, bool skip_delay) {
 			camp->rewardCurrency(ec->x);
 		}
 		else if (ec->type == EventComponent::REWARD_ITEM) {
-			camp->rewardItem(ItemStack(ec->x, ec->y));
+			camp->rewardItem(ItemStack(ec->id, ec->x));
 		}
 		else if (ec->type == EventComponent::REWARD_LOOT) {
 			std::vector<EventComponent> random_table;
@@ -924,9 +924,9 @@ bool EventManager::executeEventInternal(Event &ev, bool skip_delay) {
 				target.y = static_cast<float>(ev.location.y) + 0.5f;
 			}
 
-			// ec->x is power id
-			// ec->y is statblock index
-			mapr->activatePower(ec->x, ec->y, target);
+			// ec->id is power id
+			// ec->x is statblock index
+			mapr->activatePower(ec->id, ec->x, target);
 		}
 		else if (ec->type == EventComponent::STASH) {
 			mapr->stash = ec->x == 0 ? false : true;
@@ -1060,7 +1060,7 @@ void EventManager::executeScript(const std::string& filename, float x, float y) 
 			// create StatBlocks if we need them
 			EventComponent *ec_power = script_evnt.front().getComponent(EventComponent::POWER);
 			if (ec_power) {
-				ec_power->y = mapr->addEventStatBlock(script_evnt.front());
+				ec_power->x = mapr->addEventStatBlock(script_evnt.front());
 			}
 
 			if (isActive(script_evnt.front())) {

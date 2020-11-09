@@ -55,7 +55,7 @@ public:
 	bool is_speed;
 	bool is_attack_speed;
 	int value;
-	int power_id; // for bonus_power_level
+	PowerID power_id; // for bonus_power_level
 	BonusData()
 		: stat_index(-1)
 		, damage_index_min(-1)
@@ -109,7 +109,7 @@ public:
 	bool has_name;        // flag that is set when the item name is parsed
 	std::string flavor;   // optional flavor text describing the item
 	int level;            // rough estimate of quality, used in the loot algorithm
-	int set;              // item can be attached to item set
+	ItemSetID set;              // item can be attached to item set
 	std::string quality;  // should match an id from items/qualities.txt
 	std::string type;     // equipment slot or base item type
 	std::vector<std::string> equip_flags;   // common values include: melee, ranged, mental, shield
@@ -129,8 +129,8 @@ public:
 	SoundID sfx_id;
 	std::string gfx;           // the sprite layer shown when this item is equipped
 	std::vector<LootAnimation> loot_animation;// the flying loot animation for this item
-	int power;            // this item can be dragged to the action bar and used as a power
-	std::vector<Point> replace_power;        // alter powers when this item is equipped. Power id 'x' is replaced with id 'y'
+	PowerID power;            // this item can be dragged to the action bar and used as a power
+	std::vector< std::pair<PowerID, PowerID> > replace_power;        // alter powers when this item is equipped. The first PowerID is replaced with the second.
 	std::string power_desc;    // shows up in green text on the tooltip
 	int price;            // if price = 0 the item cannot be sold
 	int price_per_level;  // additional price for each character level above 1
@@ -154,7 +154,7 @@ public:
 class ItemSet {
 public:
 	std::string name;            // item set name displayed on long and short tool tips
-	std::vector<int> items;      // items, included into set
+	std::vector<ItemID> items;      // items, included into set
 	std::vector<SetBonusData> bonus;// vector with stats to increase/decrease
 	Color color;
 
@@ -171,7 +171,7 @@ public:
 
 class ItemStack {
 public:
-	ItemStack(int _item = 0, int _quantity = 0)
+	ItemStack(ItemID _item = 0, int _quantity = 0)
 		: item(_item)
 		, quantity(_quantity)
 		, can_buyback(false) {
@@ -183,7 +183,7 @@ public:
 	bool empty();
 	void clear();
 
-	int item;
+	ItemID item;
 	int quantity;
 	bool can_buyback;
 };
@@ -222,18 +222,18 @@ public:
 
 	ItemManager();
 	~ItemManager();
-	void playSound(int item, const Point& pos = Point(0,0));
+	void playSound(ItemID item, const Point& pos = Point(0,0));
 	TooltipData getTooltip(ItemStack stack, StatBlock *stats, int context);
 	TooltipData getShortTooltip(ItemStack item);
-	std::string getItemName(unsigned id);
+	std::string getItemName(ItemID id);
 	std::string getItemType(const std::string& _type);
-	Color getItemColor(unsigned id);
+	Color getItemColor(ItemID id);
 	int getItemIconOverlay(size_t id);
-	bool requirementsMet(const StatBlock *stats, int item);
+	bool requirementsMet(const StatBlock *stats, ItemID item);
 
-	std::map<size_t, Item> items;
+	std::map<ItemID, Item> items;
 	std::vector<ItemType> item_types;
-	std::map<size_t, ItemSet> item_sets;
+	std::map<ItemSetID, ItemSet> item_sets;
 	std::vector<ItemQuality> item_qualities;
 };
 

@@ -85,7 +85,7 @@ public:
 	class AIPower {
 	public:
 		int type;
-		int id;
+		PowerID id;
 		int chance;
 		Timer cooldown;
 
@@ -111,15 +111,15 @@ public:
 	void logic();
 	void removeSummons();
 	void removeFromSummons();
-	bool summonLimitReached(int power_id) const;
+	bool summonLimitReached(PowerID power_id) const;
 	void setWanderArea(int r);
 	void loadHeroSFX();
 	std::string getShortClass();
 	std::string getLongClass();
 	void addXP(int amount);
 	AIPower* getAIPower(int ai_type);
-	int getPowerCooldown(int power_id);
-	void setPowerCooldown(int power_id, int power_cooldown);
+	int getPowerCooldown(PowerID power_id);
+	void setPowerCooldown(PowerID power_id, int power_cooldown);
 
 	bool alive;
 	bool corpse; // creature is dead and done animating
@@ -134,14 +134,14 @@ public:
 	bool refresh_stats;
 	bool converted;
 	bool summoned;
-	int summoned_power_index;
+	PowerID summoned_power_index;
 	bool encountered; // enemy only
 	StatBlock* target_corpse;
 	StatBlock* target_nearest;
 	StatBlock* target_nearest_corpse;
 	float target_nearest_dist;
 	float target_nearest_corpse_dist;
-	int block_power;
+	PowerID block_power;
 
 	int movement_type;
 	bool flying;
@@ -252,12 +252,12 @@ public:
 	int chance_pursue;
 	int chance_flee;
 
-	std::vector<int> powers_list;
-	std::vector<int> powers_list_items;
-	std::vector<int> powers_passive;
+	std::vector<PowerID> powers_list;
+	std::vector<PowerID> powers_list_items;
+	std::vector<PowerID> powers_passive;
 	std::vector<AIPower> powers_ai;
 
-	bool canUsePower(int powerid, bool allow_passive) const;
+	bool canUsePower(PowerID powerid, bool allow_passive) const;
 
 	float melee_range;
 	float threat_range;
@@ -294,8 +294,8 @@ public:
 	StatusID convert_status;
 	StatusID quest_loot_requires_status;
 	StatusID quest_loot_requires_not_status;
-	int quest_loot_id;
-	int first_defeat_loot;
+	ItemID quest_loot_id;
+	ItemID first_defeat_loot;
 
 	// player look options
 	std::string gfx_base; // folder in /images/avatar
@@ -329,9 +329,9 @@ public:
 	// links to summoned creatures and the entity which summoned this
 	std::vector<StatBlock*> summons;
 	StatBlock* summoner;
-	std::queue<int> party_buffs;
+	std::queue<PowerID> party_buffs;
 
-	std::vector<int> power_filter;
+	std::vector<PowerID> power_filter;
 
 	std::vector<StatusID> invincible_requires_status;
 	std::vector<StatusID> invincible_requires_not_status;

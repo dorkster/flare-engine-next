@@ -130,13 +130,13 @@ void ItemManager::loadItems(const std::string& filename) {
 	bool clear_loot_anim = true;
 	bool clear_replace_power = true;
 
-	int id = 0;
+	ItemID id = 0;
 	bool id_line = false;
 	while (infile.next()) {
 		if (infile.key == "id") {
 			// @ATTR id|item_id|An uniq id of the item used as reference from other classes.
 			id_line = true;
-			id = Parse::toInt(infile.val);
+			id = Parse::toItemID(infile.val);
 			items[id] = Item();
 
 			// set the max quantity if it has not been done yet
@@ -264,7 +264,7 @@ void ItemManager::loadItems(const std::string& filename) {
 		else if (infile.key == "bonus_power_level") {
 			// @ATTR bonus_power_level|repeatable(power_id, int) : Base power, Bonus levels|Grants bonus levels to a given base power.
 			BonusData bdata;
-			bdata.power_id = Parse::popFirstInt(infile.val);
+			bdata.power_id = Parse::toPowerID(Parse::popFirstString(infile.val));
 			bdata.value = Parse::popFirstInt(infile.val);
 			items[id].bonus.push_back(bdata);
 		}
@@ -301,7 +301,9 @@ void ItemManager::loadItems(const std::string& filename) {
 				items[id].replace_power.clear();
 				clear_replace_power = false;
 			}
-			Point power_ids = Parse::toPoint(infile.val);
+			std::pair<PowerID, PowerID> power_ids;
+			power_ids.first = Parse::toPowerID(Parse::popFirstString(infile.val));
+			power_ids.second = Parse::toPowerID(Parse::popFirstString(infile.val));
 			items[id].replace_power.push_back(power_ids);
 		}
 		else if (infile.key == "power_desc")
@@ -369,7 +371,7 @@ void ItemManager::loadItems(const std::string& filename) {
 	infile.close();
 
 	// normal items can be stored in either stash
-	std::map<size_t, Item>::iterator item_it;
+	std::map<ItemID, Item>::iterator item_it;
 	for (item_it = items.begin(); item_it != items.end(); ++item_it) {
 		if (item_it->second.no_stash == Item::NO_STASH_NULL) {
 			item_it->second.no_stash = Item::NO_STASH_IGNORE;
@@ -467,7 +469,7 @@ void ItemManager::loadQualities(const std::string& filename) {
 	}
 }
 
-std::string ItemManager::getItemName(unsigned id) {
+std::string ItemManager::getItemName(ItemID id) {
 	if (!items[id].has_name)
 		items[id].name = msg->get("Unknown Item");
 
@@ -483,7 +485,7 @@ std::string ItemManager::getItemType(const std::string& _type) {
 	return _type;
 }
 
-Color ItemManager::getItemColor(unsigned id) {
+Color ItemManager::getItemColor(ItemID id) {
 	if (items[id].set > 0) {
 		return item_sets[items[id].set].color;
 	}
@@ -523,13 +525,13 @@ void ItemManager::loadSets(const std::string& filename) {
 
 	bool clear_bonus = true;
 
-	int id = 0;
+	ItemSetID id = 0;
 	bool id_line;
 	while (infile.next()) {
 		if (infile.key == "id") {
 			// @ATTR id|int|A uniq id for the item set.
 			id_line = true;
-			id = Parse::toInt(infile.val);
+			id = Parse::toSizeT(infile.val);
 
 			if (id > 0) {
 				item_sets[id] = ItemSet();
@@ -554,7 +556,7 @@ void ItemManager::loadSets(const std::string& filename) {
 			item_sets[id].items.clear();
 			std::string item_id = Parse::popFirstString(infile.val);
 			while (item_id != "") {
-				int temp_id = Parse::toInt(item_id);
+				ItemID temp_id = Parse::toItemID(item_id);
 				items[temp_id].set = id;
 				item_sets[id].items.push_back(temp_id);
 				item_id = Parse::popFirstString(infile.val);
@@ -579,7 +581,7 @@ void ItemManager::loadSets(const std::string& filename) {
 			// @ATTR bonus_power_level|repeatable(int, power_id, int) : Required set item count, Base power, Bonus levels|Grants bonus levels to a given base power.
 			SetBonusData bonus;
 			bonus.requirement = Parse::popFirstInt(infile.val);
-			bonus.power_id = Parse::popFirstInt(infile.val);
+			bonus.power_id = Parse::toPowerID(Parse::popFirstString(infile.val));
 			bonus.value = Parse::popFirstInt(infile.val);
 			item_sets[id].bonus.push_back(bonus);
 		}
@@ -681,7 +683,7 @@ void ItemManager::getBonusString(std::stringstream& ss, BonusData* bdata) {
 	}
 }
 
-void ItemManager::playSound(int item, const Point& pos) {
+void ItemManager::playSound(ItemID item, const Point& pos) {
 	std::stringstream channel_name;
 	channel_name << "item_" << items[item].sfx_id;
 	snd->play(items[item].sfx_id, channel_name.str(), FPoint(pos), false);
@@ -924,7 +926,7 @@ TooltipData ItemManager::getTooltip(ItemStack stack, StatBlock *stats, int conte
 /**
  * Check requirements on an item
  */
-bool ItemManager::requirementsMet(const StatBlock *stats, int item) {
+bool ItemManager::requirementsMet(const StatBlock *stats, ItemID item) {
 	if (!stats) return false;
 
 	// level

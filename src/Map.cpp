@@ -125,7 +125,7 @@ int Map::load(const std::string& fname) {
 		EventComponent *ec_power = events[i].getComponent(EventComponent::POWER);
 		if (ec_power) {
 			// store the index of this StatBlock so that we can find it when the event is activated
-			ec_power->y = addEventStatBlock(events[i]);
+			ec_power->x = addEventStatBlock(events[i]);
 		}
 	}
 
@@ -395,10 +395,10 @@ int Map::addEventStatBlock(Event &evnt) {
 	if (ec_damage) {
 		for (size_t i = 0; i < eset->damage_types.count; ++i) {
 			if (i % 2 == 0) {
-				statb->starting[Stats::COUNT + i] = ec_damage->a; // min
+				statb->starting[Stats::COUNT + i] = ec_damage->x; // min
 			}
 			else {
-				statb->starting[Stats::COUNT + i] = ec_damage->b; // max
+				statb->starting[Stats::COUNT + i] = ec_damage->y; // max
 			}
 		}
 	}
