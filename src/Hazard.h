@@ -80,6 +80,8 @@ public:
 	Hazard* parent;
 	std::vector<Hazard*> children;
 
+	FPoint prev_pos;
+
 private:
     void reflect();
 
@@ -89,6 +91,8 @@ private:
 
 	// Keeps track of entities already hit
 	std::vector<Entity*> entitiesCollided;
+
+	bool first_frame;
 };
 
 #endif
