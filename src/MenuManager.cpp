@@ -62,6 +62,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsFileSystem.h"
 #include "UtilsParsing.h"
 #include "WidgetSlot.h"
+#include "WidgetTooltip.h"
+#include "TooltipManager.h"
 
 MenuManager::MenuManager()
 	: key_lock(false)
@@ -1281,6 +1283,8 @@ void MenuManager::render() {
 		else {
 			// Find tooltips depending on mouse position
 			if (!book->visible) {
+				pushMatchingItemsOf(inpt->mouse);
+
 				chr->renderTooltips(inpt->mouse);
 				vendor->renderTooltips(inpt->mouse);
 				stash->renderTooltips(inpt->mouse);
@@ -1337,6 +1341,7 @@ void MenuManager::handleKeyboardTooltips() {
 			keydrag_pos.y = vendor->stock[ItemManager::VENDOR_SELL].slots[slot_index]->pos.y;
 		}
 
+		pushMatchingItemsOf(keydrag_pos);
 		vendor->renderTooltips(keydrag_pos);
 	}
 
@@ -1347,6 +1352,7 @@ void MenuManager::handleKeyboardTooltips() {
 		keydrag_pos.x = stash->stock[tab].slots[slot_index]->pos.x;
 		keydrag_pos.y = stash->stock[tab].slots[slot_index]->pos.y;
 
+		pushMatchingItemsOf(keydrag_pos);
 		stash->renderTooltips(keydrag_pos);
 	}
 
@@ -1376,6 +1382,7 @@ void MenuManager::handleKeyboardTooltips() {
 			keydrag_pos.y = temp_widget->pos.y;
 		}
 
+		pushMatchingItemsOf(keydrag_pos);
 		inv->renderTooltips(keydrag_pos);
 	}
 
@@ -1446,6 +1453,53 @@ void MenuManager::showExitMenu() {
 		// we use handleCancel() here because it will reset the menu to the "Exit" tab
 		exit->visible = false;
 		exit->handleCancel();
+	}
+}
+
+void MenuManager::pushMatchingItemsOf(const Point& hov_pos) {
+	if (!settings->item_compare_tips)
+		return;
+
+	int area = -1;
+	ItemStack hov_stack;
+
+	if (inv->visible && Utils::isWithinRect(inv->window_area, hov_pos)) {
+		area = inv->areaOver(hov_pos);
+		if (area == MenuInventory::CARRIED)
+			hov_stack = inv->inventory[area].getItemStackAtPos(hov_pos);
+	}
+	else if (vendor->visible && Utils::isWithinRect(vendor->window_area, hov_pos)) {
+		area = vendor->getTab();
+		if (area >= 0)
+			hov_stack = vendor->stock[area].getItemStackAtPos(hov_pos);
+	}
+	else if (stash->visible && Utils::isWithinRect(stash->window_area, hov_pos)) {
+		area = stash->getTab();
+		if (area >= 0)
+			hov_stack = stash->stock[area].getItemStackAtPos(hov_pos);
+	}
+
+	// we assume that a non-empty item type means that there is a primary tooltip
+	if (hov_stack.item > 0 && !items->items[hov_stack.item].type.empty()) {
+		size_t tip_index = 1;
+
+		//get equipped items of the same type
+		for (size_t i = 0; i < inv->equipped_area.size(); i++) {
+			if (tip_index >= TooltipManager::TOOLTIP_COUNT)
+				break; // can't show any more tooltips
+
+			if (inv->slot_type[i] == items->items[hov_stack.item].type) {
+				if (!inv->inventory[MenuInventory::EQUIPMENT].storage[i].empty()) {
+					Point match_pos(inv->equipped_area[i].x, inv->equipped_area[i].y);
+
+					TooltipData match = inv->inventory[MenuInventory::EQUIPMENT].checkTooltip(match_pos, &pc->stats, ItemManager::PLAYER_INV);
+					match.addColoredText(msg->get("Equipped"), font->getColor(FontEngine::COLOR_ITEM_FLAVOR));
+
+					tooltipm->push(match, hov_pos, TooltipData::STYLE_FLOAT, tip_index);
+					tip_index++;
+				}
+			}
+		}
 	}
 }
 
