@@ -322,7 +322,7 @@ void Avatar::set_direction() {
 
 	// handle direction changes
 	if (settings->mouse_move) {
-		FPoint target = Utils::screenToMap(inpt->mouse.x, inpt->mouse.y, mapr->cam.x, mapr->cam.y);
+		FPoint target = Utils::screenToMap(inpt->mouse.x, inpt->mouse.y, mapr->cam.pos.x, mapr->cam.pos.y);
 		stats.direction = Utils::calcDirection(stats.pos.x, stats.pos.y, target.x, target.y);
 	}
 	else {
@@ -487,7 +487,7 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 		}
 	}
 
-	if (teleport_camera_lock && Utils::calcDist(stats.pos, mapr->cam) < 0.5f) {
+	if (teleport_camera_lock && Utils::calcDist(stats.pos, mapr->cam.pos) < 0.5f) {
 		teleport_camera_lock = false;
 	}
 
@@ -831,31 +831,8 @@ void Avatar::logic(std::vector<ActionData> &action_queue, bool restrict_power_us
 
 	}
 
-	// calc new cam position from player position
-	// cam is focused at player position
-	float cam_dx = (Utils::calcDist(FPoint(mapr->cam.x, stats.pos.y), stats.pos)) / eset->misc.camera_speed;
-	float cam_dy = (Utils::calcDist(FPoint(stats.pos.x, mapr->cam.y), stats.pos)) / eset->misc.camera_speed;
-
-	if (mapr->cam.x < stats.pos.x) {
-		mapr->cam.x += cam_dx;
-		if (mapr->cam.x > stats.pos.x)
-			mapr->cam.x = stats.pos.x;
-	}
-	else if (mapr->cam.x > stats.pos.x) {
-		mapr->cam.x -= cam_dx;
-		if (mapr->cam.x < stats.pos.x)
-			mapr->cam.x = stats.pos.x;
-	}
-	if (mapr->cam.y < stats.pos.y) {
-		mapr->cam.y += cam_dy;
-		if (mapr->cam.y > stats.pos.y)
-			mapr->cam.y = stats.pos.y;
-	}
-	else if (mapr->cam.y > stats.pos.y) {
-		mapr->cam.y -= cam_dy;
-		if (mapr->cam.y < stats.pos.y)
-			mapr->cam.y = stats.pos.y;
-	}
+	// update camera
+	mapr->cam.setTarget(stats.pos);
 
 	// check for map events
 	mapr->checkEvents(stats.pos);
