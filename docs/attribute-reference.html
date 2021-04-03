@@ -475,7 +475,7 @@ body {
 
 <p><strong>event.type</strong> | <code>string</code> | (IGNORED BY ENGINE) The &ldquo;type&rdquo; field, as used by Tiled and other mapping tools.</p>
 
-<p><strong>event.activate</strong> | <code>["on_trigger", "on_load", "on_leave", "on_mapexit", "on_clear", "static"]</code> | Set the state in which the event will be activated (map events only).</p>
+<p><strong>event.activate</strong> | <code>["on_trigger", "on_load", "on_leave", "on_mapexit", "on_clear", "static"]</code> | Set the state in which the event will be activated (map events only). on_trigger = the player is standing in the event area or the player interacts with the hotspot. on_mapexit = as the player leaves the map. on_leave = as the player steps outside of an event area they were previously inside of. on_load = as the player enters a map. on_clear = all of the enemies on a map have been defeated. static = constantly, every frame.</p>
 
 <p><strong>event.location</strong> | <code>rectangle</code> | Defines the location area for the event.</p>
 
@@ -578,6 +578,8 @@ body {
 <p><strong>event.respec</strong> | <code>["xp", "stats", "powers"], bool : Respec mode, Ignore class defaults</code> | Resets various aspects of the character&rsquo;s progression. Resetting &ldquo;xp&rdquo; also resets &ldquo;stats&rdquo;. Resetting &ldquo;stats&rdquo; also resets &ldquo;powers&rdquo;.</p>
 
 <p><strong>event.show_on_minimap</strong> | <code>bool</code> | If true, this event will be shown on the minimap if it is the appropriate type (e.g. an intermap teleport).</p>
+
+<p><strong>event.parallax_layers</strong> | <code>filename</code> | Filename of a parallax layers definition to load.</p>
 
 <hr />
 
@@ -1429,19 +1431,27 @@ body {
 
 <p><strong>power.position</strong> | <code>point</code> | Position of this power icon; relative to MenuPowers &ldquo;pos&rdquo;.</p>
 
-<p><strong>power.requires_primary</strong> | <code>predefined_string, int : Primary stat name, Required value</code> | Power requires this primary stat to be at least the specificed value.</p>
-
 <p><strong>power.requires_point</strong> | <code>bool</code> | Power requires a power point to unlock.</p>
+
+<p><strong>power.requires_primary</strong> | <code>predefined_string, int : Primary stat name, Required value</code> | Power requires this primary stat to be at least the specificed value.</p>
 
 <p><strong>power.requires_level</strong> | <code>int</code> | Power requires at least this level for the hero.</p>
 
 <p><strong>power.requires_power</strong> | <code>power_id</code> | Power requires another power id.</p>
 
-<p><strong>power.visible_requires_status</strong> | <code>repeatable(string)</code> | Hide the power if we don&rsquo;t have this campaign status.</p>
+<p><strong>power.requires_status</strong> | <code>repeatable(string)</code> | Power requires this campaign status.</p>
 
-<p><strong>power.visible_requires_not_status</strong> | <code>repeatable(string)</code> | Hide the power if we have this campaign status.</p>
+<p><strong>power.requires_not_status</strong> | <code>repeatable(string)</code> | Power requires not having this campaign status.</p>
+
+<p><strong>power.visible_requires_status</strong> | <code>repeatable(string)</code> | (Deprecated as of v1.11.75) Hide the power if we don&rsquo;t have this campaign status.</p>
+
+<p><strong>power.visible_requires_not_status</strong> | <code>repeatable(string)</code> | (Deprecated as of v1.11.75) Hide the power if we have this campaign status.</p>
 
 <p><strong>power.upgrades</strong> | <code>list(power_id)</code> | A list of upgrade power ids that this power slot can upgrade to. Each of these powers should have a matching upgrade section.</p>
+
+<p><strong>power.visible</strong> | <code>bool</code> | Controls whether or not a power is visible or hidden regardless of unlocked state. Defaults to true.</p>
+
+<p><strong>power.visible_when_locked</strong> | <code>bool</code> | Controls whether or not a power is visible or hidden when the power is locked. Defaults to true.</p>
 
 <p><strong>upgrade.id</strong> | <code>int</code> | A power id from powers/powers.txt for this upgrade.</p>
 
@@ -1453,9 +1463,17 @@ body {
 
 <p><strong>upgrade.requires_power</strong> | <code>int</code> | Upgrade requires another power id.</p>
 
-<p><strong>upgrade.visible_requires_status</strong> | <code>repeatable(string)</code> | Hide the upgrade if we don&rsquo;t have this campaign status.</p>
+<p><strong>upgrade.requires_status</strong> | <code>repeatable(string)</code> | Upgrade requires this campaign status.</p>
 
-<p><strong>upgrade.visible_requires_not_status</strong> | <code>repeatable(string)</code> | Hide the upgrade if we have this campaign status.</p>
+<p><strong>upgrade.requires_not_status</strong> | <code>repeatable(string)</code> | Upgrade requires not having this campaign status.</p>
+
+<p><strong>upgrade.visible_requires_status</strong> | <code>repeatable(string)</code> | (Deprecated as of v1.11.75) Hide the upgrade if we don&rsquo;t have this campaign status.</p>
+
+<p><strong>upgrade.visible_requires_not_status</strong> | <code>repeatable(string)</code> | (Deprecated as of v1.11.75) Hide the upgrade if we have this campaign status.</p>
+
+<p><strong>upgrade.visible</strong> | <code>bool</code> | Controls whether or not a power is visible or hidden regardless of unlocked state. Defaults to true.</p>
+
+<p><strong>upgrade.visible_when_locked</strong> | <code>bool</code> | Controls whether or not a power is visible or hidden when the power is locked. Defaults to true.</p>
 
 <hr />
 
