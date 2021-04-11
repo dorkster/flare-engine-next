@@ -777,7 +777,6 @@ void GameStatePlay::checkStash() {
 		menu->closeAll();
 		menu->inv->visible = true;
 		menu->stash->visible = true;
-		menu->stash->setTab(MenuStash::STASH_PRIVATE);
 		mapr->stash = false;
 		menu->stash->validate(menu->drop_stack);
 	}
@@ -798,8 +797,7 @@ void GameStatePlay::checkStash() {
 	}
 
 	// If the stash has been updated, save the game
-	if (menu->stash->updated) {
-		menu->stash->updated = false;
+	if (menu->stash->checkUpdates()) {
 		save_load->saveGame();
 	}
 }

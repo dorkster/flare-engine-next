@@ -32,6 +32,10 @@ Engine features:
 * Added 'parallax_layers' property to Events. This functions exactly like the Map property of the same name.
 * Added 'visible' and 'visible_when_locked' to powers and upgrades in power trees.
 * Added 'requires_status' and 'requires_not_status' to powers and upgrades in power trees. 'visible_requires_status' and 'visible_requires_not_status' have been marked as deprecated.
+* Added 'on_interact' as a possible value for Event types. Essentially the same as 'on_trigger', except the event can ONLY be activated through the hotspot.
+* Support an arbitrary number of Stash tabs. Each tab has a display name and an 'is_private' flag.
+* Added 'save_onstash' property to engine/misc.txt, so it is now possible to disable the automatic save when modifying stash contents.
+* The player's last used Stash tab is now remembered across sessions.
 
 Engine fixes:
 
