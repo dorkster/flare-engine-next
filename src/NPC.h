@@ -29,7 +29,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 class EventComponent;
 
-class NPC : public Enemy {
+class NPC : public Entity {
 private:
 	enum {
 		VOX_INTRO = 0,
