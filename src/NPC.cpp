@@ -26,6 +26,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "AnimationManager.h"
 #include "AnimationSet.h"
 #include "CampaignManager.h"
+#include "EntityBehavior.h"
 #include "EventManager.h"
 #include "FileParser.h"
 #include "ItemManager.h"
@@ -41,8 +42,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsMath.h"
 #include "UtilsParsing.h"
 
-NPC::NPC(const Enemy& e)
-	: Enemy(e)
+NPC::NPC(const Entity& e)
+	: Entity(e)
 	, gfx("")
 	, vox_intro()
 	, vox_quests()
@@ -57,7 +58,6 @@ NPC::NPC(const Enemy& e)
 	, stock()
 	, dialog()
 {
-	eb = new BehaviorAlly(this);
 	stock.init(VENDOR_MAX_STOCK);
 }
 
@@ -341,21 +341,13 @@ int NPC::loadSound(const std::string& fname, int vox_type) {
 }
 
 void NPC::logic() {
+	mapr->collider.unblock(stats.pos.x, stats.pos.y);
 
-	if (stats.hero_ally) {
-		// TODO: check logic
-		mapr->collider.unblock(stats.pos.x, stats.pos.y);
+	Entity::logic();
+	moveMapEvents();
 
-		Enemy::logic();
-		moveMapEvents();
-	}
-	else
-	{
-		// TODO: check logic
-		if (activeAnimation)
-			activeAnimation->advanceFrame();
+	if (!stats.hero_ally)
 		mapr->collider.block(stats.pos.x, stats.pos.y, true);
-	}
 }
 
 bool NPC::playSoundIntro() {

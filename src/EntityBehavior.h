@@ -1,6 +1,8 @@
 /*
 Copyright © 2012 Clint Bellanger
-Copyright © 2013-2014 Justin Jacobs
+Copyright © 2012 Stefan Beller
+Copyright © 2013 Ryan Dansie
+Copyright © 2012-2021 Justin Jacobs
 
 This file is part of FLARE.
 
@@ -16,27 +18,39 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
-#ifndef BEHAVIOR_STANDARD_H
-#define BEHAVIOR_STANDARD_H
+/**
+ * class EntityBehavior
+ *
+ * Interface for entity behaviors.
+ * The behavior object is a component of Entity.
+ * Make AI decisions (movement, actions) for entities.
+ */
 
-#include "EnemyBehavior.h"
+#ifndef ENTITY_BEHAVIOR_H
+#define ENTITY_BEHAVIOR_H
 
-class Enemy;
-class Point;
+class Entity;
 
-class BehaviorStandard : public EnemyBehavior {
+class EntityBehavior {
 private:
+	static const float ALLY_FLEE_DISTANCE;
+	static const float ALLY_FOLLOW_DISTANCE_WALK;
+	static const float ALLY_FOLLOW_DISTANCE_STOP;
+	static const float ALLY_TELEPORT_DISTANCE;
+
 	// logic steps
 	void doUpkeep();
-	virtual void findTarget();
+	void findTarget();
 	void checkPower();
 	void checkMove();
-	virtual void checkMoveStateStance();
-	virtual void checkMoveStateMove();
+	void checkMoveStateStance();
+	void checkMoveStateMove();
 	void updateState();
 	FPoint getWanderPoint();
 
 protected:
+	Entity *e;
+
 	static const int PATH_FOUND_FAIL_THRESHOLD = 1;
 	static const int PATH_FOUND_FAIL_WAIT_SECONDS = 2;
 
@@ -50,18 +64,21 @@ protected:
 	Timer path_found_fail_timer;
 
 	float target_dist;
+	float hero_dist;
 	FPoint pursue_pos;
 	// targeting vars
 	bool los;
-	//when fleeing, the enemy moves away from the pursue_pos
+	//when fleeing, the entity moves away from the pursue_pos
 	bool fleeing;
 	bool move_to_safe_dist;
 	Timer turn_timer;
 
-public:
-	explicit BehaviorStandard(Enemy *_e);
-	void logic();
+	bool instant_power;
 
+public:
+	EntityBehavior(Entity *_e);
+	~EntityBehavior();
+	void logic();
 };
 
 #endif

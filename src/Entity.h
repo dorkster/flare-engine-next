@@ -33,6 +33,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 
 class Animation;
 class AnimationSet;
+class EntityBehavior;
 
 class Entity {
 protected:
@@ -54,6 +55,7 @@ public:
 	Entity& operator=(const Entity& e);
 	virtual ~Entity();
 
+	void logic();
 	void loadSounds();
 	void loadSoundsFromStatBlock(StatBlock *src_stats);
 	void unloadSounds();
@@ -76,6 +78,13 @@ public:
 	AnimationSet *animationSet;
 
 	StatBlock stats;
+
+	unsigned char faceNextBest(float mapx, float mapy);
+	Renderable getRender();
+
+	std::string type_filename;
+
+	EntityBehavior *behavior;
 };
 
 extern const int directionDeltaX[];

@@ -1,7 +1,8 @@
 /*
 Copyright © 2012 Clint Bellanger
 Copyright © 2012 Stefan Beller
-Copyright © 2012-2016 Justin Jacobs
+Copyright © 2013 Ryan Dansie
+Copyright © 2012-2021 Justin Jacobs
 
 This file is part of FLARE.
 
@@ -17,13 +18,22 @@ You should have received a copy of the GNU General Public License along with
 FLARE.  If not, see http://www.gnu.org/licenses/
 */
 
+/**
+ * class EntityBehavior
+ *
+ * Interface for entity behaviors.
+ * The behavior object is a component of Entity.
+ * Make AI decisions (movement, actions) for entities.
+ */
+
 #include "Animation.h"
 #include "Avatar.h"
-#include "BehaviorStandard.h"
 #include "CommonIncludes.h"
-#include "Enemy.h"
-#include "EnemyManager.h"
+#include "Entity.h"
+#include "EntityManager.h"
 #include "EngineSettings.h"
+#include "Entity.h"
+#include "EntityBehavior.h"
 #include "MapRenderer.h"
 #include "PowerManager.h"
 #include "Settings.h"
@@ -32,8 +42,13 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "StatBlock.h"
 #include "UtilsMath.h"
 
-BehaviorStandard::BehaviorStandard(Enemy *_e)
-	: EnemyBehavior(_e)
+const float EntityBehavior::ALLY_FLEE_DISTANCE = 2;
+const float EntityBehavior::ALLY_FOLLOW_DISTANCE_WALK = 5.5;
+const float EntityBehavior::ALLY_FOLLOW_DISTANCE_STOP = 5;
+const float EntityBehavior::ALLY_TELEPORT_DISTANCE = 40;
+
+EntityBehavior::EntityBehavior(Entity *_e)
+	: e(_e)
 	, path()
 	, prev_target()
 	, collided(false)
@@ -42,11 +57,13 @@ BehaviorStandard::BehaviorStandard(Enemy *_e)
 	, path_found_fails(0)
 	, path_found_fail_timer()
 	, target_dist(0)
+	, hero_dist(0)
 	, pursue_pos(-1, -1)
 	, los(false)
 	, fleeing(false)
 	, move_to_safe_dist(false)
 	, turn_timer()
+	, instant_power(false)
 {
 	// wait when PATH_FOUND_FAIL_THRESHOLD is exceeded
 	path_found_fail_timer.setDuration(settings->max_frames_per_sec * PATH_FOUND_FAIL_WAIT_SECONDS);
@@ -56,8 +73,7 @@ BehaviorStandard::BehaviorStandard(Enemy *_e)
 /**
  * One frame of logic for this behavior
  */
-void BehaviorStandard::logic() {
-
+void EntityBehavior::logic() {
 	// skip all logic if the enemy is dead and no longer animating
 	if (e->stats.corpse) {
 		e->stats.corpse_timer.tick();
@@ -79,12 +95,13 @@ void BehaviorStandard::logic() {
 	updateState();
 
 	fleeing = false;
+
 }
 
 /**
  * Various upkeep on stats
  */
-void BehaviorStandard::doUpkeep() {
+void EntityBehavior::doUpkeep() {
 	// activate all passive powers
 	if (e->stats.hp > 0 || e->stats.effects.triggered_death)
 		powers->activatePassives(&e->stats);
@@ -108,16 +125,16 @@ void BehaviorStandard::doUpkeep() {
 /**
  * Locate the player and set various targeting info
  */
-void BehaviorStandard::findTarget() {
+void EntityBehavior::findTarget() {
 	// dying enemies can't target anything
-	if (e->stats.cur_state == StatBlock::ENEMY_DEAD || e->stats.cur_state == StatBlock::ENEMY_CRITDEAD) return;
-
-	float stealth_threat_range = (e->stats.threat_range * (100 - static_cast<float>(e->stats.hero_stealth))) / 100;
+	if (e->stats.cur_state == StatBlock::ENTITY_DEAD || e->stats.cur_state == StatBlock::ENTITY_CRITDEAD) return;
 
 	// stunned enemies can't act
 	if (e->stats.effects.stun) return;
 
 	StatBlock *target_stats = NULL;
+	float stealth_threat_range = (e->stats.threat_range * (100 - static_cast<float>(e->stats.hero_stealth))) / 100;
+	bool is_ally = e->stats.hero_ally;
 
 	// check distance and line of sight between enemy and hero
 	// by default, the enemy pursues the hero directly
@@ -128,17 +145,43 @@ void BehaviorStandard::findTarget() {
 	else {
 		target_dist = 0;
 	}
+	hero_dist = target_dist;
 
-	for (size_t i = 0; i < enemym->enemies.size(); ++i) {
-		if (!enemym->enemies[i]->stats.corpse && enemym->enemies[i]->stats.hero_ally) {
-			//now work out the distance to the minion and compare it to the distance to the current targer (we want to target the closest ally)
-			float ally_dist = Utils::calcDist(e->stats.pos, enemym->enemies[i]->stats.pos);
-			if (ally_dist < target_dist) {
-				target_stats = &enemym->enemies[i]->stats;
-				target_dist = ally_dist;
+	// if the minion gets too far, transport it to the player pos
+	if (is_ally && hero_dist > ALLY_TELEPORT_DISTANCE && !e->stats.in_combat) {
+		mapr->collider.unblock(e->stats.pos.x, e->stats.pos.y);
+		e->stats.pos.x = pc->stats.pos.x;
+		e->stats.pos.y = pc->stats.pos.y;
+		mapr->collider.block(e->stats.pos.x, e->stats.pos.y, MapCollision::IS_ALLY);
+		hero_dist = 0;
+	}
+
+	bool enemies_in_combat = false;
+	for (size_t i = 0; i < entitym->entities.size(); ++i) {
+		Entity* entity = entitym->entities[i];
+		if (!entity->stats.alive)
+			continue;
+
+		if ((!is_ally && entity->stats.hero_ally) || (is_ally && !entity->stats.hero_ally && entity->stats.in_combat)) {
+			float entity_dist = Utils::calcDist(e->stats.pos, entity->stats.pos);
+			if (!target_stats || (is_ally && target_stats && target_stats->hero)) {
+				// pick the first available target if none is already selected
+				target_stats = &entitym->entities[i]->stats;
+				target_dist = entity_dist;
+				e->stats.in_combat = true;
+				enemies_in_combat = true;
+			}
+			else if (entity_dist < target_dist) {
+				// pick a new target if it's closer
+				target_stats = &entitym->entities[i]->stats;
+				target_dist = entity_dist;
 			}
 		}
 	}
+
+	//break combat if the player gets too far or all enemies die
+	if(!enemies_in_combat)
+		e->stats.in_combat = false;
 
 	// check line-of-sight
 	if (target_stats && target_dist < e->stats.threat_range && pc->stats.alive)
@@ -153,41 +196,46 @@ void BehaviorStandard::findTarget() {
 
 	// check entering combat (because the player got too close)
 	bool close_to_target = false;
-	if (&pc->stats == target_stats)
+	if (!is_ally && &pc->stats == target_stats)
 		close_to_target = target_dist < stealth_threat_range;
-	else if (target_stats)
+	else if (target_stats && &pc->stats != target_stats)
 		close_to_target = target_dist < e->stats.threat_range;
 
 	if (e->stats.alive && !e->stats.in_combat && los && close_to_target && e->stats.combat_style != StatBlock::COMBAT_PASSIVE) {
 		e->stats.join_combat = true;
 	}
 
-	// check entering combat (because the player hit the enemy)
+	// if the join_combat flag wasn't set above, it could have been set if the enemy was hit by a hazard
+	// we put the entity in a combat state and activate powers that trigger when entering combat
 	if (e->stats.join_combat) {
 		e->stats.in_combat = true;
 
-		StatBlock::AIPower* ai_power = e->stats.getAIPower(StatBlock::AI_POWER_BEACON);
-		if (ai_power != NULL) {
-			powers->activate(ai_power->id, &e->stats, e->stats.pos); //emit beacon
+		StatBlock::AIPower* ai_power;
+		if (!is_ally) {
+			ai_power = e->stats.getAIPower(StatBlock::AI_POWER_BEACON);
+			if (ai_power != NULL) {
+				powers->activate(ai_power->id, &e->stats, e->stats.pos); //emit beacon
+			}
 		}
 
 		ai_power = e->stats.getAIPower(StatBlock::AI_POWER_JOIN_COMBAT);
 		if (ai_power != NULL) {
-			e->stats.cur_state = StatBlock::ENEMY_POWER;
+			e->stats.cur_state = StatBlock::ENTITY_POWER;
 			e->stats.activated_power = ai_power;
 		}
 
 		e->stats.join_combat = false;
 	}
 
-	// check exiting combat (player died or got too far away)
-	if (e->stats.in_combat && target_dist > (e->stats.threat_range_far) && !e->stats.join_combat && e->stats.combat_style != StatBlock::COMBAT_AGGRESSIVE) {
-		e->stats.in_combat = false;
-	}
+	// check exiting combat
+	if (e->stats.combat_style != StatBlock::COMBAT_AGGRESSIVE) {
+		// target got too far away
+		if (target_dist > e->stats.threat_range_far && !e->stats.join_combat)
+			e->stats.in_combat = false;
 
-	// check exiting combat (player or enemy died)
-	if ((!e->stats.alive || !pc->stats.alive) && e->stats.combat_style != StatBlock::COMBAT_AGGRESSIVE) {
-		e->stats.in_combat = false;
+		// either party is dead
+		if (!e->stats.alive || !pc->stats.alive)
+			e->stats.in_combat = false;
 	}
 
 	if (target_stats)
@@ -207,12 +255,31 @@ void BehaviorStandard::findTarget() {
 		pursue_pos.y = waypoint.y;
 	}
 
-	if(e->stats.effects.fear) fleeing = true;
+	// if the player is blocked, all summons which the player is facing to move away for the specified frames
+	// need to set the flag player_blocked so that other allies know to get out of the way as well
+	// if hero is facing the summon
+	if (is_ally && eset->misc.enable_ally_collision_ai) {
+		if (!entitym->player_blocked && hero_dist < ALLY_FLEE_DISTANCE
+				&& mapr->collider.isFacing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
+			entitym->player_blocked = true;
+			entitym->player_blocked_timer.reset(Timer::BEGIN);
+		}
+
+		bool player_closer_than_target = Utils::calcDist(e->stats.pos, pursue_pos) > Utils::calcDist(e->stats.pos, pc->stats.pos);
+
+		if (entitym->player_blocked && (!e->stats.in_combat || player_closer_than_target)
+				&& mapr->collider.isFacing(pc->stats.pos.x,pc->stats.pos.y,pc->stats.direction,e->stats.pos.x,e->stats.pos.y)) {
+			fleeing = true;
+			pursue_pos = pc->stats.pos;
+		}
+	}
+
+	if (e->stats.effects.fear) fleeing = true;
 
 	// If we have a successful chance_flee roll, try to move to a safe distance
 	if (
 			e->stats.in_combat &&
-			e->stats.cur_state == StatBlock::ENEMY_STANCE &&
+			e->stats.cur_state == StatBlock::ENTITY_STANCE &&
 			!move_to_safe_dist && target_dist < e->stats.flee_range &&
 			target_dist >= e->stats.melee_range &&
 			Math::percentChance(e->stats.chance_flee) &&
@@ -267,7 +334,7 @@ void BehaviorStandard::findTarget() {
  * Begin using a power if idle, based on behavior % chances.
  * Activate a ready power, if the attack animation has followed through
  */
-void BehaviorStandard::checkPower() {
+void EntityBehavior::checkPower() {
 
 	// stunned enemies can't act
 	if (e->stats.effects.stun || e->stats.effects.fear || fleeing) return;
@@ -284,7 +351,7 @@ void BehaviorStandard::checkPower() {
 	// The second stage occurs in updateState()
 
 	// pick a power from the available powers for this creature
-	if (e->stats.cur_state == StatBlock::ENEMY_STANCE || e->stats.cur_state == StatBlock::ENEMY_MOVE) {
+	if (e->stats.cur_state == StatBlock::ENTITY_STANCE || e->stats.cur_state == StatBlock::ENTITY_MOVE) {
 		StatBlock::AIPower* ai_power = NULL;
 
 		// check half dead power use
@@ -306,13 +373,13 @@ void BehaviorStandard::checkPower() {
 				ai_power = NULL;
 			}
 			if (ai_power != NULL) {
-				e->stats.cur_state = StatBlock::ENEMY_POWER;
+				e->stats.cur_state = StatBlock::ENTITY_POWER;
 				e->stats.activated_power = ai_power;
 			}
 		}
 	}
 
-	if (e->stats.cur_state != StatBlock::ENEMY_POWER && e->stats.activated_power) {
+	if (e->stats.cur_state != StatBlock::ENTITY_POWER && e->stats.activated_power) {
 		e->stats.activated_power = NULL;
 	}
 }
@@ -320,10 +387,10 @@ void BehaviorStandard::checkPower() {
 /**
  * Check state changes related to movement
  */
-void BehaviorStandard::checkMove() {
+void EntityBehavior::checkMove() {
 
 	// dying enemies can't move
-	if (e->stats.cur_state == StatBlock::ENEMY_DEAD || e->stats.cur_state == StatBlock::ENEMY_CRITDEAD) return;
+	if (e->stats.cur_state == StatBlock::ENTITY_DEAD || e->stats.cur_state == StatBlock::ENTITY_CRITDEAD) return;
 
 	// stunned enemies can't act
 	if (e->stats.effects.stun) return;
@@ -331,15 +398,15 @@ void BehaviorStandard::checkMove() {
 	// handle not being in combat and (not patrolling waypoints or waiting at waypoint)
 	if (!e->stats.hero_ally && !e->stats.in_combat && (e->stats.waypoints.empty() || !e->stats.waypoint_timer.isEnd())) {
 
-		if (e->stats.cur_state == StatBlock::ENEMY_MOVE) {
-			e->stats.cur_state = StatBlock::ENEMY_STANCE;
+		if (e->stats.cur_state == StatBlock::ENTITY_MOVE) {
+			e->stats.cur_state = StatBlock::ENTITY_STANCE;
 		}
 
 		// currently enemies only move while in combat or patrolling
 		return;
 	}
 
-	float real_speed = e->stats.speed * speedMultiplyer[e->stats.direction] * e->stats.effects.speed / 100;
+	float real_speed = e->stats.speed * StatBlock::SPEED_MULTIPLIER[e->stats.direction] * e->stats.effects.speed / 100;
 
 	unsigned turn_ticks = turn_timer.getCurrent();
 	turn_timer.setDuration(e->stats.turn_delay);
@@ -450,12 +517,12 @@ void BehaviorStandard::checkMove() {
 	e->stats.flee_cooldown_timer.tick();
 
 	// try to start moving
-	if (e->stats.cur_state == StatBlock::ENEMY_STANCE) {
+	if (e->stats.cur_state == StatBlock::ENTITY_STANCE) {
 		checkMoveStateStance();
 	}
 
 	// already moving
-	else if (e->stats.cur_state == StatBlock::ENEMY_MOVE) {
+	else if (e->stats.cur_state == StatBlock::ENTITY_MOVE) {
 		checkMoveStateMove();
 	}
 
@@ -488,7 +555,7 @@ void BehaviorStandard::checkMove() {
 
 }
 
-void BehaviorStandard::checkMoveStateStance() {
+void EntityBehavior::checkMoveStateStance() {
 
 	// If the enemy is capable of fleeing and is at a safe distance, have it hold its position instead of moving
 	if (target_dist >= e->stats.flee_range && e->stats.chance_flee > 0 && e->stats.waypoints.empty()) return;
@@ -496,12 +563,13 @@ void BehaviorStandard::checkMoveStateStance() {
 	// try to move to the target if we're either:
 	// 1. too far away and chance_pursue roll succeeds
 	// 2. within range, but lack line-of-sight (required to attack)
-	bool should_move_to_target = (target_dist > e->stats.melee_range && Math::percentChance(e->stats.chance_pursue)) || (target_dist <= e->stats.melee_range && !los);
+	bool ally_targeting_hero = e->stats.hero_ally && !e->stats.in_combat && hero_dist > ALLY_FOLLOW_DISTANCE_WALK;
+	bool should_move_to_target = (e->stats.in_combat || !e->stats.waypoints.empty()) && ((target_dist > e->stats.melee_range && Math::percentChance(e->stats.chance_pursue)) || (target_dist <= e->stats.melee_range && !los));
 
-	if (should_move_to_target || fleeing) {
+	if (should_move_to_target || fleeing || ally_targeting_hero) {
 
 		if (e->move()) {
-			e->stats.cur_state = StatBlock::ENEMY_MOVE;
+			e->stats.cur_state = StatBlock::ENTITY_MOVE;
 		}
 		else {
 			collided = true;
@@ -510,7 +578,7 @@ void BehaviorStandard::checkMoveStateStance() {
 			// hit an obstacle, try the next best angle
 			e->stats.direction = e->faceNextBest(pursue_pos.x, pursue_pos.y);
 			if (e->move()) {
-				e->stats.cur_state = StatBlock::ENEMY_MOVE;
+				e->stats.cur_state = StatBlock::ENTITY_MOVE;
 			}
 			else
 				e->stats.direction = prev_direction;
@@ -518,7 +586,7 @@ void BehaviorStandard::checkMoveStateStance() {
 	}
 }
 
-void BehaviorStandard::checkMoveStateMove() {
+void EntityBehavior::checkMoveStateMove() {
 	bool can_attack = true;
 
 	if (!e->stats.cooldown.isEnd()) {
@@ -544,11 +612,12 @@ void BehaviorStandard::checkMoveStateMove() {
 	}
 
 	// close enough to the hero or is at a safe distance
-	if (pc->stats.alive && ((target_dist < e->stats.melee_range && !fleeing) || (move_to_safe_dist && target_dist >= e->stats.flee_range) || stop_fleeing)) {
+	bool ally_targeting_hero = e->stats.hero_ally && !e->stats.in_combat && !fleeing && hero_dist < ALLY_FOLLOW_DISTANCE_STOP;
+	if (pc->stats.alive && ((target_dist < e->stats.melee_range && !fleeing) || (move_to_safe_dist && target_dist >= e->stats.flee_range) || stop_fleeing || ally_targeting_hero)) {
 		if (stop_fleeing) {
 			e->stats.flee_cooldown_timer.reset(Timer::BEGIN);
 		}
-		e->stats.cur_state = StatBlock::ENEMY_STANCE;
+		e->stats.cur_state = StatBlock::ENTITY_STANCE;
 		move_to_safe_dist = false;
 		fleeing = false;
 	}
@@ -560,8 +629,18 @@ void BehaviorStandard::checkMoveStateMove() {
 		// hit an obstacle.  Try the next best angle
 		e->stats.direction = e->faceNextBest(pursue_pos.x, pursue_pos.y);
 		if (!e->move()) {
-			e->stats.cur_state = StatBlock::ENEMY_STANCE;
-			e->stats.direction = prev_direction;
+			// this prevents an ally trying to move perpendicular to a 1-tile-wide path if the player gets close to it in a certain position and gets blocked
+			if (e->stats.hero_ally && entitym->player_blocked && !e->stats.in_combat) {
+				e->stats.direction = pc->stats.direction;
+				if (!e->move()) {
+					e->stats.cur_state = StatBlock::ENTITY_STANCE;
+					e->stats.direction = prev_direction;
+				}
+			}
+			else {
+				e->stats.cur_state = StatBlock::ENTITY_STANCE;
+				e->stats.direction = prev_direction;
+			}
 		}
 	}
 }
@@ -572,7 +651,7 @@ void BehaviorStandard::checkMoveStateMove() {
  * 1) Set animations and sound effects
  * 2) Return to the default state (Stance) when actions are complete
  */
-void BehaviorStandard::updateState() {
+void EntityBehavior::updateState() {
 
 	// stunned enemies can't act
 	if (e->stats.effects.stun) return;
@@ -585,20 +664,20 @@ void BehaviorStandard::updateState() {
 
 	switch (e->stats.cur_state) {
 
-		case StatBlock::ENEMY_STANCE:
+		case StatBlock::ENTITY_STANCE:
 
 			e->setAnimation("stance");
 			break;
 
-		case StatBlock::ENEMY_MOVE:
+		case StatBlock::ENTITY_MOVE:
 
 			e->setAnimation("run");
 			break;
 
-		case StatBlock::ENEMY_POWER:
+		case StatBlock::ENTITY_POWER:
 
 			if (e->stats.activated_power == NULL) {
-				e->stats.cur_state = StatBlock::ENEMY_STANCE;
+				e->stats.cur_state = StatBlock::ENTITY_STANCE;
 				break;
 			}
 
@@ -608,7 +687,7 @@ void BehaviorStandard::updateState() {
 
 			// animation based on power type
 			if (power_state == Power::STATE_INSTANT)
-				e->instant_power = true;
+				instant_power = true;
 			else if (power_state == Power::STATE_ATTACK)
 				e->setAnimation(powers->powers[power_id].attack_anim);
 
@@ -632,7 +711,7 @@ void BehaviorStandard::updateState() {
 			// Activate Power:
 			// if we're at the active frame of a power animation,
 			// activate the power and set the local and global cooldowns
-			if ((e->activeAnimation->isActiveFrame() || e->instant_power) && !e->stats.hold_state) {
+			if ((e->activeAnimation->isActiveFrame() || instant_power) && !e->stats.hold_state) {
 				powers->activate(power_id, &e->stats, pursue_pos);
 
 				// set cooldown for all ai powers with the same power id
@@ -651,46 +730,43 @@ void BehaviorStandard::updateState() {
 			}
 
 			// animation is finished
-			if ((e->activeAnimation->isLastFrame() && e->stats.state_timer.isEnd()) ||
-			    (power_state == Power::STATE_ATTACK && e->activeAnimation->getName() != powers->powers[power_id].attack_anim) ||
-			    e->instant_power)
-			{
-				if (!e->instant_power)
+			if ((e->activeAnimation->isLastFrame() && e->stats.state_timer.isEnd()) || (power_state == Power::STATE_ATTACK && e->activeAnimation->getName() != powers->powers[power_id].attack_anim) || instant_power) {
+				if (!instant_power)
 					e->stats.cooldown.reset(Timer::BEGIN);
 				else
-					e->instant_power = false;
+					instant_power = false;
 
 				e->stats.activated_power = NULL;
-				e->stats.cur_state = StatBlock::ENEMY_STANCE;
+				e->stats.cur_state = StatBlock::ENTITY_STANCE;
 				e->stats.prevent_interrupt = false;
 			}
 			break;
 
-		case StatBlock::ENEMY_SPAWN:
+		case StatBlock::ENTITY_SPAWN:
 
 			e->setAnimation("spawn");
 			//the second check is needed in case the entity does not have a spawn animation
 			if (e->activeAnimation->isLastFrame() || e->activeAnimation->getName() != "spawn") {
-				e->stats.cur_state = StatBlock::ENEMY_STANCE;
+				e->stats.cur_state = StatBlock::ENTITY_STANCE;
 			}
 			break;
 
-		case StatBlock::ENEMY_BLOCK:
+		case StatBlock::ENTITY_BLOCK:
 
 			e->setAnimation("block");
 			break;
 
-		case StatBlock::ENEMY_HIT:
+		case StatBlock::ENTITY_HIT:
 
 			e->setAnimation("hit");
 			if (e->activeAnimation->isFirstFrame()) {
 				e->stats.effects.triggered_hit = true;
 			}
 			if (e->activeAnimation->isLastFrame() || e->activeAnimation->getName() != "hit")
-				e->stats.cur_state = StatBlock::ENEMY_STANCE;
+				e->stats.cur_state = StatBlock::ENTITY_STANCE;
 			break;
 
-		case StatBlock::ENEMY_DEAD:
+		case StatBlock::ENTITY_DEAD:
 			if (e->stats.effects.triggered_death) break;
 
 			e->setAnimation("die");
@@ -723,7 +799,7 @@ void BehaviorStandard::updateState() {
 
 			break;
 
-		case StatBlock::ENEMY_CRITDEAD:
+		case StatBlock::ENTITY_CRITDEAD:
 
 			e->setAnimation("critdie");
 			if (e->activeAnimation->isFirstFrame()) {
@@ -757,11 +833,11 @@ void BehaviorStandard::updateState() {
 	if (e->stats.state_timer.isEnd() && e->stats.hold_state)
 		e->stats.hold_state = false;
 
-	if (e->stats.cur_state != StatBlock::ENEMY_POWER && e->stats.charge_speed != 0.0f)
+	if (e->stats.cur_state != StatBlock::ENTITY_POWER && e->stats.charge_speed != 0.0f)
 		e->stats.charge_speed = 0.0f;
 }
 
-FPoint BehaviorStandard::getWanderPoint() {
+FPoint EntityBehavior::getWanderPoint() {
 	FPoint waypoint;
 	waypoint.x = static_cast<float>(e->stats.wander_area.x) + static_cast<float>(rand() % (e->stats.wander_area.w)) + 0.5f;
 	waypoint.y = static_cast<float>(e->stats.wander_area.y) + static_cast<float>(rand() % (e->stats.wander_area.h)) + 0.5f;
@@ -775,4 +851,6 @@ FPoint BehaviorStandard::getWanderPoint() {
 		// didn't get a valid waypoint, so keep our current position
 		return e->stats.pos;
 	}
+}
+EntityBehavior::~EntityBehavior() {
 }

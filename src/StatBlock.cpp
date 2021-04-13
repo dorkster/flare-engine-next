@@ -28,8 +28,8 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Avatar.h"
 #include "CampaignManager.h"
 #include "CombatText.h"
-#include "Enemy.h"
-#include "EnemyManager.h"
+#include "Entity.h"
+#include "EntityManager.h"
 #include "EngineSettings.h"
 #include "FileParser.h"
 #include "Hazard.h"
@@ -47,6 +47,15 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "UtilsParsing.h"
 
 #include <limits>
+
+#include <math.h>
+#ifndef M_SQRT2
+#define M_SQRT2 sqrt(2.0)
+#endif
+
+const float StatBlock::DIRECTION_DELTA_X[8] =   {-1, -1, -1,  0,  1,  1,  1,  0};
+const float StatBlock::DIRECTION_DELTA_Y[8] =   { 1,  0, -1, -1, -1,  0,  1,  1};
+const float StatBlock::SPEED_MULTIPLIER[8] = { static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f};
 
 StatBlock::StatBlock()
 	: statsLoaded(false)
@@ -115,7 +124,7 @@ StatBlock::StatBlock()
 	, direction(0)
 	, cooldown_hit()
 	, cooldown_hit_enabled(false)
-	, cur_state(0)
+	, cur_state(ENTITY_STANCE)
 	, state_timer()
 	, hold_state(false)
 	, prevent_interrupt(false)
@@ -187,6 +196,8 @@ StatBlock::StatBlock()
 	for (size_t i = 0; i < per_primary.size(); ++i) {
 		per_primary[i].resize(Stats::COUNT + eset->damage_types.count, 0);
 	}
+
+	cooldown.reset(Timer::END);
 }
 
 StatBlock::~StatBlock() {
@@ -640,7 +651,7 @@ void StatBlock::takeDamage(int dmg, bool crit, int source_type) {
 		// what about other things that happen in the "dead" entity states?
 
 		if (hero) {
-			cur_state = StatBlock::AVATAR_DEAD;
+			cur_state = StatBlock::ENTITY_DEAD;
 		}
 		else {
 			// enemy died; do rewards
@@ -679,9 +690,9 @@ void StatBlock::takeDamage(int dmg, bool crit, int source_type) {
 			}
 
 			if (crit)
-				cur_state = StatBlock::ENEMY_CRITDEAD;
+				cur_state = StatBlock::ENTITY_CRITDEAD;
 			else
-				cur_state = StatBlock::ENEMY_DEAD;
+				cur_state = StatBlock::ENTITY_DEAD;
 
 			mapr->collider.unblock(pos.x, pos.y);
 		}
@@ -808,14 +819,14 @@ void StatBlock::logic() {
 	alive = !(hp <= 0 && !effects.triggered_death && !effects.revive);
 
 	// handle party buffs
-	if (enemym && powers) {
+	if (entitym && powers) {
 		while (!party_buffs.empty()) {
 			PowerID power_index = party_buffs.front();
 			party_buffs.pop();
 			Power *buff_power = &powers->powers[power_index];
 
-			for (size_t i=0; i < enemym->enemies.size(); ++i) {
-				Enemy* party_member = enemym->enemies[i];
+			for (size_t i=0; i < entitym->entities.size(); ++i) {
+				Entity* party_member = entitym->entities[i];
 				if(party_member->stats.hp > 0 &&
 				   ((party_member->stats.hero_ally && hero) || (party_member->stats.enemy_ally && party_member->stats.summoner == this)) &&
 				   (buff_power->buff_party_power_id == 0 || buff_power->buff_party_power_id == party_member->stats.summoned_power_index)
@@ -944,9 +955,9 @@ void StatBlock::logic() {
 		mapr->collider.block(pos.x, pos.y, hero_ally);
 	}
 	else if (charge_speed != 0.0f) {
-		float tmp_speed = charge_speed * speedMultiplyer[direction];
-		float dx = tmp_speed * static_cast<float>(directionDeltaX[direction]);
-		float dy = tmp_speed * static_cast<float>(directionDeltaY[direction]);
+		float tmp_speed = charge_speed * SPEED_MULTIPLIER[direction];
+		float dx = tmp_speed * DIRECTION_DELTA_X[direction];
+		float dy = tmp_speed * DIRECTION_DELTA_Y[direction];
 
 		mapr->collider.unblock(pos.x, pos.y);
 		mapr->collider.move(pos.x, pos.y, dx, dy, movement_type, mapr->collider.getCollideType(hero));
@@ -970,10 +981,16 @@ void StatBlock::logic() {
 		hp = get(Stats::HP_MAX);
 		alive = true;
 		corpse = false;
-		if (hero)
-			cur_state = AVATAR_STANCE;
-		else
-			cur_state = ENEMY_STANCE;
+		cur_state = ENTITY_STANCE;
+	}
+
+	// non-hero entities can have their disposition reversed
+	if (!hero && effects.convert != converted) {
+		converted = !converted;
+		hero_ally = !hero_ally;
+		if (convert_status != 0) {
+			camp->setStatus(convert_status);
+		}
 	}
 }
 
@@ -1006,7 +1023,7 @@ bool StatBlock::canUsePower(PowerID powerid, bool allow_passive) const {
 			&& (power.type == Power::TYPE_SPAWN ? !summonLimitReached(powerid) : true)
 			&& !(power.spawn_type == "untransform" && !transformed)
 			&& std::includes(equip_flags.begin(), equip_flags.end(), power.requires_flags.begin(), power.requires_flags.end())
-			&& (!power.buff_party || (power.buff_party && enemym && enemym->checkPartyMembers()))
+			&& (!power.buff_party || (power.buff_party && entitym && entitym->checkPartyMembers()))
 			&& powers->checkRequiredItems(power, this)
 		);
 	}
@@ -1124,9 +1141,9 @@ bool StatBlock::summonLimitReached(PowerID power_id) const {
 
 	for (unsigned int i=0; i < summons.size(); i++) {
 		if(!summons[i]->corpse && summons[i]->summoned_power_index == power_id
-				&& summons[i]->cur_state != ENEMY_SPAWN
-				&& summons[i]->cur_state != ENEMY_DEAD
-				&& summons[i]->cur_state != ENEMY_CRITDEAD) {
+				&& summons[i]->cur_state != ENTITY_SPAWN
+				&& summons[i]->cur_state != ENTITY_DEAD
+				&& summons[i]->cur_state != ENTITY_CRITDEAD) {
 			qty_summons++;
 		}
 	}

@@ -32,25 +32,17 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "CommonIncludes.h"
 #include "EngineSettings.h"
 #include "Entity.h"
+#include "EntityBehavior.h"
 #include "Hazard.h"
 #include "MapRenderer.h"
 #include "MessageEngine.h"
 #include "PowerManager.h"
+#include "RenderDevice.h"
 #include "Settings.h"
 #include "SharedGameResources.h"
 #include "SharedResources.h"
 #include "SoundManager.h"
 #include "UtilsMath.h"
-
-#include <math.h>
-
-#ifndef M_SQRT2
-#define M_SQRT2 sqrt(2.0)
-#endif
-
-const int directionDeltaX[8] =   {-1, -1, -1,  0,  1,  1,  1,  0};
-const int directionDeltaY[8] =   { 1,  0, -1, -1, -1,  0,  1,  1};
-const float speedMultiplyer[8] = { static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f, static_cast<float>(1.0/M_SQRT2), 1.0f};
 
 Entity::Entity()
 	: sprites(NULL)
@@ -62,7 +54,12 @@ Entity::Entity()
 	, sound_levelup(0)
 	, sound_lowhp(0)
 	, activeAnimation(NULL)
-	, animationSet(NULL) {
+	, animationSet(NULL)
+	, stats()
+	, type_filename("")
+{
+	// MSVC complains if you use 'this' in the init list
+	behavior = new EntityBehavior(this);
 }
 
 Entity::Entity(const Entity& e) {
@@ -81,11 +78,22 @@ Entity& Entity::operator=(const Entity& e) {
 	sound_block = e.sound_block;
 	sound_levelup = e.sound_levelup;
 	sound_lowhp = e.sound_lowhp;
-	activeAnimation = new Animation(*e.activeAnimation);
+
+	if (e.activeAnimation)
+		activeAnimation = new Animation(*e.activeAnimation);
 	animationSet = e.animationSet;
+
 	stats = StatBlock(e.stats);
 
+	type_filename = e.type_filename;
+
+	behavior = new EntityBehavior(this);
+
 	return *this;
+}
+
+void Entity::logic() {
+	behavior->logic();
 }
 
 void Entity::loadSounds() {
@@ -284,9 +292,9 @@ bool Entity::move() {
 	if (stats.charge_speed != 0.0f)
 		return false;
 
-	float speed = stats.speed * speedMultiplyer[stats.direction] * stats.effects.speed / 100;
-	float dx = speed * static_cast<float>(directionDeltaX[stats.direction]);
-	float dy = speed * static_cast<float>(directionDeltaY[stats.direction]);
+	float speed = stats.speed * StatBlock::SPEED_MULTIPLIER[stats.direction] * stats.effects.speed / 100;
+	float dx = speed * StatBlock::DIRECTION_DELTA_X[stats.direction];
+	float dy = speed * StatBlock::DIRECTION_DELTA_Y[stats.direction];
 
 	bool full_move = mapr->collider.move(stats.pos.x, stats.pos.y, dx, dy, stats.movement_type, mapr->collider.getCollideType(stats.hero));
 
@@ -320,10 +328,7 @@ bool Entity::takeHit(Hazard &h) {
 	}
 
 	//if the target is already dead, they cannot be hit
-	if ((stats.cur_state == StatBlock::ENEMY_DEAD || stats.cur_state == StatBlock::ENEMY_CRITDEAD) && !stats.hero)
-		return false;
-
-	if(stats.cur_state == StatBlock::AVATAR_DEAD && stats.hero)
+	if (stats.cur_state == StatBlock::ENTITY_DEAD || stats.cur_state == StatBlock::ENTITY_CRITDEAD)
 		return false;
 
 	// some attacks will always miss enemies of a certain movement type
@@ -616,7 +621,7 @@ bool Entity::takeHit(Hazard &h) {
 		if (!was_debuffed && stats.effects.isDebuffed()) {
 			StatBlock::AIPower* ai_power = stats.getAIPower(StatBlock::AI_POWER_DEBUFF);
 			if (ai_power != NULL) {
-				stats.cur_state = StatBlock::ENEMY_POWER;
+				stats.cur_state = StatBlock::ENTITY_POWER;
 				stats.activated_power = ai_power;
 				stats.cooldown.reset(Timer::END); // ignore global cooldown
 				return true;
@@ -626,7 +631,7 @@ bool Entity::takeHit(Hazard &h) {
 		// roll to see if the enemy's ON_HIT power is casted
 		StatBlock::AIPower* ai_power = stats.getAIPower(StatBlock::AI_POWER_HIT);
 		if (ai_power != NULL) {
-			stats.cur_state = StatBlock::ENEMY_POWER;
+			stats.cur_state = StatBlock::ENTITY_POWER;
 			stats.activated_power = ai_power;
 			stats.cooldown.reset(Timer::END); // ignore global cooldown
 			return true;
@@ -641,14 +646,14 @@ bool Entity::takeHit(Hazard &h) {
 
 			if (!stats.effects.stun && (!chance_poise || crit) && !stats.prevent_interrupt) {
 				if(stats.hero) {
-					stats.cur_state = StatBlock::AVATAR_HIT;
+					stats.cur_state = StatBlock::ENTITY_HIT;
 				}
 				else {
-					if (stats.cur_state == StatBlock::ENEMY_POWER) {
+					if (stats.cur_state == StatBlock::ENTITY_POWER) {
 						stats.cooldown.reset(Timer::BEGIN);
 						stats.activated_power = NULL;
 					}
-					stats.cur_state = StatBlock::ENEMY_HIT;
+					stats.cur_state = StatBlock::ENTITY_HIT;
 				}
 
 				if (stats.untransform_on_hit)
@@ -694,7 +699,61 @@ bool Entity::setAnimation(const std::string& animationName) {
 	return activeAnimation == NULL;
 }
 
+/**
+ * The current direction leads to a wall.  Try the next best direction, if one is available.
+ */
+unsigned char Entity::faceNextBest(float mapx, float mapy) {
+	float dx = static_cast<float>(fabs(mapx - stats.pos.x));
+	float dy = static_cast<float>(fabs(mapy - stats.pos.y));
+	switch (stats.direction) {
+		case 0:
+			if (dy > dx) return 7;
+			else return 1;
+		case 1:
+			if (mapy > stats.pos.y) return 0;
+			else return 2;
+		case 2:
+			if (dx > dy) return 1;
+			else return 3;
+		case 3:
+			if (mapx < stats.pos.x) return 2;
+			else return 4;
+		case 4:
+			if (dy > dx) return 3;
+			else return 5;
+		case 5:
+			if (mapy < stats.pos.y) return 4;
+			else return 6;
+		case 6:
+			if (dx > dy) return 5;
+			else return 7;
+		case 7:
+			if (mapx > stats.pos.x) return 6;
+			else return 0;
+	}
+	return 0;
+}
+
+/**
+ * getRender()
+ * Map objects need to be drawn in Z order, so we allow a parent object (GameEngine)
+ * to collect all mobile sprites each frame.
+ */
+Renderable Entity::getRender() {
+	Renderable r = activeAnimation->getCurrentFrame(stats.direction);
+	r.map_pos.x = stats.pos.x;
+	r.map_pos.y = stats.pos.y;
+	if (stats.hp > 0) {
+		if (stats.hero_ally)
+			r.type = Renderable::TYPE_ALLY;
+		else if (stats.in_combat)
+			r.type = Renderable::TYPE_ENEMY;
+	}
+	return r;
+}
+
 Entity::~Entity () {
 	delete activeAnimation;
+	delete behavior;
 }
 

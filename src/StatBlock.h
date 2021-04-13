@@ -56,24 +56,15 @@ public:
 		AI_POWER_PASSIVE_POST = 8
 	};
 
-	enum AvatarState {
-		AVATAR_STANCE = 0,
-		AVATAR_RUN = 1,
-		AVATAR_BLOCK = 2,
-		AVATAR_HIT = 3,
-		AVATAR_DEAD = 4,
-		AVATAR_ATTACK = 5
-	};
-
-	enum EnemyState {
-		ENEMY_STANCE = 0,
-		ENEMY_MOVE = 1,
-		ENEMY_POWER = 2,
-		ENEMY_SPAWN = 3,
-		ENEMY_BLOCK = 4,
-		ENEMY_HIT = 5,
-		ENEMY_DEAD = 6,
-		ENEMY_CRITDEAD = 7
+	enum EntityState {
+		ENTITY_STANCE = 0,
+		ENTITY_MOVE = 1,
+		ENTITY_POWER = 2,
+		ENTITY_SPAWN = 3,
+		ENTITY_BLOCK = 4,
+		ENTITY_HIT = 5,
+		ENTITY_DEAD = 6,
+		ENTITY_CRITDEAD = 7
 	};
 
 	enum CombatStyle {
@@ -99,6 +90,10 @@ public:
 
 	static const bool CAN_USE_PASSIVE = true;
 	static const bool TAKE_DMG_CRIT = true;
+
+	static const float DIRECTION_DELTA_X[8];
+	static const float DIRECTION_DELTA_Y[8];
+	static const float SPEED_MULTIPLIER[8];
 
 	StatBlock();
 	~StatBlock();

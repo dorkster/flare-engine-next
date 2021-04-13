@@ -27,7 +27,7 @@ FLARE.  If not, see http://www.gnu.org/licenses/
 #include "Animation.h"
 #include "Avatar.h"
 #include "CampaignManager.h"
-#include "EnemyManager.h"
+#include "EntityManager.h"
 #include "EngineSettings.h"
 #include "EventManager.h"
 #include "ItemManager.h"
@@ -94,7 +94,7 @@ void NPCManager::handleNewMap() {
 			continue;
 		}
 
-		NPC *npc = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(mn.id));
+		NPC *npc = new NPC(*entitym->getEntityPrototype(mn.id));
 
 		npc->load(mn.id);
 
@@ -181,7 +181,7 @@ int NPCManager::getID(const std::string& npcName) {
 	}
 
 	// could not find NPC, try loading it here
-	NPC *n = new NPC(*enemym->getEnemyPrototypeWithoutAnimationChanges(npcName));
+	NPC *n = new NPC(*entitym->getEntityPrototype(npcName));
 	if (n) {
 		n->load(npcName);
 		npcs.push_back(n);
@@ -191,11 +191,11 @@ int NPCManager::getID(const std::string& npcName) {
 	return -1;
 }
 
-Enemy* NPCManager::npcFocus(const Point& mouse, const FPoint& cam, bool alive_only) {
+Entity* NPCManager::npcFocus(const Point& mouse, const FPoint& cam, bool alive_only) {
 	Point p;
 	Rect r;
 	for(unsigned int i = 0; i < npcs.size(); i++) {
-		if(alive_only && (npcs[i]->stats.cur_state == StatBlock::ENEMY_DEAD || npcs[i]->stats.cur_state == StatBlock::ENEMY_CRITDEAD)) {
+		if(alive_only && (npcs[i]->stats.cur_state == StatBlock::ENTITY_DEAD || npcs[i]->stats.cur_state == StatBlock::ENTITY_CRITDEAD)) {
 			continue;
 		}
 		if (!npcs[i]->stats.hero_ally) {
@@ -217,12 +217,12 @@ Enemy* NPCManager::npcFocus(const Point& mouse, const FPoint& cam, bool alive_on
 	return NULL;
 }
 
-Enemy* NPCManager::getNearestNPC(const FPoint& pos, bool get_corpse) {
-	Enemy* nearest = NULL;
+Entity* NPCManager::getNearestNPC(const FPoint& pos, bool get_corpse) {
+	Entity* nearest = NULL;
 	float best_distance = std::numeric_limits<float>::max();
 
 	for (unsigned i=0; i<npcs.size(); i++) {
-		if(!get_corpse && (npcs[i]->stats.cur_state == StatBlock::ENEMY_DEAD || npcs[i]->stats.cur_state == StatBlock::ENEMY_CRITDEAD)) {
+		if(!get_corpse && (npcs[i]->stats.cur_state == StatBlock::ENTITY_DEAD || npcs[i]->stats.cur_state == StatBlock::ENTITY_CRITDEAD)) {
 			continue;
 		}
 		if (get_corpse && !npcs[i]->stats.corpse) {
