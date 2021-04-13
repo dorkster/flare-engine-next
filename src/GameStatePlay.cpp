@@ -120,8 +120,6 @@ void GameStatePlay::refreshWidgets() {
  * Reset all game states to a new game.
  */
 void GameStatePlay::resetGame() {
-	mapr->load("maps/spawn.txt");
-	setLoadingFrame();
 	camp->resetAllStatuses();
 	pc->init();
 	pc->stats.currency = 0;
@@ -138,7 +136,8 @@ void GameStatePlay::resetGame() {
 	menu->talker->setHero(pc->stats);
 	pc->loadSounds();
 
-	mapr->executeOnLoadEvents();
+	mapr->teleportation = true;
+	mapr->teleport_mapname = "maps/spawn.txt";
 }
 
 /**
@@ -1044,6 +1043,8 @@ void GameStatePlay::logic() {
  * Render all graphics for a single frame
  */
 void GameStatePlay::render() {
+	if (mapr->is_spawn_map)
+		return;
 
 	// Create a list of Renderables from all objects not already on the map.
 	// split the list into the beings alive (may move) and dead beings (must not move)
