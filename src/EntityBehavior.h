@@ -76,7 +76,7 @@ protected:
 	bool instant_power;
 
 public:
-	EntityBehavior(Entity *_e);
+	explicit EntityBehavior(Entity *_e);
 	~EntityBehavior();
 	void logic();
 };
