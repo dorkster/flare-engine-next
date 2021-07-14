@@ -59,6 +59,7 @@ text=Adrian Chaves Fernandez
 text=Andrea Ranaldi
 text=Andreas Berheim Brudin
 text=Andrey Kapitonov
+text=Bafy
 text=Bas Doodeman
 text=Błażej Pęksyk
 text=Bonbadil
@@ -115,7 +116,7 @@ text=Timo Sievänen
 text=Vicente Monteiro
 text=Wuzzy2
 text=Yannis Anthymidis
-text=Zmicer Turok
+text=Źmicier Turok
 separator=32
 
 text=Distributors
